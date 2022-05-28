@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from BiddingEnvironment import *
-from GTS_Learner import *
-from GPTS_Learner import *
+from GP_in_MABs.BiddingEnvironment import *
+from GP_in_MABs.GTS_Learner import *
+from GP_in_MABs.GPTS_Learner import *
 
 
 

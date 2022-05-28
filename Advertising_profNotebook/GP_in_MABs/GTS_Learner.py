@@ -1,4 +1,4 @@
-from Learner import *
+from BaseClasses.Learner import *
 
 
 class GTS_Learner (Learner): #GTS stands for Gaussian Thompson Sampling
