@@ -22,10 +22,12 @@ class Network:
             self.adjacency_matrix[tuple(random_indices)] = 0.0
 
         print(self.adjacency_matrix)
-        
+
     
     def generate_live_edge_graph():
-        pass
+        live_edges = []
+        self.live_edges_adjacency_matrix = np.zeros_like(self.adjacency_matrix)
+        self.edges = np.argwhere(self.adjacency_matrix)
 
     def montecarlo_estimation():
         pass
