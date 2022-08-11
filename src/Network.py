@@ -1,27 +1,40 @@
 import numpy as np
 from .Node import *
 import random
+import networkx as nx
+import matplotlib as plt
 
 seed = 1234
 
 class Network:
 
-    def __init__(self, n_nodes : int, fully_connected = False):
-        self.nodes = []
+    def __init__(self, n_nodes : int, fully_connected = False, alternative_formulation = False):
+
+        self.graph = nx.DiGraph()
+
+        nodes = []
         for id in range(n_nodes):
-          self.nodes.append(Node(id, random.random()*100))
+          nodes.append(Node(id, random.random()*100, random.random() if alternative_formulation else None))
         
-        self.adjacency_matrix = np.round(np.random.uniform(low=0.01, high = 1.00, size = (n_nodes, n_nodes)), 2)
-        self.adjacency_matrix[np.diag_indices(n = n_nodes, ndim = 2)] = 0.0
+        adjacency_matrix = np.round(np.random.uniform(low=0.01, high = 1.000001, size = (n_nodes, n_nodes)), 2)
+        adjacency_matrix[np.diag_indices(n = n_nodes, ndim = 2)] = 0.0
 
         if not fully_connected:
-            indices = np.argwhere(self.adjacency_matrix).T
+            indices = np.argwhere(adjacency_matrix).T
             random_indices = random.sample(range(0, indices.shape[1]), np.random.randint(low=10, high=16))
-            print(len(random_indices))
             random_indices = indices[:, random_indices]
-            self.adjacency_matrix[tuple(random_indices)] = 0.0
+            adjacency_matrix[tuple(random_indices)] = 0.0
+        
+        if alternative_formulation :
+            for i in range(n_nodes):
+                adjacency_matrix[:, i] = np.round( adjacency_matrix[:, i] / np.sum(adjacency_matrix[:, i]), 2)
 
-        print(self.adjacency_matrix)
+        #self.graph.add_nodes_from(nodes)
+        for i in range(n_nodes):
+            for j in range(n_nodes):
+                if(adjacency_matrix[i][j] != 0):
+                    self.graph.add_edge(nodes[i], nodes[j], weight = adjacency_matrix[i][j])
+
 
     
     def generate_live_edge_graph():
