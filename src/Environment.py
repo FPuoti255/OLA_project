@@ -47,6 +47,7 @@ class Environment():
 
             slots = secondary_products[primary_product]
             log('slots:'+ ' '.join(map(str, slots)))
+            
 
 
             for idxs in np.argwhere(slots):
@@ -61,13 +62,14 @@ class Environment():
                         else:
                             log('The node has already been shown as primary')
                 else:
-                    log('the user reservation price is less than the product price')
+                    log('The user reservation price is less than the product price')
             
             has_been_primary.add(primary_product)
 
             if show_plots:
                 active = np.argwhere(active_edges).T
                 active = list(zip(active[0], active[1]))
+                print(active_nodes)
                 subplots.append({'active_edges' : active, 'active_nodes' : active_nodes})
 
 

@@ -23,13 +23,21 @@ def generate_click_probabilities(fully_connected : bool):
     return adjacency_matrix
 
 
-def generate_observation_probabilities():
+def generate_observation_probabilities(click_probabilities):
     obs_prob = np.zeros(shape = (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+    
     for product in range(NUM_OF_PRODUCTS):
-        available_products = [i for i in range(0,NUM_OF_PRODUCTS) if i != product]
-        idxs = np.random.choice(a= available_products, size=2, replace=False)
-        obs_prob[product][idxs[0]] = 1
-        obs_prob[product][idxs[1]] = LAMBDA
+        
+        available_products = [i for i in range(0,NUM_OF_PRODUCTS) if i != product and click_probabilities[product][i]!=0.0]
+        
+        if len(available_products) >= 2:
+            idxs = np.random.choice(a= available_products, size=max(2, len(available_products)), replace=False)
+            obs_prob[product][idxs[0]] = 1
+            obs_prob[product][idxs[1]] = LAMBDA
+        elif len(available_products) == 1:
+            obs_prob[product][available_products[0]] = 1
+        else:
+            continue
 
     return obs_prob
 
@@ -44,7 +52,7 @@ if __name__ == '__main__' :
 
     # click_probabilities == edge weights in our case
     click_probabilities = generate_click_probabilities(fully_connected=False)
-    observations_probabilities = generate_observation_probabilities()
+    observations_probabilities = generate_observation_probabilities(click_probabilities=click_probabilities)
     
     concentration_params = [100] + [70] * NUM_OF_PRODUCTS
     alpha_users = np.random.dirichlet( alpha= concentration_params, size = 1)
@@ -59,5 +67,3 @@ if __name__ == '__main__' :
                       observations_probabilities = observations_probabilities)
 
     Network.print_graph(G=env.network.G)
-
-    print(env.montecarlo_sampling())
