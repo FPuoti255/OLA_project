@@ -37,29 +37,45 @@ class Network:
         plt.show()
 
     @staticmethod
-    def print_live_edge_graph(G : nx.Graph, active_edges : list, active_nodes : list):
+    def print_live_edge_graphs(G : nx.Graph, subplots : list[dict]):
 
-        fig = plt.figure(figsize=(15,15), facecolor="white")
-        pos = nx.spring_layout(G, scale=15, k=10/math.sqrt(G.order()), seed=7)  # positions for all nodes - seed for reproducibility
+        # plt.ion()
+        # plt.axis("off")
+        # fig, axs = plt.subplots(nrows = max(2, len(subplots)),sharex=True, sharey=True, ncols=1, figsize=(15,15), facecolor="white")
 
-        inactive_edges = list(set(G.edges) - set(active_edges))
-        inactive_nodes = list(set(G.nodes) - set(active_nodes))        
+        # rendering
+        fig = plt.figure(1); plt.clf()
+        # compute a grid size that will fit all graphs on it (couple blanks likely)
+        nr = max(2, int(np.ceil(np.sqrt(len(subplots)))) )
+        fig, ax = plt.subplots(nr, nr, num=1, figsize=(100,100))
+        fig.tight_layout()
 
-        # nodes
-        nx.draw_networkx_nodes(G, pos, nodelist=active_nodes, node_size = 1000, node_color="r")
-        nx.draw_networkx_nodes(G, pos, nodelist=inactive_nodes, node_size= 1000, node_color='b')
+        for i in range(len(subplots)):
+            ix = np.unravel_index(i, ax.shape)
+            plt.sca(ax[ix])
+            
+            active_edges = subplots[i]['active_edges']
+            active_nodes = subplots[i]['active_nodes']
 
-        # edges
-        nx.draw_networkx_edges(G, pos, edgelist=active_edges, width=1, arrowsize=25, connectionstyle='arc3, rad = 0.1', edge_color="r")
-        nx.draw_networkx_edges(G, pos, edgelist=inactive_edges, width=1, arrowsize=25, connectionstyle='arc3, rad = 0.1', alpha=0.5, edge_color='k', style='dashed')
+            pos = nx.spring_layout(G, scale=15, k=10/math.sqrt(G.order()), seed=7)  # positions for all nodes - seed for reproducibility
 
-        nx.draw_networkx_labels(G, pos, font_size=15, font_family="sans-serif")
-        # edge weight labels
-        edge_labels = nx.get_edge_attributes(G, "weight")
-        nx.draw_networkx_edge_labels(G, pos, edge_labels, 0.3)
+            inactive_edges = list(set(G.edges) - set(active_edges))
+            inactive_nodes = list(set(G.nodes) - set(active_nodes))        
 
-        ax = fig.gca()
-        ax.margins(0.08)
-        plt.axis("off")
+            # nodes
+            nx.draw_networkx_nodes(G, pos, nodelist=active_nodes, node_size = 1000, node_color="r")
+            nx.draw_networkx_nodes(G, pos, nodelist=inactive_nodes, node_size= 1000, node_color='b')
+
+            # edges
+            nx.draw_networkx_edges(G, pos, edgelist=active_edges, width=1, arrowsize=25, connectionstyle='arc3, rad = 0.1', edge_color="r")
+            nx.draw_networkx_edges(G, pos, edgelist=inactive_edges, width=1, arrowsize=25, connectionstyle='arc3, rad = 0.1', alpha=0.5, edge_color='k', style='dashed')
+
+            nx.draw_networkx_labels(G, pos, font_size=15, font_family="sans-serif")
+            # edge weight labels
+            edge_labels = nx.get_edge_attributes(G, "weight")
+            nx.draw_networkx_edge_labels(G, pos, edge_labels, 0.3)
+
+            ax[ix].set_title('iteration ' + str(i), fontsize=10)
+            ax[ix].set_axis_off()
+
         plt.show()
-

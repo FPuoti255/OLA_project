@@ -59,3 +59,5 @@ if __name__ == '__main__' :
                       observations_probabilities = observations_probabilities)
 
     Network.print_graph(G=env.network.G)
+
+    print(env.montecarlo_sampling())
