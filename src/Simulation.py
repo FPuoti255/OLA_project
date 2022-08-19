@@ -54,16 +54,16 @@ if __name__ == '__main__' :
     click_probabilities = generate_click_probabilities(fully_connected=False)
     observations_probabilities = generate_observation_probabilities(click_probabilities=click_probabilities)
     
-    concentration_params = [100] + [70] * NUM_OF_PRODUCTS
-    alpha_users = np.random.dirichlet( alpha= concentration_params, size = 1)
-
-
     product_prices, users_reservation_prices = generate_prices(product_range=70, users_range=100)
 
-    env = Environment(alpha_users=alpha_users, 
-                      users_reservation_prices = users_reservation_prices,
+    env = Environment(users_reservation_prices = users_reservation_prices,
                       product_prices = product_prices,
                       click_probabilities = click_probabilities,
                       observations_probabilities = observations_probabilities)
 
     Network.print_graph(G=env.network.G)
+
+    nodes_activation_probabilities = env.montecarlo_sampling()
+    concentration_params = [np.average(a=nodes_activation_probabilities)] + nodes_activation_probabilities
+    alpha_users = np.random.dirichlet(alpha=concentration_params, size=NUM_OF_USERS_CLASSES)
+    

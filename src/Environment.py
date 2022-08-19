@@ -10,8 +10,7 @@ def log(msg):
         print(msg)
 
 class Environment():
-    def __init__(self, alpha_users, users_reservation_prices, product_prices, click_probabilities, observations_probabilities):
-        self.alpha_users = alpha_users
+    def __init__(self, users_reservation_prices, product_prices, click_probabilities, observations_probabilities):
         self.users_reservation_prices = users_reservation_prices
         self.product_prices = product_prices
         self.network = Network(adjacency_matrix= click_probabilities) 
@@ -48,21 +47,25 @@ class Environment():
             slots = secondary_products[primary_product]
             log('slots:'+ ' '.join(map(str, slots)))
             
+            # After the product has been added to the cart, 
+            # two products, called secondary, are recommended.
+            if self.users_reservation_prices[primary_product] >= self.product_prices[primary_product]:
+                for idxs in np.argwhere(slots):
 
-
-            for idxs in np.argwhere(slots):
-                if self.users_reservation_prices[primary_product] >= self.product_prices[primary_product]:
-                    binomial_realization = np.random.binomial(n = 1, p = slots[idxs[0], idxs[1]])
-                    log('binomial realization for ' + str(idxs[1])+' is ' + str(binomial_realization))
-                    if binomial_realization :
-                        if idxs[1] not in has_been_primary:
+                    # the user clicks on a secondary product with a probability depending on the primary product
+                    # except when the secondary product has been already displayed as primary in the past, 
+                    # in this case the click probability is zero
+                    if idxs[1] not in has_been_primary:
+                        binomial_realization = np.random.binomial(n = 1, p = slots[idxs[0], idxs[1]])
+                        log('binomial realization for ' + str(idxs[1])+' is ' + str(binomial_realization))
+                        if binomial_realization :
                             active_edges[primary_product, idxs[1]] = 1
                             white_nodes.add(idxs[1])
                             active_nodes.append(idxs[1])
-                        else:
-                            log('The node has already been shown as primary')
-                else:
-                    log('The user reservation price is less than the product price')
+                    else:
+                        log('product '+ str(idxs[1]) + ' has already been shown as primary')
+            else:
+                log('The user reservation price is less than the product price')
             
             has_been_primary.add(primary_product)
 
@@ -82,7 +85,7 @@ class Environment():
     def montecarlo_sampling(self):
         z = np.zeros(NUM_OF_PRODUCTS)
 
-        k = 10000
+        k = 50000
 
         for _ in range(k):
             
