@@ -2,6 +2,7 @@ import numpy as np
 from Constants import *
 from Network import Network
 import random
+from tqdm import tqdm
 
 debug = False
 
@@ -17,10 +18,10 @@ class Environment():
         self.observations_probabilities = observations_probabilities
         
 
-    def generate_live_edge_graph(self, show_plots = False):
+    def generate_live_edge_graph(self, seed : int, show_plots = False):
 
-        seed = np.random.choice(a=np.arange(0, NUM_OF_PRODUCTS), size=1)[0]
-        log('seed:' + str(seed))
+        # seed = np.random.choice(a=np.arange(0, NUM_OF_PRODUCTS), size=1)[0]
+        # log('seed:' + str(seed))
 
         weights = self.network.get_adjacency_matrix()
         active_edges = np.zeros((NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
@@ -82,15 +83,34 @@ class Environment():
         return active_nodes
 
     
-    def montecarlo_sampling(self):
-        z = np.zeros(NUM_OF_PRODUCTS)
+    # def montecarlo_sampling(self):
+    #     z = np.zeros(NUM_OF_PRODUCTS)
 
-        k = 50000
+    #     # number of repetition to have theoretical guarantees on the error of the estimation
+    #     epsilon = 0.01
+    #     delta = 0.01
+    #     k = int((1/epsilon**2) * np.log(NUM_OF_PRODUCTS) * np.log(1/delta))
 
-        for _ in range(k):
+    #     for _ in tqdm(range(k)):
             
-            active_nodes = self.generate_live_edge_graph(show_plots = False)
-            mask = np.isin(np.arange(0, NUM_OF_PRODUCTS), active_nodes)
-            z += mask * 1
+    #         active_nodes = self.generate_live_edge_graph(show_plots = False)
+    #         # mask = np.isin(np.arange(0, NUM_OF_PRODUCTS), active_nodes)
+    #         # z += mask * 1
+    #         z[active_nodes] += 1
+
+    #     return z / k
+
+    def montecarlo_sampling(self):
+        z = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+
+        # number of repetition to have theoretical guarantees on the error of the estimation
+        epsilon = 0.03
+        delta = 0.01
+        k = int((1/epsilon**2) * np.log(NUM_OF_PRODUCTS/2) * np.log(1/delta))
+
+        for node in tqdm(range(NUM_OF_PRODUCTS),position = 0, desc='node' ,leave=False):
+            for _ in tqdm(range(k), position=1, desc='k'):                
+                active_nodes = self.generate_live_edge_graph(show_plots = False, seed = node)
+                z[node][active_nodes] += 1
 
         return z / k

@@ -1,8 +1,10 @@
-from Constants import *
 import numpy as np
+import random
+
+from Constants import *
 from Environment import Environment
 from Network import Network
-import random
+from Ecommerce import Ecommerce
 
 def generate_click_probabilities(fully_connected : bool):
 
@@ -54,7 +56,7 @@ if __name__ == '__main__' :
     click_probabilities = generate_click_probabilities(fully_connected=False)
     observations_probabilities = generate_observation_probabilities(click_probabilities=click_probabilities)
     
-    product_prices, users_reservation_prices = generate_prices(product_range=70, users_range=100)
+    product_prices, users_reservation_prices = generate_prices(product_range=60, users_range=100)
 
     env = Environment(users_reservation_prices = users_reservation_prices,
                       product_prices = product_prices,
@@ -64,6 +66,9 @@ if __name__ == '__main__' :
     Network.print_graph(G=env.network.G)
 
     nodes_activation_probabilities = env.montecarlo_sampling()
-    concentration_params = [np.average(a=nodes_activation_probabilities)] + nodes_activation_probabilities
-    alpha_users = np.random.dirichlet(alpha=concentration_params, size=NUM_OF_USERS_CLASSES)
+    
+    B_cap = np.random.randint(low=150, high=251)
+    ecomm = Ecommerce(B_cap = B_cap)
+    ecomm.solve_optimization_problem(product_prices = product_prices, nodes_activation_probabilities = nodes_activation_probabilities)
+
     
