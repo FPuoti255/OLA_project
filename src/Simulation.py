@@ -69,6 +69,6 @@ if __name__ == '__main__' :
     
     B_cap = np.random.randint(low=150, high=251)
     ecomm = Ecommerce(B_cap = B_cap)
-    ecomm.solve_optimization_problem(product_prices = product_prices, nodes_activation_probabilities = nodes_activation_probabilities)
+    ecomm.solve_optimization_problem(env = env, nodes_activation_probabilities= nodes_activation_probabilities)
 
     

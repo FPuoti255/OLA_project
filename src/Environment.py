@@ -114,3 +114,6 @@ class Environment():
                 z[node][active_nodes] += 1
 
         return z / k
+
+    def get_users_alphas(self, a):
+        return np.random.dirichlet(alpha = a, size = NUM_OF_USERS_CLASSES)
