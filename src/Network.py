@@ -14,8 +14,10 @@ class Network:
 
     def get_adjacency_matrix(self):
         return nx.to_numpy_matrix(G=self.G)
-
     
+    def get_graph(self):
+        return self.G
+
     @staticmethod
     def print_graph(G : nx.Graph):
 
