@@ -1,8 +1,10 @@
 import numpy as np
 import networkx as nx
+from math import sqrt
 
 from Network import *
 from Environment import *
+from Constants import *
 
 
 def generate_live_edge_graph(seed : int, 
@@ -36,8 +38,9 @@ def generate_live_edge_graph(seed : int,
         log('slots:'+ ' '.join(map(str, slots)))
         
         # After the product has been added to the cart, 
-        # two products, called secondary, are recommended.
-        if users_reservation_prices[primary_product] >= product_prices[primary_product]:
+        #two products, called secondary, are recommended.
+        
+        if np.random.binomial(n=1, p = np.tanh(users_reservation_prices[primary_product] / product_prices[primary_product])):
             for idxs in np.argwhere(slots):
 
                 # the user clicks on a secondary product with a probability depending on the primary product

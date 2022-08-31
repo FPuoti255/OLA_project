@@ -5,6 +5,7 @@ from Constants import *
 from Environment import Environment
 from Network import Network
 from Ecommerce import Ecommerce
+from social_influence import *
 
 def generate_click_probabilities(fully_connected : bool):
 
@@ -65,7 +66,7 @@ if __name__ == '__main__' :
 
     Network.print_graph(G=env.network.G)
 
-    nodes_activation_probabilities = env.montecarlo_sampling()
+    nodes_activation_probabilities = nodes_activation_probabilities = montecarlo_sampling(env)
     
     B_cap = np.random.randint(low=150, high=251)
     ecomm = Ecommerce(B_cap = B_cap)

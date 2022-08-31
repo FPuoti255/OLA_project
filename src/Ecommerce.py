@@ -8,45 +8,56 @@ import random
 class Ecommerce(object):
     def __init__(self, B_cap : float):
         self.B_cap = B_cap
-        self.budgets = np.array([random.uniform(i, i+10) for i in range(0, 101, 10)]) # np.arange(start = 0, stop = 101, step = 5)
+        self.budgets = np.arange(start = 0, stop = self.B_cap+1, step = self.B_cap/10)
+        
+        # For very campaign, you can imagine a maximum expected value of 𝛼_i (say 𝛼_i_bar)
+        self.alpha_bars = [0.6, 0.75, 0.85, 0.57, 1]
+
+        # The higher the scale parameter, the slower will be the convergence to the 𝛼_i_bar (the smoother the function)
+        self.scale_params = [62, 32, 25 , 53, 40]
         
 
+    # Function used to map from the budget domain to the alpha domain
+    def mapping_function (self, budget : float, prod_id : int):
+        return min(self.alpha_bars[prod_id], 0.1 + np.tanh(budget/(2*self.scale_params[prod_id])))
+
+
+    def dynamic_algorithm(self, table : np.ndarray):
+
+        rows, columns = table.shape
+        # optimization table
+        table_opt = np.zeros((rows+1,columns))
+        # pointer table
+        max_pointer = np.zeros((rows,columns), dtype=np.int8)
+
+        for row in range(1,rows+1):
+            temp_row = table[row-1]
+            for col in range(0,columns):                
+                row_entries = []
+                for i in range(col+1):
+                    row_entries.append(table_opt[row-1][col-i] + temp_row[i])
+                table_opt[row][col] = max(row_entries)
+                max_pointer[row-1][col] = row_entries.index(max(row_entries))
+                
+        opt_sol = max(table_opt[-1])         
+        opt_sol_index =  np.argmax(table_opt[-1])
+        budgets_index= []
+        for row in reversed(range(rows)):        
+            budgets_index.append(max_pointer[row][opt_sol_index])
+            opt_sol_index = opt_sol_index - budgets_index[-1]
+                        
+        return budgets_index[::-1]
 
     def solve_optimization_problem(self, env : Environment, nodes_activation_probabilities):
 
-        value_per_click = np.dot(nodes_activation_probabilities, env.product_prices.T)
+        value_per_click = np.dot(nodes_activation_probabilities, env.get_product_prices().T)
 
-        # TODO implement this algorithm using the one on the slides 
-        # For now I've used a dummy algorithm with very low performance
-        # -------------------------------------------------------------
-        # generating all the possible combination with replacement of 5 (campaigns) 
-        # over the 8 possible budgets
-        combinations = np.array([comb for comb in combinations_with_replacement(self.budgets, 5) if np.sum(comb) <= self.B_cap], dtype=float)
-
-        # the combinations do not have any order, thus using the permutation we consider
-        # all the possible assignment of those budgets to a given campaign
-        perms = []
-        for comb in combinations:
-            [perms.append(perm) for perm in permutations(comb)]
-        perms = np.array(list(set(perms))) #set() to remove duplicates
-
-        best_allocation = []
-        max_expected_reward = 0
-
-        for allocation in perms:
-            #the dirichlet does not accept values <= 0
-            allocation[np.where(allocation == 0)] = 1.e-10
-            
-            # in order to get also the alpha_0 for the users landing on a webpage of a competitor,
-            # we set the 'fictitious budget' of the competitor as the average of our allocations
-            alphas = env.get_users_alphas(list(np.insert(allocation, obj=0, values = np.average(allocation))))
-            
-            # the notation inside alphas is to exclude the first column which represent alpha_0
-            # but for alpha_0 our reward is 0 
-            exp_rew = np.sum(np.dot(alphas[:, 1 :], value_per_click), axis=0)
-            if exp_rew > max_expected_reward:
-                max_expected_reward = exp_rew
-                best_allocation = allocation
-
-        return max_expected_reward, best_allocation
+        matrix = np.array([[self.mapping_function(budget = bu, prod_id = prd) * value_per_click[prd] for bu in self.budgets] for prd in range(NUM_OF_PRODUCTS)])
+        budgets_indexes = self.dynamic_algorithm(table = matrix)
+        print('-------MATRIX---------')
+        print(matrix)
+        print('--------BUDGETS INDEXES---------')
+        print(budgets_indexes)
+        print('--------BUDGETS ALLOCATION---------')
+        print(self.budgets[budgets_indexes])
 
