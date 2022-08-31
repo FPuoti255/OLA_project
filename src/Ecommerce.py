@@ -1,9 +1,9 @@
 import numpy as np
-from itertools import permutations, combinations_with_replacement
+from matplotlib import pyplot as plt
 
 from Constants import *
 from Environment import Environment
-import random
+
 
 
 class Ecommerce(object):
@@ -18,13 +18,16 @@ class Ecommerce(object):
         self.alpha_bars = np.random.multinomial(100, [1/(NUM_OF_PRODUCTS+1)] * (NUM_OF_PRODUCTS+1))/100
 
         self.functions_dict = [
-            lambda x : x /np.sqrt( 1 + x**2) * self.alpha_bars[1] if x < self.B_cap * 0.7 else self.alpha_bars[1] ,
-            lambda x : np.tanh(x) * self.alpha_bars[2] if x < self.B_cap * 0.45 else self.alpha_bars[2] ,
-            lambda x : x / (1 + x) * self.alpha_bars[3] if x < self.B_cap * 0.6 else self.alpha_bars[3] ,
-            lambda x : 2/np.pi * np.arctan(np.pi / 2 * x) * self.alpha_bars[4] if x < self.B_cap * 0.5 else self.alpha_bars[4] ,
-            lambda x : x * self.alpha_bars[5] if x < self.B_cap * 0.8 else self.alpha_bars[5] 
+            lambda x : x /np.sqrt( 1 + x**2) * self.alpha_bars[1] if x < 0.7 else self.alpha_bars[1] ,
+            lambda x : np.tanh(x) * self.alpha_bars[2] if x < 0.45 else self.alpha_bars[2] ,
+            lambda x : x / (1 + x) * self.alpha_bars[3] if x < 0.6 else self.alpha_bars[3] ,
+            lambda x : 2/np.pi * np.arctan(np.pi / 2 * x) * self.alpha_bars[4] if x < 0.5 else self.alpha_bars[4] ,
+            lambda x : x * self.alpha_bars[5] if x < 0.8 else self.alpha_bars[5] 
         ]
-
+    # utility functions for us
+    def print_mapping_functions(self):
+        for i in range(NUM_OF_PRODUCTS):
+            plt.plot(self.budgets, [self.functions_dict[i](bu) for bu in self.budgets])
     
     # Function used to map from the budget domain to the alpha domain
     def mapping_function (self, budget : float, prod_id : int):
