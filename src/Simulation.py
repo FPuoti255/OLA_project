@@ -4,8 +4,9 @@ import random
 from Constants import *
 from Environment import Environment
 from Network import Network
-from Ecommerce import Ecommerce
 from social_influence import *
+
+from Ecommerce_step2 import *
 
 def generate_click_probabilities(fully_connected : bool):
 
@@ -59,17 +60,26 @@ if __name__ == '__main__' :
     
     product_prices, users_reservation_prices = generate_prices(product_range=60, users_range=100)
 
+    tot_num_users = np.random.normal(loc = 150, scale = 25)
+
     env = Environment(users_reservation_prices = users_reservation_prices,
                       product_prices = product_prices,
                       click_probabilities = click_probabilities,
-                      observations_probabilities = observations_probabilities)
+                      observations_probabilities = observations_probabilities,
+                      tot_num_users=tot_num_users)
 
     Network.print_graph(G=env.network.G)
 
-    nodes_activation_probabilities = nodes_activation_probabilities = montecarlo_sampling(env)
+    nodes_activation_probabilities = montecarlo_sampling(env)
     
-    B_cap = np.random.randint(low=150, high=251)
-    ecomm = Ecommerce(B_cap = B_cap)
-    ecomm.solve_optimization_problem(env = env, nodes_activation_probabilities= nodes_activation_probabilities)
+    B_cap = 200
+    budgets = np.arange(start = 0, stop = B_cap+1, step = B_cap/10)
+    tot_num_users = np.random.normal(loc = 1000, scale=25)
 
+
+    # -----------STEP 2------------
+    ecomm2 = Ecommerce_step2(B_cap = B_cap, budgets = budgets, tot_num_users = tot_num_users)
+    ecomm2.solve_optimization_problem(env = env, nodes_activation_probabilities= nodes_activation_probabilities)
+
+    # -----------STEP 3------------
     
