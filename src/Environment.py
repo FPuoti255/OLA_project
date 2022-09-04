@@ -158,12 +158,15 @@ class Environment():
 
 
     def round(self, pulled_arm):
-        concentration_parameters = np.zeros(shape= (NUM_OF_PRODUCTS + 1))
-        for prd in range(NUM_OF_PRODUCTS):
-            concentration_parameters[prd +1] = self.mapping_function(budget = pulled_arm[prd], prod_id = prd)
-        concentration_parameters[0] = np.sum(concentration_parameters[1 :])/NUM_OF_PRODUCTS
+        # concentration_parameters = np.zeros(shape= (NUM_OF_PRODUCTS + 1))
+        # for prd in range(NUM_OF_PRODUCTS):
+        #     concentration_parameters[prd +1] = self.mapping_function(budget = pulled_arm[prd], prod_id = prd)
+        # concentration_parameters[0] = np.sum(concentration_parameters[1 :])/NUM_OF_PRODUCTS
+        #samples = np.random.dirichlet(alpha = np.multiply(concentration_parameters , 1000), size = NUM_OF_USERS_CLASSES)
 
-        samples = np.random.dirichlet(alpha = np.multiply(concentration_parameters , 1000), size = NUM_OF_USERS_CLASSES)
+        concentration_parameters = np.insert(arr = pulled_arm, obj = 0, values=np.mean(pulled_arm))
+        concentration_parameters[np.where(concentration_parameters == 0)] = 0.001
+        samples = np.random.dirichlet(alpha = concentration_parameters, size = NUM_OF_USERS_CLASSES)        
         samples = np.sum(a = samples, axis= 0) / NUM_OF_USERS_CLASSES # sum over the columns + renormalization
         
         return samples [1 :] 

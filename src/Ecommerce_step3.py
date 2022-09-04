@@ -63,9 +63,22 @@ class Ecommerce_step3(Ecommerce):
         b = np.multiply(self.sigmas, (1 - self.means))
 
         samples = np.random.beta(a = a, b = b)
-        max_for_each_product = samples.max(axis=1) #axis = 1 means row-wise
-        
-        # np.random.choice because it may happen to have more than one value
-        arms_idx_for_each_product = [np.random.choice(np.where(samples[i, :] == max_for_each_product[i])[0]) for i in range(NUM_OF_PRODUCTS)]
 
-        return self.budgets[arms_idx_for_each_product]
+
+        value_per_click = np.dot(nodes_activation_probabilities, self.product_prices)
+        reshaped_value_per_click = np.tile(A = np.atleast_2d(value_per_click).T, reps = self.n_arms)
+        
+        exp_reward = np.multiply(samples, reshaped_value_per_click)
+
+
+        arm_idxs, _ = self.dynamic_algorithm(table = samples)
+
+        # max_for_each_product = samples.max(axis=1) #axis = 1 means row-wise
+        
+        # # np.random.choice because it may happen to have more than one value
+        # arms_idx_for_each_product = [np.random.choice(np.where(samples[i, :] == max_for_each_product[i])[0]) for i in range(NUM_OF_PRODUCTS)]
+
+        # return self.budgets[arms_idx_for_each_product]
+
+        return self.budgets[arm_idxs]
+    

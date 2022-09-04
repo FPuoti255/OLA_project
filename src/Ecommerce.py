@@ -23,7 +23,7 @@ class Ecommerce(object):
                 table_opt[row][col] = max(row_entries)
                 max_pointer[row-1][col] = row_entries.index(max(row_entries))
         
-        table_opt[-1] = table_opt[-1] - self.budgets
+        #table_opt[-1] = np.subtract(table_opt[-1], self.budgets)
 
         opt_sol = max(table_opt[-1])         
         opt_sol_index =  np.argmax(table_opt[-1])

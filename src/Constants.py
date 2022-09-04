@@ -1,3 +1,9 @@
+def warn(*args, **kwargs):
+    pass
+import warnings
+warnings.warn = warn
+
+
 NUM_OF_PRODUCTS = 5
 NUM_OF_USERS_CLASSES = 3
 
