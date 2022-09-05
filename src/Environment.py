@@ -20,6 +20,8 @@ class Environment:
         self.observations_probabilities = observations_probabilities
         self.tot_num_users = tot_num_users
 
+        self.nodes_activation_probabilities = None
+
         # ---- STEP 2 VARIABLES--------
 
         # For very campaign, you can imagine a maximum expected value of 𝛼_i (say 𝛼_i_bar)
@@ -50,40 +52,32 @@ class Environment:
 
     def get_observations_probabilities(self):
         return self.observations_probabilities
+        
+#-----------------------------------------------
+#--------SOCIAL INFLUENCE-----------------------
+    
+    def get_nodes_activation_probabilities(self, product_prices):
+        if self.nodes_activation_probabilities is not None:
+            return self.nodes_activation_probabilities
+        else:
+            # MONTECARLO SAMPLING TO ESTIMATE THE NODES ACTIVATION PROBABILITIES
 
-    # We used this function only in the step 2
-    def get_users_alphas(self, prod_id, concentration_params):
-        # I expect the concentration parameter to be of the form:
-        # [beta_prod, 1 - beta_prod]
+            z = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
-        # we multiplied by 1000 to reduce the variance in the estimation
-        samples = np.random.dirichlet(
-            alpha=np.multiply(concentration_params, 1000), size=NUM_OF_USERS_CLASSES
-        )
+            # number of repetition to have theoretical guarantees on the error of the estimation
+            epsilon = 0.03
+            delta = 0.01
+            k = int((1 / epsilon**2) * np.log(NUM_OF_PRODUCTS / 2) * np.log(1 / delta))
 
-        # min because for each campaign we expect a maximum alpha, which is alpha_bar
-        return min(
-            np.sum(samples[:, 0]) / NUM_OF_USERS_CLASSES, self.alpha_bars[prod_id]
-        )
+            for node in tqdm(range(NUM_OF_PRODUCTS), position=0, desc="node", leave=False):
+                for _ in tqdm(range(k), position=1, desc="k"):
+                    active_nodes = self.generate_live_edge_graph(
+                        seed=node, product_prices=product_prices, show_plots=False
+                    )
+                    z[node][active_nodes] += 1
 
-    # -----MONTECARLO SAMPLING---------
-    def compute_nodes_activation_probabilities(self, product_prices):
-
-        z = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-
-        # number of repetition to have theoretical guarantees on the error of the estimation
-        epsilon = 0.03
-        delta = 0.01
-        k = int((1 / epsilon**2) * np.log(NUM_OF_PRODUCTS / 2) * np.log(1 / delta))
-
-        for node in tqdm(range(NUM_OF_PRODUCTS), position=0, desc="node", leave=False):
-            for _ in tqdm(range(k), position=1, desc="k"):
-                active_nodes = self.generate_live_edge_graph(
-                    seed=node, product_prices=product_prices, show_plots=False
-                )
-                z[node][active_nodes] += 1
-
-        return z / k
+            self.nodes_activation_probabilities = z/k
+            return self.nodes_activation_probabilities
 
     def generate_live_edge_graph(self, seed: int, product_prices, show_plots=False):
 
@@ -161,6 +155,23 @@ class Environment:
 
         return active_nodes
 
+#-----------------------------------------------
+#--------STEP 2 ENVIRONMENT FUNCTIONS-----------
+    def get_users_alphas(self, prod_id, concentration_params):
+        # I expect the concentration parameter to be of the form:
+        # [beta_prod, 1 - beta_prod]
+
+        # we multiplied by 1000 to reduce the variance in the estimation
+        samples = np.random.dirichlet(
+            alpha=np.multiply(concentration_params, 1000), size=NUM_OF_USERS_CLASSES
+        )
+
+        # min because for each campaign we expect a maximum alpha, which is alpha_bar
+        return min(
+            np.sum(samples[:, 0]) / NUM_OF_USERS_CLASSES, self.alpha_bars[prod_id]
+        )
+
+
     def mapping_function(self, budget: float, prod_id: int):
         """
         this function maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
@@ -173,7 +184,9 @@ class Environment:
         for i in range(NUM_OF_PRODUCTS):
             plt.plot(budgets, [self.functions_dict[i](bu) for bu in budgets])
 
-    def round(self, pulled_arm):
+#-----------------------------------------------
+#--------STEP 3 ENVIRONMENT FUNCTIONS-----------
+    def round_step3(self, pulled_arm):
         # concentration_parameters = np.zeros(shape= (NUM_OF_PRODUCTS + 1))
         # for prd in range(NUM_OF_PRODUCTS):
         #     concentration_parameters[prd +1] = self.mapping_function(budget = pulled_arm[prd], prod_id = prd)
@@ -192,3 +205,11 @@ class Environment:
         )  # sum over the columns + renormalization
 
         return samples[1:]
+
+#-----------------------------------------------
+#--------STEP 5 ENVIRONMENT FUNCTIONS-----------
+    def round_step5(self, pulled_arm):
+        assert(self.nodes_activation_probabilities is not None)
+        row = pulled_arm[0]
+        col = pulled_arm[1]
+        return np.random.binomial(n = 1, p=self.nodes_activation_probabilities[row][col])

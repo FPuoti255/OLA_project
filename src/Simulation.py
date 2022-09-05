@@ -6,6 +6,7 @@ from Environment import Environment
 from Network import Network
 
 from Ecommerce2 import *
+from Ecommerce3 import *
 
 
 def generate_click_probabilities(fully_connected: bool):
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     Network.print_graph(G=env.network.G)
 
     # --- SOCIAL INFLUENCE--------
-    nodes_activation_probabilities = env.compute_nodes_activation_probabilities(
+    nodes_activation_probabilities = env.get_nodes_activation_probabilities(
         product_prices=product_prices
     )
 
@@ -109,3 +110,20 @@ if __name__ == "__main__":
     )
 
     # -----------STEP 3------------
+    ecomm3_ts = Ecommerce3_TS(B_cap = B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
+    ecomm3_ucb = Ecommerce3_UCB(B_cap = B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
+    
+    for _ in range(100):
+        print('------Thompson Sampling--------')
+        arms_values = ecomm3_ts.pull_arm(nodes_activation_probabilities)
+        print(arms_values)
+        reward = env.round_step3(pulled_arm=arms_values)
+        ecomm3_ts.update(pulled_arm = arms_values, reward = reward)
+
+        print('------UCB--------')
+        arms_values = ecomm3_ucb.pull_arm(nodes_activation_probabilities=nodes_activation_probabilities)
+        print(arms_values)
+        reward = env.round_step3(pulled_arm=arms_values)
+        ecomm3_ucb.update(pulled_arm = arms_values, reward = reward)
+
+    # -----------STEP 5------------
