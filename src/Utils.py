@@ -7,7 +7,9 @@ def log(msg):
     if(debug):
         print(msg)
 
-
+# -------------------------------
+# ---Project General Constants---
+# -------------------------------
 NUM_OF_PRODUCTS = 5
 NUM_OF_USERS_CLASSES = 3
 

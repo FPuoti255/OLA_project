@@ -3,7 +3,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 
 from Ecommerce import *
-from Constants import *
+from Utils import *
 
 
 class Ecommerce3(Ecommerce):
