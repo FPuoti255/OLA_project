@@ -43,9 +43,4 @@ class Ecommerce_step2(Ecommerce):
         optimal_allocation = self.budgets[budgets_indexes]
         print('optimal solution found is:', ''.join(str(optimal_allocation)))
     
-    
-    def dynamic_knapsack_solver(self, table):
-        table_opt, max_pointer = self.compute_table(table)
-        table_opt[-1] = np.subtract(table_opt[-1], self.budgets)
-        return choose_best(table_opt, max_pointer)
 
