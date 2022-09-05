@@ -22,7 +22,6 @@ class Ecommerce_step3(Ecommerce):
         self.sigmas = np.ones(shape = (NUM_OF_PRODUCTS, self.n_arms)) * 2
 
         self.pulled_arms = [[] for i in range(NUM_OF_PRODUCTS)]
-        self.pulled_arms_idxs = [[] for i in range(NUM_OF_PRODUCTS)]
 
         self.rewards_per_arm = [[[] for i in range(self.n_arms)] for j in range(NUM_OF_PRODUCTS) ]
         self.collected_rewards = [[] for i in range(NUM_OF_PRODUCTS)]
@@ -67,11 +66,12 @@ class Ecommerce_step3(Ecommerce):
 
         value_per_click = np.dot(nodes_activation_probabilities, self.product_prices)
         reshaped_value_per_click = np.tile(A = np.atleast_2d(value_per_click).T, reps = self.n_arms)
-        
         exp_reward = np.multiply(samples, reshaped_value_per_click)
 
+        exp_reward = np.subtract(exp_reward, self.budgets)
 
-        arm_idxs, _ = self.dynamic_algorithm(table = samples)
+
+        arm_idxs, _ = self.dynamic_knapsack_solver(table = samples)
 
         # max_for_each_product = samples.max(axis=1) #axis = 1 means row-wise
         

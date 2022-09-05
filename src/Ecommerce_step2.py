@@ -12,8 +12,6 @@ class Ecommerce_step2(Ecommerce):
 
         super().__init__(B_cap=B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
 
-    def dynamic_algorithm(self, table):
-        return super().dynamic_algorithm(table)
 
     def solve_optimization_problem(self, env : Environment, nodes_activation_probabilities):
         '''
@@ -29,7 +27,7 @@ class Ecommerce_step2(Ecommerce):
         for prd in range(NUM_OF_PRODUCTS):
             for j in range(0, self.budgets.shape[0]):
                 beta = env.mapping_function(budget = self.budgets[j] / self.B_cap, prod_id = prd)
-                exp_num_clicks[prd][j] = env.get_users_alphas(prod_id = prd, concentration_params = [beta, 1-beta]) *self.tot_num_users
+                exp_num_clicks[prd][j] = env.get_users_alphas(prod_id = prd, concentration_params = [beta, 1-beta])
         
         # print(exp_num_clicks)
         # Notice that we can find the situation in which for subsequent values of budgets,
@@ -38,13 +36,10 @@ class Ecommerce_step2(Ecommerce):
         # "concentration parameters list" the value sampled from the dirichlet can be higher or lower
 
 
+        reshaped_value_per_click = np.tile(A = np.atleast_2d(value_per_click).T, reps = self.n_arms)
+        exp_reward = np.multiply(exp_num_clicks, reshaped_value_per_click)
 
-        matrix = exp_num_clicks.copy()
-        for i in range(matrix.shape[0]):
-            matrix[i, :] *= value_per_click[i]
-
-
-        budgets_indexes, optimal_solution = self.dynamic_algorithm(table = matrix)
+        budgets_indexes, optimal_solution = self.dynamic_knapsack_solver(table = exp_reward)
         optimal_allocation = self.budgets[budgets_indexes]
         print('optimal solution found is:', ''.join(str(optimal_allocation)))
 
