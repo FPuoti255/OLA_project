@@ -6,11 +6,8 @@ class Ecommerce(object):
         self.product_prices = product_prices
         self.tot_num_users = tot_num_users
 
-    def dynamic_knapsack_solver(self, table : np.ndarray):
-        '''
-        This algorithm solves a generalized knapsack problem using a dynamic_algorithm approach.
-        It is suggested to give the matrix net of advertising budgets
-        '''
+
+    def compute_table(self, table):
         rows, columns = table.shape
         # optimization table
         table_opt = np.zeros((rows+1,columns))
@@ -25,7 +22,11 @@ class Ecommerce(object):
                     row_entries.append(table_opt[row-1][col-i] + temp_row[i])
                 table_opt[row][col] = max(row_entries)
                 max_pointer[row-1][col] = row_entries.index(max(row_entries))
+        
+        return table_opt, max_pointer
 
+    def choose_best(self, table_opt, max_pointer):
+        rows, columns = np.subtract(table_opt.shape,1)
         opt_sol = max(table_opt[-1])         
         opt_sol_index =  np.argmax(table_opt[-1])
         budgets_index= []
@@ -34,3 +35,11 @@ class Ecommerce(object):
             opt_sol_index = opt_sol_index - budgets_index[-1]
                         
         return budgets_index[::-1], opt_sol
+
+    def dynamic_knapsack_solver(self, table):
+        '''
+        This algorithm solves a generalized knapsack problem using a dynamic_algorithm approach.
+        '''
+        table_opt, max_pointer = self.compute_table(table)
+        table_opt[-1] = np.subtract(table_opt[-1], self.budgets)
+        return self.choose_best(table_opt, max_pointer)

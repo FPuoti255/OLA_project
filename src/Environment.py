@@ -4,12 +4,6 @@ from Network import Network
 import random
 from tqdm import tqdm
 
-debug = False
-
-def log(msg):
-    if(debug):
-        print(msg)
-
 class Environment():
     def __init__(self, users_reservation_prices, 
                         click_probabilities, 
@@ -62,9 +56,8 @@ class Environment():
         return min(np.sum(samples[:, 0]) / NUM_OF_USERS_CLASSES , self.alpha_bars[prod_id])
 
 
+    #-----MONTECARLO SAMPLING---------
     def compute_nodes_activation_probabilities(self, product_prices):
-
-        #-----MONTECARLO SAMPLING---------
 
         z = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 

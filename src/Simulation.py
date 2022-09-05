@@ -5,7 +5,7 @@ from Constants import *
 from Environment import Environment
 from Network import Network
 
-from Ecommerce_step2 import *
+from Ecommerce2 import *
 
 def generate_click_probabilities(fully_connected : bool):
 
@@ -76,7 +76,7 @@ if __name__ == '__main__' :
     nodes_activation_probabilities = env.compute_nodes_activation_probabilities(product_prices=product_prices)
 
     # -----------STEP 2------------
-    ecomm2 = Ecommerce_step2(B_cap = B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
+    ecomm2 = Ecommerce2(B_cap = B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
     ecomm2.solve_optimization_problem(env = env, nodes_activation_probabilities= nodes_activation_probabilities)
 
     # -----------STEP 3------------

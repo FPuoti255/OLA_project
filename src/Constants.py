@@ -1,7 +1,11 @@
-def warn(*args, **kwargs):
-    pass
 import warnings
-warnings.warn = warn
+warnings.filterwarnings("ignore")
+
+
+debug = False
+def log(msg):
+    if(debug):
+        print(msg)
 
 
 NUM_OF_PRODUCTS = 5
