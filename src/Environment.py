@@ -53,10 +53,10 @@ class Environment:
 
     def get_observations_probabilities(self):
         return self.observations_probabilities
-        
-#-----------------------------------------------
-#--------SOCIAL INFLUENCE-----------------------
-    
+
+    # -----------------------------------------------
+    # --------SOCIAL INFLUENCE-----------------------
+
     def get_nodes_activation_probabilities(self, product_prices):
         if self.nodes_activation_probabilities is not None:
             return self.nodes_activation_probabilities
@@ -68,16 +68,18 @@ class Environment:
             # number of repetition to have theoretical guarantees on the error of the estimation
             epsilon = 0.03
             delta = 0.01
-            k = int((1 / epsilon**2) * np.log(NUM_OF_PRODUCTS / 2) * np.log(1 / delta))
+            k = int(
+                (1 / epsilon**2) * np.log(NUM_OF_PRODUCTS / 2) * np.log(1 / delta)
+            )
 
-            for node in tqdm(range(NUM_OF_PRODUCTS), position=0, desc="node", leave=False):
-                for _ in tqdm(range(k), position=1, desc="k"):
+            for node in range(NUM_OF_PRODUCTS):
+                for _ in range(k):
                     active_nodes = self.generate_live_edge_graph(
                         seed=node, product_prices=product_prices, show_plots=False
                     )
                     z[node][active_nodes] += 1
 
-            self.nodes_activation_probabilities = z/k
+            self.nodes_activation_probabilities = z / k
             return self.nodes_activation_probabilities
 
     def generate_live_edge_graph(self, seed: int, product_prices, show_plots=False):
@@ -156,8 +158,8 @@ class Environment:
 
         return active_nodes
 
-#-----------------------------------------------
-#--------STEP 2 ENVIRONMENT FUNCTIONS-----------
+    # -----------------------------------------------
+    # --------STEP 2 ENVIRONMENT FUNCTIONS-----------
     def get_users_alphas(self, prod_id, concentration_params):
         # I expect the concentration parameter to be of the form:
         # [beta_prod, 1 - beta_prod]
@@ -172,7 +174,6 @@ class Environment:
             np.sum(samples[:, 0]) / NUM_OF_USERS_CLASSES, self.alpha_bars[prod_id]
         )
 
-
     def mapping_function(self, budget: float, prod_id: int):
         """
         this function maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
@@ -185,8 +186,8 @@ class Environment:
         for i in range(NUM_OF_PRODUCTS):
             plt.plot(budgets, [self.functions_dict[i](bu) for bu in budgets])
 
-#-----------------------------------------------
-#--------STEP 3 ENVIRONMENT FUNCTIONS-----------
+    # -----------------------------------------------
+    # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
     def round_step3(self, pulled_arm):
         # # We supposed that the competitors invest the maximum of the e-commerce
         # if np.all(pulled_arm == 0):
@@ -195,7 +196,7 @@ class Environment:
         concentration_parameters = np.insert(
             arr=pulled_arm, obj=0, values=np.max(pulled_arm)
         )
-        
+
         # Multiply the concentration parameters by 100 to give more stability
         concentration_parameters = np.multiply(concentration_parameters, 100)
         concentration_parameters[np.where(concentration_parameters == 0)] = 0.001
@@ -206,13 +207,13 @@ class Environment:
         samples = (
             np.sum(a=samples, axis=0) / NUM_OF_USERS_CLASSES
         )  # sum over the columns + renormalization
-        
+
         return samples[1:]
 
-#-----------------------------------------------
-#--------STEP 5 ENVIRONMENT FUNCTIONS-----------
+    # -----------------------------------------------
+    # --------STEP 5 ENVIRONMENT FUNCTIONS-----------
     def round_step5(self, pulled_arm):
-        assert(self.nodes_activation_probabilities is not None)
+        assert self.nodes_activation_probabilities is not None
         row = pulled_arm[0]
         col = pulled_arm[1]
-        return np.random.binomial(n = 1, p=self.nodes_activation_probabilities[row][col])
+        return np.random.binomial(n=1, p=self.nodes_activation_probabilities[row][col])

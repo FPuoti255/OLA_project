@@ -55,7 +55,8 @@ def compute_beta_parameters(means, sigmas):
     a = np.multiply(means, precision)
     b = np.multiply(precision, (1 - means))
 
-    return a, b
+
+    return np.maximum(a, 0.001), np.maximum(b, 0.001)
 
 
 def compute_beta_means_variance(a, b):

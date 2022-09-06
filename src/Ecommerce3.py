@@ -21,7 +21,7 @@ class Ecommerce3(Ecommerce):
 
         self.t = 0
         # I'm generating a distribution of the budgets for each product
-        self.means = np.ones(shape = (NUM_OF_PRODUCTS, self.n_arms)) * 0.5
+        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.5
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 2
 
         self.pulled_arms = [[] for i in range(NUM_OF_PRODUCTS)]
@@ -77,16 +77,19 @@ class Ecommerce3_TS(Ecommerce3):
             self.collected_rewards[i].append(reward[i])
 
     def pull_arm(self, nodes_activation_probabilities):
-        a,b = compute_beta_parameters(self.means, self.sigmas)
+        a, b = compute_beta_parameters(self.means, self.sigmas)
         samples = np.random.beta(a=a, b=b)
 
-        value_per_click = np.dot(nodes_activation_probabilities, self.product_prices) * self.tot_num_users
+        value_per_click = (
+            np.dot(nodes_activation_probabilities, self.product_prices)
+            * self.tot_num_users
+        )
         reshaped_value_per_click = np.tile(
             A=np.atleast_2d(value_per_click).T, reps=self.n_arms
         )
         exp_reward = np.multiply(samples, reshaped_value_per_click)
 
-        arm_idxs, _ = self.dynamic_knapsack_solver(table=exp_reward)        
+        arm_idxs, _ = self.dynamic_knapsack_solver(table=exp_reward)
 
         return self.budgets[arm_idxs]
 

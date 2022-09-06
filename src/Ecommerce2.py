@@ -47,7 +47,9 @@ class Ecommerce_step2(Ecommerce):
         reshaped_value_per_click = np.tile(
             A=np.atleast_2d(value_per_click).T, reps=self.n_arms
         )
-        exp_reward = np.multiply(exp_num_clicks, reshaped_value_per_click) * self.tot_num_users
+        exp_reward = (
+            np.multiply(exp_num_clicks, reshaped_value_per_click) * self.tot_num_users
+        )
 
         budgets_indexes, optimal_solution = self.dynamic_knapsack_solver(
             table=exp_reward
