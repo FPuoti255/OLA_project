@@ -188,14 +188,17 @@ class Environment:
 #-----------------------------------------------
 #--------STEP 3 ENVIRONMENT FUNCTIONS-----------
     def round_step3(self, pulled_arm):
-        # We supposed that the competitors invest the maximum of the e-commerce
+        # # We supposed that the competitors invest the maximum of the e-commerce
+        # if np.all(pulled_arm == 0):
+        #     return np.zeros_like(pulled_arm)
+
         concentration_parameters = np.insert(
             arr=pulled_arm, obj=0, values=np.max(pulled_arm)
         )
-        concentration_parameters[np.where(concentration_parameters == 0)] = 0.001
         
         # Multiply the concentration parameters by 100 to give more stability
         concentration_parameters = np.multiply(concentration_parameters, 100)
+        concentration_parameters[np.where(concentration_parameters == 0)] = 0.001
 
         samples = self.rng.dirichlet(
             alpha=concentration_parameters, size=NUM_OF_USERS_CLASSES

@@ -21,8 +21,8 @@ class Ecommerce3(Ecommerce):
 
         self.t = 0
         # I'm generating a distribution of the budgets for each product
-        self.a = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms))
-        self.b = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms))
+        self.means = np.ones(shape = (NUM_OF_PRODUCTS, self.n_arms)) * 0.5
+        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 2
 
         self.pulled_arms = [[] for i in range(NUM_OF_PRODUCTS)]
         self.rewards_per_arm = [
@@ -55,12 +55,10 @@ class Ecommerce3(Ecommerce):
             y = np.array(self.collected_rewards[i])
             self.gaussian_regressors[i].fit(x, y)
 
-            means, sigmas = self.gaussian_regressors[i].predict(
+            self.means[i], self.sigmas[i] = self.gaussian_regressors[i].predict(
                 X=np.atleast_2d(self.budgets).T, return_std=True
             )
-            sigmas = np.maximum(sigmas, 1e-2)
-
-            self.a[i], self.b[i] = compute_beta_parameters(means, sigmas)
+            self.sigmas[i] = np.maximum(self.sigmas[i], 1e-2)
 
     def pull_arm(self, nodes_activation_probabilities):
         pass
@@ -79,17 +77,16 @@ class Ecommerce3_TS(Ecommerce3):
             self.collected_rewards[i].append(reward[i])
 
     def pull_arm(self, nodes_activation_probabilities):
+        a,b = compute_beta_parameters(self.means, self.sigmas)
+        samples = np.random.beta(a=a, b=b)
 
-        samples = np.random.beta(a=self.a, b=self.b)
+        value_per_click = np.dot(nodes_activation_probabilities, self.product_prices) * self.tot_num_users
+        reshaped_value_per_click = np.tile(
+            A=np.atleast_2d(value_per_click).T, reps=self.n_arms
+        )
+        exp_reward = np.multiply(samples, reshaped_value_per_click)
 
-        # value_per_click = np.dot(nodes_activation_probabilities, self.product_prices)
-        # reshaped_value_per_click = np.tile(
-        #     A=np.atleast_2d(value_per_click).T, reps=self.n_arms
-        # )
-        # exp_reward = np.multiply(samples, reshaped_value_per_click)
-
-        # arm_idxs, _ = self.dynamic_knapsack_solver(table=exp_reward)        
-        arm_idxs = np.argmax(a = samples, axis=1)
+        arm_idxs, _ = self.dynamic_knapsack_solver(table=exp_reward)        
 
         return self.budgets[arm_idxs]
 
@@ -106,9 +103,6 @@ class Ecommerce3_UCB(Ecommerce3):
 
     def update_observations(self, pulled_arm, reward):
 
-        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
-        self.confidence_bounds[self.N_a == 0] = np.inf
-
         for i in range(NUM_OF_PRODUCTS):
             arm_idx = int(np.where(self.budgets == pulled_arm[i])[0])
             self.N_a[i][arm_idx] += 1
@@ -116,12 +110,13 @@ class Ecommerce3_UCB(Ecommerce3):
             self.pulled_arms[i].append(pulled_arm[i])
             self.collected_rewards[i].append(reward[i])
 
-    def pull_arm(self, nodes_activation_probabilities):
-        means, _ = compute_beta_means_variance(self.a, self.b)
-        upper_conf = means + self.confidence_bounds
+        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
+        self.confidence_bounds[self.N_a == 0] = np.inf
 
-        # arm_idxs, _ = self.dynamic_knapsack_solver(table=upper_conf)
-        arm_idxs = np.argmax(upper_conf, axis=1)
+    def pull_arm(self, nodes_activation_probabilities):
+        upper_conf = self.means + self.confidence_bounds
+        arm_idxs, _ = self.dynamic_knapsack_solver(table=upper_conf)
+        # arm_idxs = np.argmax(upper_conf, axis=1)
 
         return self.budgets[arm_idxs]
 
