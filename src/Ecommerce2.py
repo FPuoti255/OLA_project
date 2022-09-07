@@ -1,6 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 
+from constants import *
 from Utils import *
 from Environment import Environment
 from Ecommerce import Ecommerce

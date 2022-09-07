@@ -2,6 +2,7 @@ import numpy as np
 import random
 from tqdm import tqdm
 
+from constants import *
 from Utils import *
 from Network import Network
 
@@ -58,6 +59,7 @@ class Environment:
     # --------SOCIAL INFLUENCE-----------------------
 
     def get_nodes_activation_probabilities(self, product_prices):
+        
         if self.nodes_activation_probabilities is not None:
             return self.nodes_activation_probabilities
         else:
@@ -68,9 +70,7 @@ class Environment:
             # number of repetition to have theoretical guarantees on the error of the estimation
             epsilon = 0.03
             delta = 0.01
-            k = int(
-                (1 / epsilon**2) * np.log(NUM_OF_PRODUCTS / 2) * np.log(1 / delta)
-            )
+            k = int((1 / epsilon**2) * np.log(NUM_OF_PRODUCTS / 2) * np.log(1 / delta))
 
             for node in range(NUM_OF_PRODUCTS):
                 for _ in range(k):

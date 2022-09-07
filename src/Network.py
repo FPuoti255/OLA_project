@@ -1,7 +1,7 @@
 import networkx as nx
 import numpy as np
 import random, math
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 
 from Utils import *
 

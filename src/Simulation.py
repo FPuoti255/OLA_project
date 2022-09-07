@@ -2,6 +2,7 @@ import numpy as np
 import random
 
 from Utils import *
+from constants import *
 from Environment import Environment
 from Network import Network
 
@@ -10,6 +11,9 @@ from Ecommerce3 import *
 
 
 def generate_click_probabilities(fully_connected: bool):
+    '''
+    :return: matrix representing the probability of going from a node to another 
+    '''
 
     adjacency_matrix = np.random.uniform(
         low=0.01, high=1.000001, size=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)
@@ -31,6 +35,11 @@ def generate_click_probabilities(fully_connected: bool):
 
 
 def generate_observation_probabilities(click_probabilities):
+    '''
+    :return: probability 1 for observing the first slot of the secondary product
+             and LAMBDA for the second slot
+    '''
+
     obs_prob = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
     for product in range(NUM_OF_PRODUCTS):
@@ -59,8 +68,8 @@ def generate_observation_probabilities(click_probabilities):
 
 def generate_prices(product_range: int, users_range: int):
     """
-    users_range is greater than product_range since we want to increase a little the probability
-    that a user will buy a given product
+    :param users_range: is greater than product_range since we want to increase a little the probability
+                        that a user will buy a given product
     """
     return np.round(
         np.random.random(size=NUM_OF_PRODUCTS) * product_range, 2

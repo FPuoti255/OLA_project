@@ -1,10 +1,9 @@
 import warnings
+import numpy as np
 
 warnings.filterwarnings("ignore")
 
-
 debug = False
-
 
 def log(msg):
     if debug:
@@ -12,19 +11,9 @@ def log(msg):
 
 
 # -------------------------------
-# ---Project General Constants---
-# -------------------------------
-NUM_OF_PRODUCTS = 5
-NUM_OF_USERS_CLASSES = 3
-
-# probability of observing the second slot of suggested products. Assumed to be known in the project.
-# (al momento ho messo 0.8 come numero perhé è il primo che mi è venuto in mente ma lo possiamo cambiare)
-LAMBDA = 0.6
-
-# -------------------------------
 # ---Project Utility Functions---
 # -------------------------------
-import numpy as np
+
 
 # -------------------OLD FUNCTION NOT USED ANYMORE----------------
 #
@@ -54,7 +43,6 @@ def compute_beta_parameters(means, sigmas):
     precision = np.divide(1, np.square(sigmas))
     a = np.multiply(means, precision)
     b = np.multiply(precision, (1 - means))
-
 
     return np.maximum(a, 0.001), np.maximum(b, 0.001)
 

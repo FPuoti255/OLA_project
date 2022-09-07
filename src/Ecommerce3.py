@@ -3,6 +3,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 
 from Ecommerce import *
+from constants import *
 from Utils import *
 
 
@@ -116,16 +117,15 @@ class Ecommerce3_UCB(Ecommerce3):
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = np.inf
 
-    def pull_arm(self, nodes_activation_probabilities):
+    def pull_arm(self):
         upper_conf = self.means + self.confidence_bounds
         arm_idxs, _ = self.dynamic_knapsack_solver(table=upper_conf)
         # arm_idxs = np.argmax(upper_conf, axis=1)
-
         return self.budgets[arm_idxs]
 
     def dynamic_knapsack_solver(self, table):
         """
-        In the UCB we do not need to subtract the budgets
+        In the UCB we do not need to subtract the budgets to the final row,
         since we use the dynamic algorithm for another purpose
         """
         table_opt, max_pointer = self.compute_table(table)

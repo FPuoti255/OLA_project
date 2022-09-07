@@ -113,7 +113,6 @@ class Ecommerce5(Ecommerce):
         plt.show()
 
 
-
 class Ecommerce5_GPTS(Ecommerce5):
     def __init__(self, B_cap, budgets, product_prices, tot_num_users):
         super().__init__(B_cap, budgets, product_prices, tot_num_users)
