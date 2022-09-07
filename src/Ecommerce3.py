@@ -41,53 +41,6 @@ class Ecommerce3(Ecommerce):
             for i in range(NUM_OF_PRODUCTS)
         ]
     
-    @staticmethod
-    def run_experiments():
-        gpucb_rewards_per_experiment = []
-        gpts_rewards_per_experiment = []
-        n_experiments = 10
-        T = 20
-
-        env = Environment(
-            users_reservation_prices,
-            click_probabilities,
-            observations_probabilities,
-            tot_num_users,
-        )
-        ecomm2 = Ecommerce2(B_cap, budgets, product_prices, tot_num_users)
-        optimal_allocation = ecomm2.solve_optimization_problem(env,nodes_activation_probabilities)
-
-        for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
-            ecomm3_gpts = Ecommerce3_TS(B_cap = B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
-            ecomm3_ucb = Ecommerce3_UCB(B_cap = B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
-            nodes_activation_probabilities = env.get_nodes_activation_probabilities(product_prices)
-            for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
-                arm = ecomm3_ucb.pull_arm()
-                reward = env.round_step3(arm)
-                ecomm3_ucb.update(arm, reward)
-
-                arm = ecomm3_gpts.pull_arm(nodes_activation_probabilities)
-                reward = env.round_step3(arm)
-                ecomm3_gpts.update(arm, reward)
-
-            gpucb_rewards_per_experiment.append(ecomm3_ucb.collected_rewards)
-            gpts_rewards_per_experiment.append(ecomm3_gpts.collected_rewards)
-
-
-        opt = env.round_step3(pulled_arm=optimal_allocation)
-        plt.figure(0)
-        plt.ylabel("Regret")
-        plt.xlabel("t")
-
-        # this np.mean is used to compute the average regret for each "product" -> output shape = (n_experiments x NUM_OF_PRODUCTS)
-        gpts_regret_superarm = opt - np.mean(np.array(gpucb_rewards_per_experiment), axis=2)
-        gpucb_regret_superarm = opt - np.mean(np.array(gpts_rewards_per_experiment), axis=2)
-
-        # this np.mean before of the cumsum is to average over all the products
-        plt.plot(np.cumsum( np.mean(gpts_regret_superarm, axis=1)), "r")
-        plt.plot(np.cumsum(np.mean(gpucb_regret_superarm, axis=1)), "g")
-        plt.legend(["GPUCB", "GPTS"])
-        plt.show()
 
     def update(self, pulled_arm, reward):
         self.t += 1
