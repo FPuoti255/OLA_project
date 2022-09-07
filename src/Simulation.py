@@ -8,11 +8,12 @@ from Network import Network
 
 from Ecommerce2 import *
 from Ecommerce3 import *
+from Ecommerce5 import *
 
 
 def generate_click_probabilities(fully_connected: bool):
     '''
-    :return: matrix representing the probability of going from a node to another 
+    :return: matrix representing the probability of going from a node to another
     '''
 
     adjacency_matrix = np.random.uniform(
@@ -21,7 +22,8 @@ def generate_click_probabilities(fully_connected: bool):
     adjacency_matrix[np.diag_indices(n=NUM_OF_PRODUCTS, ndim=2)] = 0.0
 
     if not fully_connected:
-        graph_mask = np.random.randint(low=0, high=2, size=adjacency_matrix.shape)
+        graph_mask = np.random.randint(
+            low=0, high=2, size=adjacency_matrix.shape)
         adjacency_matrix = np.multiply(adjacency_matrix, graph_mask)
 
     # # maybe this normalization is not needed
@@ -76,63 +78,132 @@ def generate_prices(product_range: int, users_range: int):
     ), np.round(np.random.random(size=NUM_OF_PRODUCTS) * users_range, 2)
 
 
-if __name__ == "__main__":
+def generate_new_environment(fully_connected_flag, B_cap, budgets):
 
-    # click_probabilities == edge weights in our case
-    click_probabilities = generate_click_probabilities(fully_connected=False)
-    observations_probabilities = generate_observation_probabilities(
-        click_probabilities=click_probabilities
-    )
-
-    B_cap = 200
-    budgets = np.arange(start=0, stop=B_cap + 1, step=B_cap / 10)
-
+    clk_prob = generate_click_probabilities(
+        fully_connected=fully_connected_flag)
+    product_prices, users_reservation_prices = generate_prices(
+        product_range=60, users_range=100)
     tot_num_users = np.random.normal(loc=1000, scale=25)
 
-    product_prices, users_reservation_prices = generate_prices(
-        product_range=60, users_range=100
-    )
-
     env = Environment(
-        users_reservation_prices=users_reservation_prices,
-        click_probabilities=click_probabilities,
-        observations_probabilities=observations_probabilities,
+        users_reservation_prices,
+        click_probabilities=clk_prob,
+        observations_probabilities=generate_observation_probabilities(
+            clk_prob),
         tot_num_users=tot_num_users,
     )
 
-    Network.print_graph(G=env.network.G)
+    # Network.print_graph(G=env.network.G)
 
     # --- SOCIAL INFLUENCE--------
     nodes_activation_probabilities = env.get_nodes_activation_probabilities(
-        product_prices=product_prices
-    )
+        product_prices)
 
-    # -----------STEP 2------------
-    ecomm2 = Ecommerce2(
-        B_cap=B_cap,
-        budgets=budgets,
-        product_prices=product_prices,
-        tot_num_users=tot_num_users,
-    )
-    ecomm2.solve_optimization_problem(
-        env=env, nodes_activation_probabilities=nodes_activation_probabilities
-    )
+    # ------STEP 2-------------
+    ecomm2 = Ecommerce2(B_cap, budgets, product_prices, tot_num_users)
+    optimal_allocation = ecomm2.solve_optimization_problem(
+        env, nodes_activation_probabilities)
+
+    return env, clk_prob, product_prices, users_reservation_prices, tot_num_users, nodes_activation_probabilities, optimal_allocation
+
+def plot_regrets(gpts_regret, gpucb_regret):
+    plt.figure(0)
+    plt.ylabel("Regret")
+    plt.xlabel("t")
+
+    plt.plot(gpts_regret, "r")
+    plt.plot(gpucb_regret, "g")
+    
+    plt.legend(["GPTS","GPUCB"])
+    plt.show()
+
+
+if __name__ == "__main__":
+
+    fully_connected_flag = True
+    B_cap = 200
+    budgets = np.arange(start=0, stop=B_cap + 1, step=B_cap / 10)
+
+    # ------------------------------------
+    # ---------BEGIN SIMULATIONS----------
+    # ------------------------------------
+
+    n_experiments = 10
+    T = 20
 
     # -----------STEP 3------------
-    ecomm3_ts = Ecommerce3_TS(B_cap = B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
-    ecomm3_ucb = Ecommerce3_UCB(B_cap = B_cap, budgets = budgets, product_prices = product_prices, tot_num_users = tot_num_users)
-    
-    for _ in range(100):
-        print('------Thompson Sampling--------')
-        arms_values = ecomm3_ts.pull_arm(nodes_activation_probabilities)
-        print(arms_values)
-        reward = env.round_step3(pulled_arm=arms_values)
-        ecomm3_ts.update(pulled_arm = arms_values, reward = reward)
+    gpucb_rewards_per_experiment = []
+    gpts_rewards_per_experiment = []
 
-        print('------UCB--------')
-        arms_values = ecomm3_ucb.pull_arm(nodes_activation_probabilities=nodes_activation_probabilities)
-        print(arms_values)
-        reward = env.round_step3(pulled_arm=arms_values)
-        ecomm3_ucb.update(pulled_arm = arms_values, reward = reward)
+    for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
+        env, clk_prob, product_prices, users_reservation_prices, tot_num_users, nodes_activation_probabilities, optimal_allocation = generate_new_environment(
+            fully_connected_flag, B_cap, budgets)
+
+        ecomm3_gpts = Ecommerce3_TS(B_cap, budgets, product_prices, tot_num_users)
+        ecomm3_ucb = Ecommerce3_UCB(B_cap, budgets, product_prices, tot_num_users)
+
+        for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
+            arm = ecomm3_ucb.pull_arm()
+            reward = env.round_step3(arm)
+            ecomm3_ucb.update(arm, reward)
+
+            arm = ecomm3_gpts.pull_arm(nodes_activation_probabilities)
+            reward = env.round_step3(arm)
+            ecomm3_gpts.update(arm, reward)
+
+        gpucb_rewards_per_experiment.append(ecomm3_ucb.collected_rewards)
+        gpts_rewards_per_experiment.append(ecomm3_gpts.collected_rewards)
+
+    opt = env.round_step3(pulled_arm=optimal_allocation)
+    # this np.mean is used to compute the average regret for each "product" -> output shape = (n_experiments x NUM_OF_PRODUCTS)
+    gpts_regret_superarm = opt - np.mean(np.array(gpucb_rewards_per_experiment), axis=2)
+    gpucb_regret_superarm = opt -np.mean(np.array(gpts_rewards_per_experiment), axis=2)
+
+    # this np.mean before of the cumsum is to average over all the products
+    gpts_regret = np.cumsum(np.mean(gpts_regret_superarm, axis=1))
+    gpucb_regret = np.cumsum(np.mean(gpucb_regret_superarm, axis=1))
+
+    plot_regrets(gpts_regret, gpucb_regret)
+
 
     # -----------STEP 5------------
+
+    gpucb_rewards_per_experiment = []
+    gpts_rewards_per_experiment = []
+
+    for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
+        env, clk_prob, product_prices, users_reservation_prices, tot_num_users, nodes_activation_probabilities, optimal_allocation = generate_new_environment(
+            fully_connected_flag, B_cap, budgets)
+
+        ecomm5_gpts = Ecommerce5_GPTS(
+            B_cap,
+            budgets,
+            product_prices,
+            tot_num_users,
+        )
+        ecomm5_ucb = Ecommerce5_UCB(
+            B_cap,
+            budgets,
+            product_prices,
+            tot_num_users,
+        )
+
+        for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
+            arm, arm_idx = ecomm5_ucb.pull_arm()
+            reward = env.round_step5(arm)
+            ecomm5_ucb.update(arm_idx, reward)
+
+            arm, arm_idx = ecomm5_gpts.pull_arm()
+            reward = env.round_step5(arm)
+            ecomm5_gpts.update(arm_idx, reward)
+
+        gpucb_rewards_per_experiment.append(ecomm5_ucb.collected_rewards)
+        gpts_rewards_per_experiment.append(ecomm5_gpts.collected_rewards)
+
+    opt = np.max(nodes_activation_probabilities)
+
+    gpts_regret = np.cumsum(np.mean(opt - gpucb_rewards_per_experiment, axis=0))
+    gpucb_regret = np.cumsum(np.mean(opt - gpts_rewards_per_experiment, axis=0))
+
+    plot_regrets(gpts_regret, gpucb_regret)

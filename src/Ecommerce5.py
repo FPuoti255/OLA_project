@@ -52,67 +52,6 @@ class Ecommerce5(Ecommerce):
     def get_estimated_nodes_activation_probabilities(self):
         pass
 
-    @staticmethod
-    def run_experiments(
-        T: int,
-        n_experiments: int,
-        users_reservation_prices,
-        click_probabilities,
-        observations_probabilities,
-        B_cap: int,
-        budgets,
-        product_prices,
-        tot_num_users: int,
-    ):
-        """
-        :param T: is the number of iteration to fit the gaussian process
-        :param n_experiments: the number of times the experiments must be run
-        """
-        gpucb_rewards_per_experiment = []
-        gpts_rewards_per_experiment = []
-
-        for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
-            env = Environment(
-                users_reservation_prices,
-                click_probabilities,
-                observations_probabilities,
-                tot_num_users,
-            )
-            ecomm5_gpts = Ecommerce5_GPTS(
-                B_cap,
-                budgets,
-                product_prices,
-                tot_num_users,
-            )
-            ecomm5_ucb = Ecommerce5_UCB(
-                B_cap,
-                budgets,
-                product_prices,
-                tot_num_users,
-            )
-            _ = env.get_nodes_activation_probabilities(product_prices)
-            for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
-                arm, arm_idx = ecomm5_ucb.pull_arm()
-                reward = env.round_step5(arm)
-                ecomm5_ucb.update(arm_idx, reward)
-
-                arm, arm_idx = ecomm5_gpts.pull_arm()
-                reward = env.round_step5(arm)
-                ecomm5_gpts.update(arm_idx, reward)
-
-            gpucb_rewards_per_experiment.append(ecomm5_ucb.collected_rewards)
-            gpts_rewards_per_experiment.append(ecomm5_gpts.collected_rewards)
-
-        opt = np.max(env.nodes_activation_probabilities)
-        plt.figure(0)
-        plt.ylabel("Regret")
-        plt.xlabel("t")
-        plt.plot(np.cumsum(np.mean(opt - gpucb_rewards_per_experiment, axis=0)), "r")
-        plt.plot(np.cumsum(np.mean(opt - gpts_rewards_per_experiment, axis=0)), "g")
-        plt.legend(["GPUCB", "GPTS"])
-        plt.show()
-
-
 class Ecommerce5_GPTS(Ecommerce5):
     def __init__(self, B_cap, budgets, product_prices, tot_num_users):
         super().__init__(B_cap, budgets, product_prices, tot_num_users)

@@ -23,6 +23,7 @@ class Environment:
         self.tot_num_users = tot_num_users
 
         self.nodes_activation_probabilities = None
+        self.dirichlet_variance_keeper = 100
 
         # ---- STEP 2 VARIABLES--------
 
@@ -39,11 +40,11 @@ class Environment:
 
         # For each campaign (product) this functions map the budget allocated into the expected number of clicks(in percentage)
         self.functions_dict = [
-            lambda x: x / np.sqrt(1 + x**2),
-            lambda x: np.tanh(x),
-            lambda x: x / (1 + x),
-            lambda x: np.arctan(x),
-            lambda x: 1 / (1 + np.exp(-x)),
+            lambda x: 0.5 if x > 0.5 else x+0.001,
+            lambda x: 0.001 if x<0.2 else (np.exp(x**2)-1 if x>= 0.2 and x<=0.7 else 0.64) ,
+            lambda x: min(x + 0.001, 0.99),
+            lambda x: np.log(x+1) + 0.001,
+            lambda x: 1 / (1 + np.exp(- (x ** 4))) - 0.499,
         ]
 
     def get_users_reservation_prices(self):
@@ -54,6 +55,10 @@ class Environment:
 
     def get_observations_probabilities(self):
         return self.observations_probabilities
+
+    def plot_mapping_functions(self, budgets):
+        for i in range(NUM_OF_PRODUCTS):
+            plt.plot(budgets, [self.functions_dict[i](bu) for bu in budgets])
 
     # -----------------------------------------------
     # --------SOCIAL INFLUENCE-----------------------
@@ -160,13 +165,14 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 2 ENVIRONMENT FUNCTIONS-----------
-    def get_users_alphas(self, prod_id, concentration_params):
-        # I expect the concentration parameter to be of the form:
-        # [beta_prod, 1 - beta_prod]
+    def get_users_alphas(self, prod_id, budget):
+
+        # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
+        conc_param =  self.functions_dict[prod_id](budget)
 
         # we multiplied by 1000 to reduce the variance in the estimation
         samples = self.rng.dirichlet(
-            alpha=np.multiply(concentration_params, 1000), size=NUM_OF_USERS_CLASSES
+            alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
         )
 
         # min because for each campaign we expect a maximum alpha, which is alpha_bar
@@ -174,17 +180,6 @@ class Environment:
             np.sum(samples[:, 0]) / NUM_OF_USERS_CLASSES, self.alpha_bars[prod_id]
         )
 
-    def mapping_function(self, budget: float, prod_id: int):
-        """
-        this function maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-        """
-        map_value = self.functions_dict[prod_id](budget)
-        return map_value if map_value > 0 else 0.0001
-
-    # utility functions for us
-    def plot_mapping_functions(self, budgets):
-        for i in range(NUM_OF_PRODUCTS):
-            plt.plot(budgets, [self.functions_dict[i](bu) for bu in budgets])
 
     # -----------------------------------------------
     # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
@@ -193,12 +188,15 @@ class Environment:
         # if np.all(pulled_arm == 0):
         #     return np.zeros_like(pulled_arm)
 
+
+        concentration_parameters = np.array([ self.functions_dict[i](pulled_arm[i]) for i in range(len(pulled_arm))])
+
         concentration_parameters = np.insert(
-            arr=pulled_arm, obj=0, values=np.max(pulled_arm)
+            arr=concentration_parameters, obj=0, values=np.max(concentration_parameters)
         )
 
         # Multiply the concentration parameters by 100 to give more stability
-        concentration_parameters = np.multiply(concentration_parameters, 100)
+        concentration_parameters = np.multiply(concentration_parameters, self.dirichlet_variance_keeper)
         concentration_parameters[np.where(concentration_parameters == 0)] = 0.001
 
         samples = self.rng.dirichlet(

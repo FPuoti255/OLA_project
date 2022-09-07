@@ -7,7 +7,7 @@ from Environment import Environment
 from Ecommerce import Ecommerce
 
 
-class Ecommerce_step2(Ecommerce):
+class Ecommerce2(Ecommerce):
     def __init__(self, B_cap: float, budgets, product_prices, tot_num_users):
 
         super().__init__(
@@ -32,12 +32,11 @@ class Ecommerce_step2(Ecommerce):
 
         for prd in range(NUM_OF_PRODUCTS):
             for j in range(0, self.budgets.shape[0]):
-                beta = env.mapping_function(
-                    budget=self.budgets[j] / self.B_cap, prod_id=prd
-                )
                 exp_num_clicks[prd][j] = env.get_users_alphas(
-                    prod_id=prd, concentration_params=[beta, 1 - beta]
+                    prod_id=prd, budget = self.budgets[j] / self.B_cap
                 )
+
+        print(exp_num_clicks)
 
         # print(exp_num_clicks)
         # Notice that we can find the situation in which for subsequent values of budgets,
@@ -46,7 +45,7 @@ class Ecommerce_step2(Ecommerce):
         # "concentration parameters list" the value sampled from the dirichlet can be higher or lower
 
         reshaped_value_per_click = np.tile(
-            A=np.atleast_2d(value_per_click).T, reps=self.n_arms
+            A=np.atleast_2d(value_per_click).T, reps=self.budgets.shape[0]
         )
         exp_reward = (
             np.multiply(exp_num_clicks, reshaped_value_per_click) * self.tot_num_users
@@ -57,3 +56,4 @@ class Ecommerce_step2(Ecommerce):
         )
         optimal_allocation = self.budgets[budgets_indexes]
         print("optimal solution found is:", "".join(str(optimal_allocation)))
+        return optimal_allocation
