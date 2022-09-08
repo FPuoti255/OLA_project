@@ -11,7 +11,7 @@ class Network:
         self.G = nx.from_numpy_matrix(A=adjacency_matrix, create_using=nx.DiGraph)
 
     def get_adjacency_matrix(self):
-        return nx.to_numpy_matrix(G=self.G)
+        return nx.to_numpy_array(G=self.G)
 
     def get_graph(self):
         return self.G

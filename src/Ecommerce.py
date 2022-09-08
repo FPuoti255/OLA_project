@@ -15,7 +15,8 @@ class Ecommerce(object):
     # --------SOCIAL INFLUENCE-----------------------
     def estimate_nodes_activation_probabilities(self, weights, users_reservation_prices):
         '''
-        :weights = network weights
+        :weights: network weights
+        :users_reservation_prices: shape NUM_OF_USERS_CLASSES x NUM_OF_PRODUCTS = 3 x 5
         '''
 
         if self.nodes_activation_probabilities is not None:
@@ -23,21 +24,22 @@ class Ecommerce(object):
         else:
             # MONTECARLO SAMPLING TO ESTIMATE THE NODES ACTIVATION PROBABILITIES
 
-            z = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+            num_of_user_classes = users_reservation_prices.shape[0]
+            z = np.zeros(shape=(num_of_user_classes, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
             # number of repetition to have theoretical guarantees on the error of the estimation
             epsilon = 0.03
             delta = 0.01
             k = int((1 / epsilon**2) * np.log(NUM_OF_PRODUCTS / 2)
                     * np.log(1 / delta))
+            for i in range(num_of_user_classes):
+                for node in range(NUM_OF_PRODUCTS):
+                    for _ in range(k):
+                        active_nodes = self.generate_live_edge_graph(
+                            node, weights, users_reservation_prices[i], False)
+                        z[i][node][active_nodes] += 1
 
-            for node in range(NUM_OF_PRODUCTS):
-                for _ in range(k):
-                    active_nodes = self.generate_live_edge_graph(
-                        seed, weights, users_reservation_prices, False)
-                    z[node][active_nodes] += 1
-
-            self.nodes_activation_probabilities = z / k
+            self.nodes_activation_probabilities = np.mean(z, axis=0) / k
             return self.nodes_activation_probabilities
 
     def generate_live_edge_graph(self, seed, weights, users_reservation_prices, show_plots=False):
@@ -160,12 +162,6 @@ class Ecommerce(object):
         return self.choose_best(table_opt, max_pointer)
 
     # -------- STEP 2 -----------------
-    def estimate_expected_num_clicks(self, env):
-        exp_num_clicks = [[env.get_exp_num_landings(
-            prod_id=i, budget=self.budgets[j] / self.B_cap
-        ) for j in range(self.budgets.shape[0])] for i in range(NUM_OF_PRODUCTS)]
-        
-        return np.array(exp_num_clicks)
 
     def solve_optimization_problem(
             self, weights, num_items_sold, users_reservation_prices, exp_num_clicks):

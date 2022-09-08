@@ -8,7 +8,7 @@ from Utils import *
 
 
 class Ecommerce3(Ecommerce):
-    def __init__(self, B_cap: float, budgets, product_prices, tot_num_users):
+    def __init__(self, B_cap: float, budgets, product_prices, observations_probabilities):
 
         super().__init__(B_cap, budgets, product_prices, observations_probabilities)
 
@@ -73,7 +73,7 @@ class Ecommerce3(Ecommerce):
 
 
 class Ecommerce3_TS(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices):
+    def __init__(self, B_cap, budgets, product_prices, observations_probabilities):
         super().__init__(B_cap, budgets, product_prices, observations_probabilities)
 
     def update_observations(self, pulled_arm, reward):
@@ -84,7 +84,7 @@ class Ecommerce3_TS(Ecommerce3):
             self.pulled_arms[i].append(pulled_arm[i])
             self.collected_rewards[i].append(reward[i])
 
-    def pull_arm(self, nodes_activation_probabilities):
+    def pull_arm(self):
         a, b = compute_beta_parameters(self.means, self.sigmas)
         samples = np.random.beta(a=a, b=b)
 
@@ -94,7 +94,7 @@ class Ecommerce3_TS(Ecommerce3):
 
 
 class Ecommerce3_UCB(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices):
+    def __init__(self, B_cap, budgets, product_prices, observations_probabilities):
         super().__init__(B_cap, budgets, product_prices, observations_probabilities)
 
         self.confidence_bounds = np.full(

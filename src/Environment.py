@@ -54,21 +54,31 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 2 ENVIRONMENT FUNCTIONS-----------
-    def get_exp_num_landings(self, prod_id, budget):
+    def estimate_expected_user_alpha(self, budgets: np.ndarray):
+        '''
+        budgets must be passed normalized ( between 0 and 1), thus budgets / B_cap
 
-        # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-        conc_param =  self.functions_dict[prod_id](budget)
+        returns the expected alpha for each couple (prod_id, budget_allocated)
+        '''
+        exp_user_alpha = np.zeros(shape=(NUM_OF_PRODUCTS, budgets.shape[0]))
 
-        # we multiplied by 1000 to reduce the variance in the estimation
-        samples = self.rng.dirichlet(
-            alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
-        )
+        for prod_id in range(NUM_OF_PRODUCTS):
+            for j in range(budgets.shape[0]):
+                
+                # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
+                conc_param =  self.functions_dict[prod_id](budgets[j])
 
-        # min because for each campaign we expect a maximum alpha, which is alpha_bar
-        return min(
-            np.sum(samples[:, 0]) / NUM_OF_USERS_CLASSES, self.users_alpha[prod_id]
-        )
-
+                # we multiplied by 1000 to reduce the variance in the estimation
+                samples = self.rng.dirichlet(
+                    alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
+                )
+                
+                # min because for each campaign we expect a maximum alpha, which is alpha_bar
+                exp_user_alpha[prod_id][j] = min(
+                    np.sum(samples[:, 0]) / NUM_OF_USERS_CLASSES, np.sum(self.users_alpha[ : ,prod_id])
+                )
+        
+        return np.array(exp_user_alpha)
 
     # -----------------------------------------------
     # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
@@ -90,12 +100,13 @@ class Environment:
 
         samples = self.rng.dirichlet(
             alpha=concentration_parameters, size=NUM_OF_USERS_CLASSES
-        )
-        samples = (
-            np.sum(a=samples, axis=0) / NUM_OF_USERS_CLASSES
-        )  # sum over the columns + renormalization
+        ) 
 
-        return samples[1:]
+        samples = (
+            np.sum(a=samples, axis=0) 
+        ) / NUM_OF_USERS_CLASSES  # sum over the columns + renormalization
+
+        return np.minimum(samples[1:], np.sum(self.users_alpha, axis=0)[1:])
 
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
