@@ -65,6 +65,15 @@ class Ecommerce3(Ecommerce):
     def pull_arm(self, nodes_activation_probabilities):
         pass
 
+    def dynamic_knapsack_solver(self, table):
+        """
+        In the UCB we do not need to subtract the budgets to the final row,
+        since we use the dynamic algorithm for another purpose
+        """
+        table_opt, max_pointer = self.compute_table(table)
+        return self.choose_best(table_opt, max_pointer)
+
+
 
 class Ecommerce3_TS(Ecommerce3):
     def __init__(self, B_cap, budgets, product_prices, tot_num_users):
@@ -82,16 +91,7 @@ class Ecommerce3_TS(Ecommerce3):
         a, b = compute_beta_parameters(self.means, self.sigmas)
         samples = np.random.beta(a=a, b=b)
 
-        value_per_click = (
-            np.dot(nodes_activation_probabilities, self.product_prices)
-            * self.tot_num_users
-        )
-        reshaped_value_per_click = np.tile(
-            A=np.atleast_2d(value_per_click).T, reps=self.n_arms
-        )
-        exp_reward = np.multiply(samples, reshaped_value_per_click)
-
-        arm_idxs, _ = self.dynamic_knapsack_solver(table=exp_reward)
+        arm_idxs, _ = self.dynamic_knapsack_solver(table=samples)
 
         return self.budgets[arm_idxs]
 
@@ -124,10 +124,3 @@ class Ecommerce3_UCB(Ecommerce3):
         # arm_idxs = np.argmax(upper_conf, axis=1)
         return self.budgets[arm_idxs]
 
-    def dynamic_knapsack_solver(self, table):
-        """
-        In the UCB we do not need to subtract the budgets to the final row,
-        since we use the dynamic algorithm for another purpose
-        """
-        table_opt, max_pointer = self.compute_table(table)
-        return self.choose_best(table_opt, max_pointer)
