@@ -12,13 +12,11 @@ class Environment:
         self,
         users_reservation_prices,
         click_probabilities, # == network weights
-        users_alpha,
-        num_items_sold,
+        users_alpha
     ):
         self.rng = np.random.default_rng(12345)
 
         self.users_reservation_prices = users_reservation_prices
-        self.num_items_sold = num_items_sold
         self.users_alpha = users_alpha
 
         self.network = Network(adjacency_matrix=click_probabilities)
@@ -44,9 +42,6 @@ class Environment:
 
     def get_network(self):
         return self.network
-    
-    def get_num_items_sold(self):
-        return self.num_items_sold
 
     def plot_mapping_functions(self, budgets):
         for i in range(NUM_OF_PRODUCTS):

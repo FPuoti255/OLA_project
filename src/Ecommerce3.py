@@ -8,9 +8,9 @@ from Utils import *
 
 
 class Ecommerce3(Ecommerce):
-    def __init__(self, B_cap: float, budgets, product_prices, observations_probabilities):
+    def __init__(self, B_cap: float, budgets, product_prices):
 
-        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
+        super().__init__(B_cap, budgets, product_prices)
 
 
         # The budgets are our arms!
@@ -72,9 +72,9 @@ class Ecommerce3(Ecommerce):
 
 
 
-class Ecommerce3_TS(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices, observations_probabilities):
-        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
+class Ecommerce3_GPTS(Ecommerce3):
+    def __init__(self, B_cap, budgets, product_prices):
+        super().__init__(B_cap, budgets, product_prices)
 
     def update_observations(self, pulled_arm, reward):
         for i in range(NUM_OF_PRODUCTS):
@@ -84,18 +84,21 @@ class Ecommerce3_TS(Ecommerce3):
             self.pulled_arms[i].append(pulled_arm[i])
             self.collected_rewards[i].append(reward[i])
 
-    def pull_arm(self):
+    def pull_arm(self, num_items_sold):
         a, b = compute_beta_parameters(self.means, self.sigmas)
         samples = np.random.beta(a=a, b=b)
+
+        # Multiplied by the number of items sold 
+        samples = np.multiply(samples.copy().T , num_items_sold).T 
 
         arm_idxs, _ = self.dynamic_knapsack_solver(table=samples)
 
         return self.budgets[arm_idxs]
 
 
-class Ecommerce3_UCB(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices, observations_probabilities):
-        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
+class Ecommerce3_GPUCB(Ecommerce3):
+    def __init__(self, B_cap, budgets, product_prices):
+        super().__init__(B_cap, budgets, product_prices)
 
         self.confidence_bounds = np.full(
             shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf
@@ -115,8 +118,11 @@ class Ecommerce3_UCB(Ecommerce3):
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = np.inf
 
-    def pull_arm(self):
+    def pull_arm(self, num_items_sold):
         upper_conf = self.means + self.confidence_bounds
+        
+        # Multiplied by the number of items sold 
+        upper_conf = np.multiply(upper_conf.copy().T, num_items_sold).T 
         arm_idxs, _ = self.dynamic_knapsack_solver(table=upper_conf)
         return self.budgets[arm_idxs]
 
