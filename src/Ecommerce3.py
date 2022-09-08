@@ -10,12 +10,8 @@ from Utils import *
 class Ecommerce3(Ecommerce):
     def __init__(self, B_cap: float, budgets, product_prices, tot_num_users):
 
-        super().__init__(
-            B_cap=B_cap,
-            budgets=budgets,
-            product_prices=product_prices,
-            tot_num_users=tot_num_users,
-        )
+        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
+
 
         # The budgets are our arms!
         self.n_arms = self.budgets.shape[0]
@@ -67,8 +63,9 @@ class Ecommerce3(Ecommerce):
 
     def dynamic_knapsack_solver(self, table):
         """
-        In the UCB we do not need to subtract the budgets to the final row,
-        since we use the dynamic algorithm for another purpose
+        In this phase we do not need to subtract the budgets to the final row,
+        since we use the dynamic algorithm find the allocation that comply with the 
+        TS/UCB pulling rules and the B_cap
         """
         table_opt, max_pointer = self.compute_table(table)
         return self.choose_best(table_opt, max_pointer)
@@ -76,8 +73,8 @@ class Ecommerce3(Ecommerce):
 
 
 class Ecommerce3_TS(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices, tot_num_users):
-        super().__init__(B_cap, budgets, product_prices, tot_num_users)
+    def __init__(self, B_cap, budgets, product_prices):
+        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
 
     def update_observations(self, pulled_arm, reward):
         for i in range(NUM_OF_PRODUCTS):
@@ -97,8 +94,8 @@ class Ecommerce3_TS(Ecommerce3):
 
 
 class Ecommerce3_UCB(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices, tot_num_users):
-        super().__init__(B_cap, budgets, product_prices, tot_num_users)
+    def __init__(self, B_cap, budgets, product_prices):
+        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
 
         self.confidence_bounds = np.full(
             shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf
@@ -121,6 +118,5 @@ class Ecommerce3_UCB(Ecommerce3):
     def pull_arm(self):
         upper_conf = self.means + self.confidence_bounds
         arm_idxs, _ = self.dynamic_knapsack_solver(table=upper_conf)
-        # arm_idxs = np.argmax(upper_conf, axis=1)
         return self.budgets[arm_idxs]
 

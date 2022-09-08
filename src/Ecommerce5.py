@@ -11,14 +11,9 @@ from Utils import *
 
 
 class Ecommerce5(Ecommerce):
-    def __init__(self, B_cap: float, budgets, product_prices, tot_num_users):
+    def __init__(self, B_cap: float, budgets, product_prices, observations_probabilities):
 
-        super().__init__(
-            B_cap=B_cap,
-            budgets=budgets,
-            product_prices=product_prices,
-            tot_num_users=tot_num_users,
-        )
+        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
 
         self.arms = [
             [i, j]
@@ -53,8 +48,8 @@ class Ecommerce5(Ecommerce):
         pass
 
 class Ecommerce5_GPTS(Ecommerce5):
-    def __init__(self, B_cap, budgets, product_prices, tot_num_users):
-        super().__init__(B_cap, budgets, product_prices, tot_num_users)
+    def __init__(self, B_cap, budgets, product_prices, observations_probabilities):
+        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
 
         # I'm generating a distribution for each possible PRODUCT-PRODUCT edge
         self.a = np.ones(shape=self.n_arms, dtype=np.int32)
@@ -98,8 +93,8 @@ class Ecommerce5_GPTS(Ecommerce5):
 
 
 class Ecommerce5_UCB(Ecommerce5):
-    def __init__(self, B_cap, budgets, product_prices, tot_num_users):
-        super().__init__(B_cap, budgets, product_prices, tot_num_users)
+    def __init__(self, B_cap, budgets, product_prices, observations_probabilities):
+        super().__init__(B_cap, budgets, product_prices, observations_probabilities)
 
         # I'm generating a distribution for each possible PRODUCT-PRODUCT edge
         self.means = np.ones(shape=self.n_arms) * 0.5
