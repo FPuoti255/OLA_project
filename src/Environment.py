@@ -14,7 +14,16 @@ class Environment:
         click_probabilities, # == network weights
         users_alpha
     ):
+
+
         self.rng = np.random.default_rng(12345)
+        self.functions_dict = [
+            lambda x: 0.5 if x > 0.5 else x+0.001,
+            lambda x: 0.001 if x<0.2 else (np.exp(x**2)-1 if x>= 0.2 and x<=0.7 else 0.64) ,
+            lambda x: min(x + 0.001, 0.99),
+            lambda x: np.log(x+1) + 0.001,
+            lambda x: 1 / (1 + np.exp(- (x ** 4))) - 0.499,
+        ]
 
         self.users_reservation_prices = users_reservation_prices
         self.users_alpha = users_alpha
@@ -24,15 +33,6 @@ class Environment:
         self.nodes_activation_probabilities = None
         self.dirichlet_variance_keeper = 100
 
-
-        # For each campaign (product) this functions map the budget allocated into the expected number of clicks(in percentage)
-        self.functions_dict = [
-            lambda x: 0.5 if x > 0.5 else x+0.001,
-            lambda x: 0.001 if x<0.2 else (np.exp(x**2)-1 if x>= 0.2 and x<=0.7 else 0.64) ,
-            lambda x: min(x + 0.001, 0.99),
-            lambda x: np.log(x+1) + 0.001,
-            lambda x: 1 / (1 + np.exp(- (x ** 4))) - 0.499,
-        ]
 
     def get_users_reservation_prices(self):
         return self.users_reservation_prices
@@ -73,17 +73,15 @@ class Environment:
                     np.sum(samples[:, 0]) / NUM_OF_USERS_CLASSES, np.sum(self.users_alpha[ : ,prod_id])
                 )
         
-        return np.array(exp_user_alpha)
+        return exp_user_alpha
 
     # -----------------------------------------------
     # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
     def round_step3(self, pulled_arm):
-        # # We supposed that the competitors invest the maximum of the e-commerce
-        # if np.all(pulled_arm == 0):
-        #     return np.zeros_like(pulled_arm)
+        
+        arm = renormalize(pulled_arm)
 
-
-        concentration_parameters = np.array([ self.functions_dict[i](pulled_arm[i]) for i in range(len(pulled_arm))])
+        concentration_parameters = np.array([ self.functions_dict[i](arm[i]) for i in range(len(pulled_arm))])
 
         concentration_parameters = np.insert(
             arr=concentration_parameters, obj=0, values=np.max(concentration_parameters)
@@ -91,11 +89,12 @@ class Environment:
 
         # Multiply the concentration parameters by 100 to give more stability
         concentration_parameters = np.multiply(concentration_parameters, self.dirichlet_variance_keeper)
-        concentration_parameters[np.where(concentration_parameters == 0)] = 0.001
+        concentration_parameters = np.maximum(concentration_parameters, 0.001)
 
         samples = self.rng.dirichlet(
             alpha=concentration_parameters, size=NUM_OF_USERS_CLASSES
         ) 
+
 
         samples = (
             np.sum(a=samples, axis=0) 
@@ -106,6 +105,12 @@ class Environment:
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
 
+    def round_step4(self, pulled_arm):
+        reward = self.round_step3(pulled_arm)
+  
+        sold_items = self.rng.binomial(n = 1, p = renormalize(pulled_arm)) * np.random.randint(low = 1, high = 5+1)
+
+        return reward, sold_items
     
     # -----------------------------------------------
     # --------STEP 5 ENVIRONMENT FUNCTIONS-----------
