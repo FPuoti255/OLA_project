@@ -197,7 +197,7 @@ if __name__ == "__main__":
         gpts_sold_items_per_experiment.append(ecomm4_gpts.collected_sold_items)
         gpucb_sold_items_per_experiment.append(ecomm4_ucb.collected_sold_items)
 
-    opt = opt = np.sum(env.get_users_alpha(), axis=0)[1:]
+    opt = np.sum(env.get_users_alpha(), axis=0)[1:]
 
     plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opt)
     plot_regrets_step3(gpts_sold_items_per_experiment, gpucb_sold_items_per_experiment, num_items_sold)

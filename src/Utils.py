@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+from matplotlib import pyplot as plt
 
 warnings.filterwarnings("ignore")
 
@@ -71,7 +72,7 @@ def plot_regrets(gpts_regret, gpucb_regret):
     plt.show()
 
     
-def plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opt):
+def plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opt, n_experiments):
     gpts_rewards_per_experiment = np.array(gpts_rewards_per_experiment)
     gpucb_rewards_per_experiment = np.array(gpucb_rewards_per_experiment)
 
