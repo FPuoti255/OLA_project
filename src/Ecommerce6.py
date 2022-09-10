@@ -38,7 +38,7 @@ class Ecommerce6(Ecommerce):
     def update_model(self):
         pass
 
-    def pull_arm(self, nodes_activation_probabilities):
+    def pull_arm(self):
         pass
 
     def dynamic_knapsack_solver(self, table):

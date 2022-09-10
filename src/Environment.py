@@ -17,6 +17,8 @@ class Environment:
 
 
         self.rng = np.random.default_rng(12345)
+        self.dirichlet_variance_keeper = 100
+        
         self.functions_dict = [
             lambda x: 0.5 if x > 0.5 else x+0.001,
             lambda x: 0.001 if x<0.2 else (np.exp(x**2)-1 if x>= 0.2 and x<=0.7 else 0.64) ,
@@ -29,9 +31,6 @@ class Environment:
         self.users_alpha = users_alpha
 
         self.network = Network(adjacency_matrix=click_probabilities)
-
-        self.nodes_activation_probabilities = None
-        self.dirichlet_variance_keeper = 100
 
 
     def get_users_reservation_prices(self):
@@ -105,10 +104,15 @@ class Environment:
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
 
-    def round_step4(self, pulled_arm):
+    def round_step4(self, pulled_arm, num_sold_items):
         reward = self.round_step3(pulled_arm)
+
+        # the number of items sold in this round is directly proportional to the 
+        # reward obtained. In fact, if the reward that I obtain for my allocation
+        # is equal to the maximum I can get, also the number of sold items would be
+        # the maximum available ( the one yielded by the montecarlo sampling)
+        sold_items =np.multiply(np.divide(reward, np.sum(self.users_alpha, axis=0)[1:]), num_sold_items)
   
-        sold_items = self.rng.binomial(n = 1, p = renormalize(pulled_arm)) * np.random.randint(low = 1, high = 5+1)
 
         return reward, sold_items
     
