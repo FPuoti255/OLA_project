@@ -84,10 +84,11 @@ class Ecommerce6_SWUCB(Ecommerce6):
 
         for i in range(NUM_OF_PRODUCTS):
             arm_idx = int(np.where(self.budgets == pulled_arm[i])[0])
-            self.N_a[i][arm_idx][slot_idx] = 1
-
-            self.rewards_per_arm[i][arm_idx][slot_idx] = reward[i]
             non_pulled_arm_idxs = np.nonzero(np.in1d(self.budgets, np.setdiff1d(self.budgets, pulled_arm[i])))[0]
+            
+            self.N_a[i][arm_idx][slot_idx] = 1
+            self.N_a[i][non_pulled_arm_idxs][slot_idx] = 0
+            self.rewards_per_arm[i][arm_idx][slot_idx] = reward[i]
             self.rewards_per_arm[i][non_pulled_arm_idxs][slot_idx] = np.nan
 
             self.pulled_arms[i][slot_idx] = pulled_arm[i]
