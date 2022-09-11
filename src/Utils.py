@@ -6,6 +6,7 @@ warnings.filterwarnings("ignore")
 
 debug = False
 
+
 def log(msg):
     if debug:
         print(msg)
@@ -27,7 +28,7 @@ def log(msg):
 #     variance = np.square(sigmas)
 #     variance = np.minimum(variance, np.multiply(means, np.subtract(1,means)))
 
-     
+
 #     second_term = np.subtract(
 #         np.divide(np.multiply(means, np.subtract(1, means)), variance), 1
 #     )
@@ -40,7 +41,7 @@ def log(msg):
 
 def compute_beta_parameters(means, sigmas):
     # https://stats.stackexchange.com/a/316088
-    
+
     precision = np.divide(1, np.square(sigmas))
     a = np.multiply(means, precision)
     b = np.multiply(precision, (1 - means))
@@ -51,43 +52,106 @@ def compute_beta_parameters(means, sigmas):
 def compute_beta_means_variance(a, b):
     means = np.divide(a, np.add(a, b))
     sigmas = np.divide(
-        np.multiply(a, b), np.multiply(np.square(np.add(a, b)), np.add(np.add(a, b), 1))
+        np.multiply(a, b), np.multiply(
+            np.square(np.add(a, b)), np.add(np.add(a, b), 1))
     )
     return means, sigmas
 
-def renormalize(arr : np.array):
+
+def renormalize(arr: np.array):
     arr_sum = np.sum(arr)
     return arr.copy() if arr_sum == 0 else arr.copy() / np.sum(arr)
 
 
-def plot_regrets(gpts_regret, gpucb_regret):
+def plot_regrets(alg1_regret, alg2_regret, legend):
     plt.figure(0)
+
     plt.ylabel("Regret")
     plt.xlabel("t")
 
-    plt.plot(gpts_regret, "r")
-    plt.plot(gpucb_regret, "g")
+    ticks = np.arange(start=1, stop=len(alg1_regret) + 1, step=1)
+    plt.plot(ticks, alg1_regret, color="r")
+    plt.plot(ticks, alg2_regret, "g")
 
-    plt.legend(["GPTS", "GPUCB"])
+    plt.legend(legend)
     plt.show()
 
-    
-def plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opt, n_experiments):
+
+def prepare_alpha_or_items_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts):
+    alg1_regret_per_experiment = (opts.T - alg1_rewards_per_experiment.T).T
+    alg2_regret_per_experiment = (opts.T - alg2_rewards_per_experiment.T).T
+
+    alg1_regret = np.cumsum(
+        np.mean(np.sum(alg1_regret_per_experiment, axis=1), axis=0))
+    alg2_regret = np.cumsum(
+        np.mean(np.sum(alg2_regret_per_experiment, axis=1), axis=0))
+
+    return alg1_regret, alg2_regret
+
+
+def plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts):
     gpts_rewards_per_experiment = np.array(gpts_rewards_per_experiment)
     gpucb_rewards_per_experiment = np.array(gpucb_rewards_per_experiment)
+    opts = np.array(opts)
 
-    # this np.mean is used to compute the average regret for each "product" -> output shape = (n_experiments x NUM_OF_PRODUCTS)
-    gpts_regret_arms = np.zeros_like(gpts_rewards_per_experiment)
-    gpucb_regret_arms = np.zeros_like(gpucb_rewards_per_experiment)
+    gpts_regret, gpucb_regret = prepare_alpha_or_items_regrets(
+        gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts)
 
-    for i in range(n_experiments):
-        gpts_regret_arms[i] = (opt - gpts_rewards_per_experiment[i].T).T
-        gpucb_regret_arms[i] = (opt - gpucb_rewards_per_experiment[i].T).T
-
-    gpts_regret = np.cumsum(np.sum(np.mean(gpts_regret_arms, axis=0), axis = 0))
-    gpucb_regret = np.cumsum(np.sum(np.mean(gpucb_regret_arms, axis=0), axis=0))
-
-    #gpts_regret_items = num_items_sold - np.array(gpts_sold_items_per_experiment)
+    plot_regrets(gpts_regret, gpucb_regret, ["GPTS", "GPUCB"])
 
 
-    plot_regrets(gpts_regret, gpucb_regret)
+def plot_regrets_step4(gpts_rewards_per_experiment,
+                       gpucb_rewards_per_experiment, opts,
+                       gpts_sold_items_per_experiment,
+                       gpucb_sold_items_per_experiment, opts_sold_items):
+
+    gpts_rewards_per_experiment = np.array(gpts_rewards_per_experiment)
+    gpucb_rewards_per_experiment = np.array(gpucb_rewards_per_experiment)
+    opts = np.array(opts)
+
+    gpts_sold_items_per_experiment = np.array(gpts_sold_items_per_experiment)
+    gpucb_sold_items_per_experiment = np.array(gpucb_sold_items_per_experiment)
+    opts_sold_items = np.array(opts_sold_items)
+
+    gpts_regret, gpucb_regret = prepare_alpha_or_items_regrets(
+        gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts)
+
+    gpts_sold_items_regret, gpucb_sold_items_regret = prepare_alpha_or_items_regrets(
+        gpts_sold_items_per_experiment, gpucb_sold_items_per_experiment, opts_sold_items)
+
+    plot_regrets(gpts_regret, gpucb_regret, ["GPTS", "GPUCB"])
+
+    plot_regrets(gpts_sold_items_regret, gpucb_sold_items_regret, [
+                 "GPTS_sold_items_regret", "GPUCB_sold_items_regret"])
+
+
+def plot_regrets_step5(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts):
+    gpts_regret = np.cumsum(
+        np.mean((opts - gpts_rewards_per_experiment.T).T, axis=0))
+    gpucb_regret = np.cumsum(
+        np.mean((opts - gpucb_rewards_per_experiment.T).T, axis=0))
+
+    plot_regrets(gpts_regret, gpucb_regret, ["GPTS", "GPUCB"])
+
+
+def plot_regrets_step6(swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts,
+                      swucb_sold_items_per_experiment, cducb_sold_items_per_experiment, opts_sold_items):
+
+    swucb_rewards_per_experiment = np.array(swucb_rewards_per_experiment)
+    cducb_rewards_per_experiment = np.array(cducb_rewards_per_experiment)
+    opts = np.array(opts)
+
+    swucb_sold_items_per_experiment = np.array(swucb_sold_items_per_experiment)
+    cducb_sold_items_per_experiment = np.array(cducb_sold_items_per_experiment)
+    opts_sold_items = np.array(opts_sold_items)
+
+    swucb_regret, cducb_regret = prepare_alpha_or_items_regrets(
+        swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts)
+
+    swucb_sold_items_regret, cducb_sold_items_regret = prepare_alpha_or_items_regrets(
+        swucb_sold_items_per_experiment, cducb_sold_items_per_experiment, opts_sold_items)
+
+    plot_regrets(swucb_regret, cducb_regret, ["SWUCB", "CDUCB"])
+
+    plot_regrets(swucb_sold_items_regret, cducb_sold_items_regret, [
+                 "SWUCB_sold_items_regret", "CDUCB_sold_items_regret"])

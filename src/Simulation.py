@@ -22,7 +22,6 @@ B_cap = 200
 budgets = np.arange(start=0, stop=B_cap + 1, step=B_cap / 10)
 
 
-
 users_price_range = 100
 products_price_range = 60
 product_prices = np.round(np.random.random(
@@ -31,7 +30,7 @@ product_prices = np.round(np.random.random(
 n_experiments = 10
 T = 20
 n_phases = int(T/10)
-phase_len= int(T/n_phases)
+phase_len = int(T/n_phases)
 
 
 def generate_network_matrix():
@@ -85,7 +84,7 @@ def generate_observation_probabilities(click_probabilities):
     return obs_prob
 
 
-def generate_alphas(users_parameters = [82, 56, 80, 82, 42, 59]):
+def generate_alphas(users_parameters=[82, 56, 80, 82, 42, 59]):
     '''
     Alphas represents the percentage of users (for each class) landing on a specific product webpage including the competitor's
     '''
@@ -93,10 +92,10 @@ def generate_alphas(users_parameters = [82, 56, 80, 82, 42, 59]):
     # Notice that we needed to include also the 'competitors product', and we decided to give to all the products equal probability -> [1 / (NUM_OF_PRODUCTS+1)]
     # the 𝛼_0 is the one corresponding to the competitor(s) product
 
-    alphas = np.random.dirichlet(alpha = users_parameters, size = NUM_OF_USERS_CLASSES) / NUM_OF_USERS_CLASSES
+    alphas = np.random.dirichlet(
+        alpha=users_parameters, size=NUM_OF_USERS_CLASSES) / NUM_OF_USERS_CLASSES
 
     return alphas
-
 
 
 def generate_new_environment():
@@ -104,15 +103,15 @@ def generate_new_environment():
     clk_prob = generate_network_matrix()
 
     # Secondary product set by the business unit
-    observations_probabilities = generate_observation_probabilities(clk_prob) 
-    
+    observations_probabilities = generate_observation_probabilities(clk_prob)
+
     users_reservation_prices = np.round(np.random.random(
         size=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)) * users_price_range, 2)
 
     nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
-        clk_prob, 
-        users_reservation_prices, 
-        product_prices, 
+        clk_prob,
+        users_reservation_prices,
+        product_prices,
         observations_probabilities
     )
 
@@ -122,15 +121,15 @@ def generate_new_environment():
         users_alpha=generate_alphas()
     )
 
-
     # Network.print_graph(G=env.network.G)
 
     return env, nodes_activation_probabilities, num_sold_items, observations_probabilities
 
+
 def generate_new_non_stationary_environment():
     clk_prob = generate_network_matrix()
     # Secondary product set by the business unit
-    observations_probabilities = generate_observation_probabilities(clk_prob) 
+    observations_probabilities = generate_observation_probabilities(clk_prob)
 
     users_reservation_prices = []
     nodes_activation_probabilities = []
@@ -139,28 +138,29 @@ def generate_new_non_stationary_environment():
     users_alpha = []
 
     prod_fun_idx = np.arange(NUM_OF_PRODUCTS)
-    for i in range(n_phases):
+    for _ in range(n_phases):
 
-        res_prices = np.round(np.random.random(size=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)) * users_price_range, 2)
+        res_prices = np.round(np.random.random(
+            size=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)) * users_price_range, 2)
         users_reservation_prices.append(res_prices)
 
         estimation = estimate_nodes_activation_probabilities(
-            clk_prob, 
-            res_prices, 
-            product_prices, 
+            clk_prob,
+            res_prices,
+            product_prices,
             observations_probabilities
         )
         nodes_activation_probabilities.append(estimation[0])
         num_sold_items.append(estimation[1])
 
-        np.random.shuffle(prod_fun_idx) # In place shuffling
+        np.random.shuffle(prod_fun_idx)  # In place shuffling
         product_functions_idxs.append(prod_fun_idx.copy())
 
-        users_parameters = np.random.randint(50, high = 101, size=6)
+        users_parameters = np.random.randint(50, high=101, size=6)
         users_alpha.append(generate_alphas(users_parameters=users_parameters))
 
-    env = Non_Stationary_Environment(users_reservation_prices, product_functions_idxs, clk_prob, users_alpha, T)
-
+    env = Non_Stationary_Environment(
+        users_reservation_prices, product_functions_idxs, clk_prob, users_alpha, num_sold_items, T)
 
     # Network.print_graph(G=env.network.G)
 
@@ -169,27 +169,27 @@ def generate_new_non_stationary_environment():
 
 if __name__ == "__main__":
 
-
     # -----------SOCIAL INFLUENCE SIMULATION + STEP2 OPTIMIZATION PROBLEM --------------
 
     env, nodes_activation_probabilities, num_sold_items, observations_probabilities = generate_new_environment()
 
-    ecomm = Ecommerce(B_cap, budgets, product_prices, observations_probabilities)
+    ecomm = Ecommerce(B_cap, budgets, product_prices,
+                      observations_probabilities)
 
     exp_clicks = env.estimate_expected_user_alpha(ecomm.budgets / ecomm.B_cap)
     optimal_allocation = ecomm.solve_optimization_problem(
-            env.get_network().get_adjacency_matrix(), 
-            num_sold_items, 
-            env.get_users_reservation_prices(), 
-            exp_clicks, 
-            nodes_activation_probabilities
-        )
-
-
+        env.get_network().get_adjacency_matrix(),
+        num_sold_items,
+        env.get_users_reservation_prices(),
+        exp_clicks,
+        nodes_activation_probabilities
+    )
 
     # -----------STEP 3------------
     gpts_rewards_per_experiment = []
     gpucb_rewards_per_experiment = []
+
+    opts = []
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
         env, nodes_activation_probabilities, num_sold_items, observations_probabilities = generate_new_environment()
@@ -210,12 +210,10 @@ if __name__ == "__main__":
 
         gpts_rewards_per_experiment.append(ecomm3_gpts.collected_rewards)
         gpucb_rewards_per_experiment.append(ecomm3_ucb.collected_rewards)
+        opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
 
-
-    opt = np.sum(env.get_users_alpha(), axis=0)[1:]
-    plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opt)
-
-
+    plot_regrets_step3(gpts_rewards_per_experiment,
+                       gpucb_rewards_per_experiment, opts)
 
     # -----------STEP 4------------
     gpts_rewards_per_experiment = []
@@ -223,6 +221,9 @@ if __name__ == "__main__":
 
     gpts_sold_items_per_experiment = []
     gpucb_sold_items_per_experiment = []
+
+    opts = []
+    opts_sold_items = []
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
         env, nodes_activation_probabilities, num_sold_items, observations_probabilities = generate_new_environment()
@@ -247,19 +248,22 @@ if __name__ == "__main__":
         gpts_sold_items_per_experiment.append(ecomm4_gpts.collected_sold_items)
         gpucb_sold_items_per_experiment.append(ecomm4_ucb.collected_sold_items)
 
-    opt = np.sum(env.get_users_alpha(), axis=0)[1:]
+        opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
+        opts_sold_items.append(num_sold_items)
 
-    plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opt)
-    plot_regrets_step3(gpts_sold_items_per_experiment, gpucb_sold_items_per_experiment, num_sold_items)
-
-
+    plot_regrets_step4(gpts_rewards_per_experiment,
+                       gpucb_rewards_per_experiment, opts,
+                       gpts_sold_items_per_experiment,
+                       gpucb_sold_items_per_experiment, opts_sold_items)
 
     # -----------STEP 5------------
     gpucb_rewards_per_experiment = []
     gpts_rewards_per_experiment = []
 
+    opts = []
+
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
-        env, observations_probabilities = generate_new_environment()
+        env, nodes_activation_probabilities, num_sold_items, observations_probabilities = generate_new_environment()
 
         ecomm5_gpts = Ecommerce5_GPTS(
             B_cap, budgets, product_prices)
@@ -278,12 +282,43 @@ if __name__ == "__main__":
         gpucb_rewards_per_experiment.append(ecomm5_ucb.collected_rewards)
         gpts_rewards_per_experiment.append(ecomm5_gpts.collected_rewards)
 
-    opt = np.max(env.get_network().get_adjacency_matrix())
+        opts.append(np.max(env.get_network().get_adjacency_matrix()))
 
-    gpts_regret = np.cumsum(
-        np.mean(opt - gpucb_rewards_per_experiment, axis=0))
-    gpucb_regret = np.cumsum(
-        np.mean(opt - gpts_rewards_per_experiment, axis=0))
+    plot_regrets_step5(gpts_rewards_per_experiment=gpts_rewards_per_experiment,
+                       gpucb_rewards_per_experiment=gpucb_rewards_per_experiment, opts=opts)
 
-    plot_regrets(gpts_regret, gpucb_regret)
+    # -----------STEP 6------------
+    swucb_rewards_per_experiment = []
+    swucb_sold_items_per_experiment = []
 
+    opts = []
+    opts_sold_items = []
+
+    tau = np.floor(np.sqrt(T)).astype(int)
+
+    for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
+        env, nodes_activation_probabilities, num_sold_items, observations_probabilities = generate_new_non_stationary_environment()
+
+        ecomm6_ucb = Ecommerce6_SWUCB(
+            B_cap, budgets, product_prices, tau)
+
+        for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
+            arm = ecomm6_ucb.pull_arm()
+            reward, sold_items = env.round_step6(arm)
+            ecomm6_ucb.update(arm, reward, sold_items)
+
+        swucb_rewards_per_experiment.append(ecomm6_ucb.collected_rewards)
+        swucb_sold_items_per_experiment.append(ecomm6_ucb.collected_sold_items)
+
+        opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
+        opts_sold_items.append(env.get_num_sold_items())
+
+    # TODO implement cducb algo. In the meanwhile...
+    cducb_reward_per_experiment = np.zeros_like(swucb_rewards_per_experiment)
+    cducb_sold_items_per_experiment = np.zeros_like(swucb_sold_items_per_experiment)
+
+
+    plot_regrets_step6(swucb_rewards_per_experiment,
+                       cducb_reward_per_experiment, opts, 
+                       swucb_sold_items_per_experiment,
+                       cducb_sold_items_per_experiment, opts_sold_items)
