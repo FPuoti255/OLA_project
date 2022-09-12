@@ -1,5 +1,4 @@
 import numpy as np
-import random
 
 from Utils import *
 from constants import *
@@ -28,7 +27,7 @@ product_prices = np.round(np.random.random(
     size=NUM_OF_PRODUCTS) * products_price_range, 2)
 
 n_experiments = 10
-T = 20
+T = 200
 n_phases = int(T/10)
 phase_len = int(T/n_phases)
 
@@ -256,6 +255,7 @@ if __name__ == "__main__":
                        gpts_sold_items_per_experiment,
                        gpucb_sold_items_per_experiment, opts_sold_items)
 
+    
     # -----------STEP 5------------
     gpucb_rewards_per_experiment = []
     gpts_rewards_per_experiment = []
@@ -287,14 +287,22 @@ if __name__ == "__main__":
     plot_regrets_step5(gpts_rewards_per_experiment=gpts_rewards_per_experiment,
                        gpucb_rewards_per_experiment=gpucb_rewards_per_experiment, opts=opts)
 
+
     # -----------STEP 6------------
     swucb_rewards_per_experiment = []
     swucb_sold_items_per_experiment = []
+
+    cducb_rewards_per_experiment = []
+    cducb_sold_items_per_experiment = []
 
     opts = []
     opts_sold_items = []
 
     tau = np.floor(np.sqrt(T)).astype(int)
+
+    M = np.ceil(0.033 * T)
+    eps = 0.1
+    h = 2 * np.log(T)
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
         env, nodes_activation_probabilities, num_sold_items, observations_probabilities = generate_new_non_stationary_environment()
@@ -302,23 +310,29 @@ if __name__ == "__main__":
         ecomm6_ucb = Ecommerce6_SWUCB(
             B_cap, budgets, product_prices, tau)
 
+        ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
+
         for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
             arm = ecomm6_ucb.pull_arm()
             reward, sold_items = env.round_step6(arm)
             ecomm6_ucb.update(arm, reward, sold_items)
+        
+            arm = ecomm6_cducb.pull_arm()
+            reward, sold_items = env.round_step6(arm)
+            ecomm6_cducb.update(arm, reward, sold_items)
+
 
         swucb_rewards_per_experiment.append(ecomm6_ucb.collected_rewards)
         swucb_sold_items_per_experiment.append(ecomm6_ucb.collected_sold_items)
 
+        cducb_rewards_per_experiment.append(ecomm6_cducb.collected_rewards)
+        cducb_sold_items_per_experiment.append(ecomm6_cducb.collected_sold_items)
+
         opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
         opts_sold_items.append(env.get_num_sold_items())
 
-    # TODO implement cducb algo. In the meanwhile...
-    cducb_reward_per_experiment = np.zeros_like(swucb_rewards_per_experiment)
-    cducb_sold_items_per_experiment = np.zeros_like(swucb_sold_items_per_experiment)
-
 
     plot_regrets_step6(swucb_rewards_per_experiment,
-                       cducb_reward_per_experiment, opts, 
+                       cducb_rewards_per_experiment, opts, 
                        swucb_sold_items_per_experiment,
                        cducb_sold_items_per_experiment, opts_sold_items)
