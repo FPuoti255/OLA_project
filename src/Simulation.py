@@ -26,8 +26,8 @@ products_price_range = 60
 product_prices = np.round(np.random.random(
     size=NUM_OF_PRODUCTS) * products_price_range, 2)
 
-n_experiments = 10
-T = 200
+n_experiments = 2
+T = 20
 n_phases = int(T/10)
 phase_len = int(T/n_phases)
 
