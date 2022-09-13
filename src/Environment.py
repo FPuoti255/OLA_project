@@ -15,7 +15,6 @@ class Environment:
         users_alpha
     ):
 
-
         self.rng = np.random.default_rng(12345)
         self.dirichlet_variance_keeper = 100
         
@@ -50,9 +49,8 @@ class Environment:
     # --------STEP 2 ENVIRONMENT FUNCTIONS-----------
     def estimate_expected_user_alpha(self, budgets: np.ndarray):
         '''
-        budgets must be passed normalized ( between 0 and 1), thus budgets / B_cap
-
-        returns the expected alpha for each couple (prod_id, budget_allocated)
+        :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
+        :return: the expected alpha for each couple (prod_id, budget_allocated)
         '''
         exp_user_alpha = np.zeros(shape=(NUM_OF_PRODUCTS, budgets.shape[0]))
 
@@ -62,7 +60,7 @@ class Environment:
                 # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
                 conc_param =  self.functions_dict[prod_id](budgets[j])
 
-                # we multiplied by 1000 to reduce the variance in the estimation
+                # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
                 samples = self.rng.dirichlet(
                     alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
                 )

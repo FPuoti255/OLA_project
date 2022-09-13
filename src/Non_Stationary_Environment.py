@@ -47,7 +47,7 @@ class Non_Stationary_Environment:
         return self.num_sold_items[self.current_phase]
 
     def round_step6(self, pulled_arm):
-        self.current_phase = int(self.t / self.phase_size)
+        self.current_phase = int(np.ceil(self.t / self.phase_size))
 
         arm = renormalize(pulled_arm)
 

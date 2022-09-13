@@ -63,6 +63,24 @@ def renormalize(arr: np.array):
     return arr.copy() if arr_sum == 0 else arr.copy() / np.sum(arr)
 
 
+def prepare_alpha_or_items_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts):
+    alg1_regret_per_experiment = (opts.T - alg1_rewards_per_experiment.T).T
+    alg2_regret_per_experiment = (opts.T - alg2_rewards_per_experiment.T).T
+
+    alg1_regret = np.sum(alg1_regret_per_experiment, axis=1)
+    alg2_regret = np.sum(alg2_regret_per_experiment, axis=1)
+
+    alg1_mean_regret = np.cumsum(
+        np.mean(alg1_regret, axis=0))
+    alg2_mean_regret = np.cumsum(
+        np.mean(alg2_regret, axis=0))
+
+    alg1_regret_std = np.std(alg1_regret, axis=0)
+    alg2_regret_std = np.std(alg2_regret, axis=0)
+
+    return alg1_mean_regret, alg2_mean_regret, alg1_regret_std, alg2_regret_std
+
+
 def plot_regrets(alg1_regret, alg2_regret, alg1_std_regret, alg2_std_regret, legend):
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(10, 10))
 
@@ -85,24 +103,6 @@ def plot_regrets(alg1_regret, alg2_regret, alg1_std_regret, alg2_std_regret, leg
     ax[1].set_title(legend[1])
         
     plt.show()
-
-
-def prepare_alpha_or_items_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts):
-    alg1_regret_per_experiment = (opts.T - alg1_rewards_per_experiment.T).T
-    alg2_regret_per_experiment = (opts.T - alg2_rewards_per_experiment.T).T
-
-    alg1_regret = np.sum(alg1_regret_per_experiment, axis=1)
-    alg2_regret = np.sum(alg2_regret_per_experiment, axis=1)
-
-    alg1_mean_regret = np.cumsum(
-        np.mean(alg1_regret, axis=0))
-    alg2_mean_regret = np.cumsum(
-        np.mean(alg2_regret, axis=0))
-
-    alg1_regret_std = np.std(alg1_regret, axis=0)
-    alg2_regret_std = np.std(alg2_regret, axis=0)
-
-    return alg1_mean_regret, alg2_mean_regret, alg1_regret_std, alg2_regret_std
 
 
 def plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts):
