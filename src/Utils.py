@@ -73,6 +73,7 @@ def plot_regrets(alg1_regret, alg2_regret, alg1_std_regret, alg2_std_regret, leg
                        alg1_regret + alg1_std_regret, alpha=0.4)
     ax[0].set_xlabel('t')
     ax[0].set_ylabel('Regret')
+    ax[0].set_xticks(ticks)
     ax[0].set_title(legend[0])
 
     ax[1].plot(ticks, alg2_regret, color='r')
@@ -80,8 +81,9 @@ def plot_regrets(alg1_regret, alg2_regret, alg1_std_regret, alg2_std_regret, leg
                        alg2_regret + alg2_std_regret, alpha=0.4)
     ax[1].set_xlabel('t')
     ax[1].set_ylabel('Regret')
+    ax[1].set_xticks(ticks)
     ax[1].set_title(legend[1])
-
+        
     plt.show()
 
 
@@ -116,29 +118,10 @@ def plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment
 
 
 def plot_regrets_step4(gpts_rewards_per_experiment,
-                       gpucb_rewards_per_experiment, opts,
-                       gpts_sold_items_per_experiment,
-                       gpucb_sold_items_per_experiment, opts_sold_items):
+                       gpucb_rewards_per_experiment, opts):
 
-    gpts_rewards_per_experiment = np.array(gpts_rewards_per_experiment)
-    gpucb_rewards_per_experiment = np.array(gpucb_rewards_per_experiment)
-    opts = np.array(opts)
-
-    gpts_sold_items_per_experiment = np.array(gpts_sold_items_per_experiment)
-    gpucb_sold_items_per_experiment = np.array(gpucb_sold_items_per_experiment)
-    opts_sold_items = np.array(opts_sold_items)
-
-    gpts_regret, gpucb_regret, gpts_std, gpucb_std = prepare_alpha_or_items_regrets(
-        gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts)
-
-    gpts_sold_items_regret, gpucb_sold_items_regret, gpts_sold_items_std, gpucb_sold_items_std = prepare_alpha_or_items_regrets(
-        gpts_sold_items_per_experiment, gpucb_sold_items_per_experiment, opts_sold_items)
-
-    plot_regrets(gpts_regret, gpucb_regret,  gpts_std,
-                 gpucb_std, ["GPTS", "GPUCB"])
-
-    plot_regrets(gpts_sold_items_regret, gpucb_sold_items_regret, gpts_sold_items_std, gpucb_sold_items_std, [
-                 "GPTS_sold_items_regret", "GPUCB_sold_items_regret"])
+    plot_regrets_step3(gpts_rewards_per_experiment,
+                       gpucb_rewards_per_experiment, opts)
 
 
 def plot_regrets_step5(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts):
@@ -158,25 +141,14 @@ def plot_regrets_step5(gpts_rewards_per_experiment, gpucb_rewards_per_experiment
                  gpucb_std_regret, ["GPTS", "GPUCB"])
 
 
-def plot_regrets_step6(swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts,
-                       swucb_sold_items_per_experiment, cducb_sold_items_per_experiment, opts_sold_items):
+def plot_regrets_step6(swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts):
 
     swucb_rewards_per_experiment = np.array(swucb_rewards_per_experiment)
     cducb_rewards_per_experiment = np.array(cducb_rewards_per_experiment)
     opts = np.array(opts)
 
-    swucb_sold_items_per_experiment = np.array(swucb_sold_items_per_experiment)
-    cducb_sold_items_per_experiment = np.array(cducb_sold_items_per_experiment)
-    opts_sold_items = np.array(opts_sold_items)
-
     swucb_regret, cducb_regret, swucb_std, cducb_std = prepare_alpha_or_items_regrets(
         swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts)
 
-    swucb_sold_items_regret, cducb_sold_items_regret, swucb_sold_items_std, cducb_sold_items_std = prepare_alpha_or_items_regrets(
-        swucb_sold_items_per_experiment, cducb_sold_items_per_experiment, opts_sold_items)
-
     plot_regrets(swucb_regret, cducb_regret,  swucb_std,
                  cducb_std, ["SWUCB", "CDUCB"])
-
-    plot_regrets(swucb_sold_items_regret, cducb_sold_items_regret, swucb_sold_items_std, cducb_sold_items_std, [
-                 "SWUCB_sold_items_regret", "CDUCB_sold_items_regret"])

@@ -23,8 +23,7 @@ budgets = np.arange(start=0, stop=B_cap + 1, step=B_cap / 10)
 
 users_price_range = 100
 products_price_range = 60
-product_prices = np.round(np.random.random(
-    size=NUM_OF_PRODUCTS) * products_price_range, 2)
+
 
 n_experiments = 2
 T = 20
@@ -99,14 +98,25 @@ def generate_alphas(users_parameters=[82, 56, 80, 82, 42, 59]):
 
 def generate_new_environment():
 
+    # ----------ogni esperimento
     clk_prob = generate_network_matrix()
 
     # Secondary product set by the business unit
     observations_probabilities = generate_observation_probabilities(clk_prob)
+    
+    product_prices = np.round(np.random.random(
+    size=NUM_OF_PRODUCTS) * products_price_range, 2)
 
     users_reservation_prices = np.round(np.random.random(
         size=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)) * users_price_range, 2)
 
+    env = Environment(
+        users_reservation_prices,
+        click_probabilities=clk_prob,
+        users_alpha=generate_alphas()
+    )
+    
+    # ------ Ogni round
     nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
         clk_prob,
         users_reservation_prices,
@@ -114,11 +124,6 @@ def generate_new_environment():
         observations_probabilities
     )
 
-    env = Environment(
-        users_reservation_prices,
-        click_probabilities=clk_prob,
-        users_alpha=generate_alphas()
-    )
 
     # Network.print_graph(G=env.network.G)
 
@@ -218,11 +223,7 @@ if __name__ == "__main__":
     gpts_rewards_per_experiment = []
     gpucb_rewards_per_experiment = []
 
-    gpts_sold_items_per_experiment = []
-    gpucb_sold_items_per_experiment = []
-
     opts = []
-    opts_sold_items = []
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
         env, nodes_activation_probabilities, num_sold_items, observations_probabilities = generate_new_environment()
@@ -244,16 +245,11 @@ if __name__ == "__main__":
         gpucb_rewards_per_experiment.append(ecomm4_ucb.collected_rewards)
         gpts_rewards_per_experiment.append(ecomm4_gpts.collected_rewards)
 
-        gpts_sold_items_per_experiment.append(ecomm4_gpts.collected_sold_items)
-        gpucb_sold_items_per_experiment.append(ecomm4_ucb.collected_sold_items)
-
         opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
-        opts_sold_items.append(num_sold_items)
+
 
     plot_regrets_step4(gpts_rewards_per_experiment,
-                       gpucb_rewards_per_experiment, opts,
-                       gpts_sold_items_per_experiment,
-                       gpucb_sold_items_per_experiment, opts_sold_items)
+                       gpucb_rewards_per_experiment, opts)
 
     
     # -----------STEP 5------------
@@ -290,13 +286,8 @@ if __name__ == "__main__":
 
     # -----------STEP 6------------
     swucb_rewards_per_experiment = []
-    swucb_sold_items_per_experiment = []
-
     cducb_rewards_per_experiment = []
-    cducb_sold_items_per_experiment = []
-
     opts = []
-    opts_sold_items = []
 
     tau = np.floor(np.sqrt(T)).astype(int)
 
@@ -323,16 +314,9 @@ if __name__ == "__main__":
 
 
         swucb_rewards_per_experiment.append(ecomm6_ucb.collected_rewards)
-        swucb_sold_items_per_experiment.append(ecomm6_ucb.collected_sold_items)
-
         cducb_rewards_per_experiment.append(ecomm6_cducb.collected_rewards)
-        cducb_sold_items_per_experiment.append(ecomm6_cducb.collected_sold_items)
 
         opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
-        opts_sold_items.append(env.get_num_sold_items())
-
 
     plot_regrets_step6(swucb_rewards_per_experiment,
-                       cducb_rewards_per_experiment, opts, 
-                       swucb_sold_items_per_experiment,
-                       cducb_sold_items_per_experiment, opts_sold_items)
+                       cducb_rewards_per_experiment, opts)
