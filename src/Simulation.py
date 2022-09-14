@@ -92,7 +92,7 @@ def generate_alphas(users_parameters=[82, 56, 80, 82, 42, 59]):
 
 def generate_new_environment():
     '''
-    :return: a new environment, along with all other data
+    :return: env, observations_probabilities, click_probabilities, product_prices, users_reservation_prices
     '''
 
     # ----------ogni esperimento
@@ -112,9 +112,13 @@ def generate_new_environment():
 
 def generate_new_non_stationary_environment():
 
+    '''
+    :return: env, observations_probabilities, click_probabilities, product_prices, num_sold_items, nodes_activation_probabilities
+    '''
+
     click_probabilities = generate_click_probabilities()
-    # Secondary product set by the business unit
     observations_probabilities = generate_observation_probabilities(click_probabilities)
+    product_prices = np.round(np.random.random(size=NUM_OF_PRODUCTS) * products_price_range, 2)
 
     users_reservation_prices = []
     nodes_activation_probabilities = []
@@ -122,8 +126,6 @@ def generate_new_non_stationary_environment():
     product_functions_idxs = []
     users_alpha = []
     prod_fun_idx = np.arange(NUM_OF_PRODUCTS)
-    ## TODO: check
-    product_prices = np.round(np.random.random(size=NUM_OF_PRODUCTS) * products_price_range, 2)
 
     for _ in range(n_phases):
 
@@ -150,7 +152,7 @@ def generate_new_non_stationary_environment():
 
     # Network.print_graph(G=env.network.G)
 
-    return env, nodes_activation_probabilities, num_sold_items, observations_probabilities
+    return env, observations_probabilities, click_probabilities, product_prices, num_sold_items, nodes_activation_probabilities
 
 
 
@@ -296,7 +298,7 @@ def simulate_step6():
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
 
-        env, _, _, product_prices = generate_new_non_stationary_environment()
+        env, _, _, product_prices, _, _ = generate_new_non_stationary_environment()
         
         env2 = env.copy()
 
