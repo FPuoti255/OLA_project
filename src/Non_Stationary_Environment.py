@@ -1,14 +1,12 @@
 import numpy as np
-import random
-from tqdm import tqdm
+from copy import deepcopy
 
 from constants import *
 from Utils import *
 from Network import Network
-from Environment import Environment
 
 
-class Non_Stationary_Environment:
+class Non_Stationary_Environment(object):
     def __init__(self, users_reservation_prices, product_functions_idxs, click_probabilities, users_alpha, num_sold_items, horizon):
 
         self.rng = np.random.default_rng(12345)
@@ -40,6 +38,9 @@ class Non_Stationary_Environment:
 
         self.current_phase = 0
 
+    def copy(self):
+        return deepcopy(self)
+
     def get_users_alpha(self):
         return self.users_alpha[self.current_phase]
 
@@ -47,7 +48,7 @@ class Non_Stationary_Environment:
         return self.num_sold_items[self.current_phase]
 
     def round_step6(self, pulled_arm):
-        self.current_phase = int(np.ceil(self.t / self.phase_size))
+        self.current_phase = int(np.floor(self.t / self.phase_size))
 
         arm = renormalize(pulled_arm)
 

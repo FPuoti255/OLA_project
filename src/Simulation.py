@@ -153,8 +153,8 @@ def generate_new_non_stationary_environment():
     return env, nodes_activation_probabilities, num_sold_items, observations_probabilities
 
 
-@staticmethod
-def init_simulation():
+
+def simulate_step2():
 
     env, observations_probabilities, click_probabilities, product_prices, users_reservation_prices = generate_new_environment()
     
@@ -179,7 +179,7 @@ def init_simulation():
     return product_prices
 
 
-@staticmethod
+
 def simulate_step3():
 
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = [],[],[]
@@ -191,15 +191,15 @@ def simulate_step3():
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
         ecomm3_ucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
 
-        # TODO: outside?
-        nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
-            click_probabilities,
-            users_reservation_prices,
-            product_prices,
-            observations_probabilities
-        )
 
         for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
+
+            nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
+                click_probabilities,
+                users_reservation_prices,
+                product_prices,
+                observations_probabilities
+            )
 
             arm = ecomm3_gpts.pull_arm(num_sold_items)
             reward = env.round_step3(arm)
@@ -216,7 +216,7 @@ def simulate_step3():
     return gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts
 
 
-@staticmethod
+
 def simulate_step4():
     
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = [],[],[]
@@ -252,7 +252,7 @@ def simulate_step4():
     return gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts
 
 
-@staticmethod
+
 def simulate_step5():
 
     gpucb_rewards_per_experiment, gpts_rewards_per_experiment, opts = [],[],[]
@@ -283,7 +283,7 @@ def simulate_step5():
     return gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts
 
 
-@staticmethod
+
 def simulate_step6():
     
     swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts = [],[],[]
@@ -297,6 +297,8 @@ def simulate_step6():
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
 
         env, _, _, product_prices = generate_new_non_stationary_environment()
+        
+        env2 = env.copy()
 
         ecomm6_ucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
         ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
@@ -308,7 +310,7 @@ def simulate_step6():
             ecomm6_ucb.update(arm, reward, sold_items)
         
             arm = ecomm6_cducb.pull_arm()
-            reward, sold_items = env.round_step6(arm)
+            reward, sold_items = env2.round_step6(arm)
             ecomm6_cducb.update(arm, reward, sold_items)
 
 
@@ -323,7 +325,7 @@ def simulate_step6():
 if __name__ == "__main__":
 
     # -----------SOCIAL INFLUENCE SIMULATION + STEP2 OPTIMIZATION PROBLEM --------------
-    init_simulation()
+    simulate_step2()
 
     # -----------STEP 3------------
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step3()
