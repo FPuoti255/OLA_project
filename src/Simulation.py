@@ -204,19 +204,21 @@ def simulate_step2():
         product_prices,
         observations_probabilities
     )
-    optimal_allocation, optimal_gain = env.clairvoyant_optimization_solver(budgets, B_cap, product_prices, num_sold_items, nodes_activation_probabilities)
+    exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
 
-    print("optimal allocation is:", "".join(str(optimal_allocation)), "with a reward of:", int(optimal_gain))
+    optimal_allocation, optimal_gain = env.dummy_optimization_solver(
+        budgets, B_cap, product_prices, num_sold_items, nodes_activation_probabilities, exp_clicks)
+
+    print("optimal allocation is:", "".join(str(optimal_allocation)),
+          "with a reward of:", int(optimal_gain))
 
     ecomm = Ecommerce(B_cap, budgets, product_prices)
-   
-    exp_clicks = env.estimate_expected_user_alpha(ecomm.budgets / ecomm.B_cap)
+
     estimated_opt_allocation, estimated_opt_gain = ecomm.solve_optimization_problem(
         num_sold_items,
         exp_clicks,
         nodes_activation_probabilities
     )
-
 
     print("estimated_opt_allocation is:", "".join(
         str(estimated_opt_allocation)), "with a reward of:", int(estimated_opt_gain))
@@ -224,17 +226,15 @@ def simulate_step2():
 
 def simulate_step3():
 
-    gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = [], [], []
-
-    gpts_gains_per_experiment, gpucb_gains_per_experiment, opt_per_experiment = np.zeros(
+    gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
 
-    for e in tqdm(range(0, n_experiments),  desc="n_experiment", leave=True):
+    for e in tqdm(range(0, n_experiments),  desc="n_experiment", leave=False):
 
         env, observations_probabilities, click_probabilities, product_prices, users_reservation_prices, users_poisson_parameters = generate_new_environment()
 
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
-        ecomm3_ucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
+        ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
 
         nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
             click_probabilities,
@@ -244,49 +244,45 @@ def simulate_step3():
             observations_probabilities
         )
 
-        
-        _, optimal_gain = env.clairvoyant_optimization_solver(budgets, B_cap, product_prices, num_sold_items, nodes_activation_probabilities)
-        
-        
-        tot_sold_per_item = np.sum(num_sold_items, axis=0)
+        exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
+        ecomm = Ecommerce(B_cap, budgets, product_prices)
+
+        _, optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
+            num_sold_items,
+            exp_clicks,
+            nodes_activation_probabilities
+        )
+
 
         for t in tqdm(range(0, T), desc="n_iteration", leave=False):
-            arm = ecomm3_gpts.pull_arm(tot_sold_per_item)
-            reward, allocation_gain = env.round_step3(
-                arm/B_cap, nodes_activation_probabilities, num_sold_items, product_prices)
+
+            arm = ecomm3_gpts.pull_arm()
+            reward = env.round_step3(arm, B_cap)
             ecomm3_gpts.update(arm, reward)
-            gpts_gains_per_experiment[e][t] = allocation_gain
-
-            arm = ecomm3_ucb.pull_arm(tot_sold_per_item)
-            reward, allocation_gain = env.round_step3(
-                arm/B_cap, nodes_activation_probabilities, num_sold_items, product_prices)
-            ecomm3_ucb.update(arm, reward)
-            gpucb_gains_per_experiment[e][t] = allocation_gain
-
-        opt_per_experiment[e] = optimal_gain
+            _, gpts_gains_per_experiment[e][t] = ecomm3_gpts.solve_optimization_problem(num_sold_items, nodes_activation_probabilities)
 
 
-    #     gpts_rewards_per_experiment.append(ecomm3_gpts.collected_rewards)
-    #     gpucb_rewards_per_experiment.append(ecomm3_ucb.collected_rewards)
-    #     opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
+            arm = ecomm3_gpucb.pull_arm()
+            reward = env.round_step3(arm, B_cap)
+            ecomm3_gpucb.update(arm, reward)
+            _,  gpucb_gains_per_experiment[e][t] = ecomm3_gpucb.solve_optimization_problem(num_sold_items, nodes_activation_probabilities)
 
-    # return gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts
-    return gpts_gains_per_experiment, gpucb_gains_per_experiment, opt_per_experiment
+    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
 
 
 def simulate_step4():
 
-    gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = [], [], []
+    gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
+        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
+    
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
 
         env, observations_probabilities, click_probabilities, product_prices, users_reservation_prices, users_poisson_parameters = generate_new_environment()
         ecomm4_gpts = Ecommerce4_GPTS(B_cap, budgets, product_prices)
-        ecomm4_ucb = Ecommerce4_GPUCB(B_cap, budgets, product_prices)
+        ecomm4_gpucb = Ecommerce4_GPUCB(B_cap, budgets, product_prices)
 
-        for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
-
-            nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
+        nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
                 click_probabilities,
                 users_reservation_prices,
                 users_poisson_parameters,
@@ -294,49 +290,103 @@ def simulate_step4():
                 observations_probabilities
             )
 
-            arm = ecomm4_ucb.pull_arm()
-            reward, sold_items = env.round_step4(arm, num_sold_items)
-            ecomm4_ucb.update(arm, reward, sold_items)
+        exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
+        ecomm = Ecommerce(B_cap, budgets, product_prices)
+        _ , optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
+            num_sold_items,
+            exp_clicks,
+            nodes_activation_probabilities
+        )
+
+        for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
 
             arm = ecomm4_gpts.pull_arm()
-            reward, sold_items = env.round_step4(arm, num_sold_items)
-            ecomm4_gpts.update(arm, reward, sold_items)
+            reward, estimated_sold_items = env.round_step4(arm, B_cap, nodes_activation_probabilities, num_sold_items)
+            ecomm4_gpts.update(arm, reward, estimated_sold_items)
+            _, gpts_gains_per_experiment[e][t] = ecomm4_gpts.solve_optimization_problem(nodes_activation_probabilities)
 
-        gpucb_rewards_per_experiment.append(ecomm4_ucb.collected_rewards)
-        gpts_rewards_per_experiment.append(ecomm4_gpts.collected_rewards)
+            arm = ecomm4_gpucb.pull_arm()
+            reward, estimated_sold_items = env.round_step4(arm, B_cap, nodes_activation_probabilities, num_sold_items)
+            ecomm4_gpucb.update(arm, reward, estimated_sold_items)
+            _, gpucb_gains_per_experiment[e][t] = ecomm4_gpucb.solve_optimization_problem(nodes_activation_probabilities)
 
-        opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
 
-    return gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts
+    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
 
 
 def simulate_step5():
 
-    gpucb_rewards_per_experiment, gpts_rewards_per_experiment, opts = [], [], []
+    gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
+        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
+    
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
 
-        env, _, _, product_prices, _, _ = generate_new_environment()
-
+        env, observations_probabilities, click_probabilities, product_prices, users_reservation_prices, users_poisson_parameters = generate_new_environment()
         ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices)
-        ecomm5_ucb = Ecommerce5_UCB(B_cap, budgets, product_prices)
+        ecomm5_gpucb = Ecommerce5_GPUCB(B_cap, budgets, product_prices)
+
+        nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
+                click_probabilities,
+                users_reservation_prices,
+                users_poisson_parameters,
+                product_prices,
+                observations_probabilities
+            )
+        exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
+
+        ecomm = Ecommerce(B_cap, budgets, product_prices)
+
+        _ , optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
+            num_sold_items,
+            exp_clicks,
+            nodes_activation_probabilities
+        )
+
 
         for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
-
-            arm, arm_idx = ecomm5_ucb.pull_arm()
-            reward = env.round_step5(arm)
-            ecomm5_ucb.update(arm_idx, reward)
 
             arm, arm_idx = ecomm5_gpts.pull_arm()
             reward = env.round_step5(arm)
             ecomm5_gpts.update(arm_idx, reward)
+            
+            # In this case we do not assign num_sold_items because we want to use the one computed at the beginning og the experiment
+            nodes_activation_probabilities, _ = estimate_nodes_activation_probabilities(
+                ecomm5_gpts.get_estimated_graph_weights(),
+                users_reservation_prices,
+                users_poisson_parameters,
+                product_prices,
+                observations_probabilities
+            )
+            #same_reasoning as before: we do not want to override the exp_clicks computed at the beginning og the experiment
+            _ , gpts_gains_per_experiment[e][t] = ecomm5_gpts.solve_optimization_problem(
+                num_sold_items,
+                exp_clicks,
+                nodes_activation_probabilities
+            )
 
-        gpucb_rewards_per_experiment.append(ecomm5_ucb.collected_rewards)
-        gpts_rewards_per_experiment.append(ecomm5_gpts.collected_rewards)
+            # ----------------------
 
-        opts.append(np.max(env.get_network().get_adjacency_matrix()))
+            arm, arm_idx = ecomm5_gpucb.pull_arm()
+            reward = env.round_step5(arm)
+            ecomm5_gpucb.update(arm_idx, reward)
 
-    return gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts
+            nodes_activation_probabilities, _ = estimate_nodes_activation_probabilities(
+                ecomm5_gpucb.get_estimated_graph_weights(),
+                users_reservation_prices,
+                users_poisson_parameters,
+                product_prices,
+                observations_probabilities
+            )
+
+            _ , gpucb_gains_per_experiment[e][t] = ecomm5_gpucb.solve_optimization_problem(
+                num_sold_items,
+                exp_clicks,
+                nodes_activation_probabilities
+            )
+
+
+    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
 
 
 def simulate_step6():
@@ -384,18 +434,15 @@ if __name__ == "__main__":
 
     # -----------STEP 3------------
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step3()
-    plot_regrets_step3(gpts_rewards_per_experiment,
-                       gpucb_rewards_per_experiment, opts)
+    plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, ["GPTS", "GPUCB"])
 
     # -----------STEP 4------------
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step4()
-    plot_regrets_step4(gpts_rewards_per_experiment,
-                       gpucb_rewards_per_experiment, opts)
+    plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, ["GPTS", "GPUCB"])
 
     # -----------STEP 5------------
     gpucb_rewards_per_experiment, gpts_rewards_per_experiment, opts = simulate_step5()
-    plot_regrets_step5(gpts_rewards_per_experiment,
-                       gpucb_rewards_per_experiment, opts)
+    plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, ["GPTS", "GPUCB"])
 
     # -----------STEP 6------------
     swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts = simulate_step6()

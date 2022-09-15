@@ -1,6 +1,5 @@
-from random import sample
 import numpy as np
-from itertools import combinations_with_replacement, permutations
+from itertools import combinations_with_replacement, permutations, product
 
 from constants import *
 from Utils import *
@@ -20,7 +19,8 @@ class Environment:
 
         self.functions_dict = [
             lambda x: 0.5 if x > 0.5 else x+0.001,
-            lambda x: 0.001 if x < 0.2 else (np.exp(x**2)-1 if x >= 0.2 and x <= 0.7 else 0.64),
+            lambda x: 0.001 if x < 0.2 else (
+                np.exp(x**2)-1 if x >= 0.2 and x <= 0.7 else 0.64),
             lambda x: min(x + 0.001, 0.99),
             lambda x: np.log(x+1) + 0.001,
             lambda x: 1 / (1 + np.exp(- (x ** 4))) - 0.499,
@@ -28,6 +28,7 @@ class Environment:
 
         self.users_reservation_prices = users_reservation_prices
         self.users_alpha = users_alpha
+
 
         self.network = Network(adjacency_matrix=click_probabilities)
 
@@ -44,9 +45,29 @@ class Environment:
         for i in range(NUM_OF_PRODUCTS):
             plt.plot(budgets, [self.functions_dict[i](bu) for bu in budgets])
 
-    
-    def clairvoyant_optimization_solver(self, budgets, B_cap, product_prices, num_sold_items, nodes_activation_probabilities):
 
+
+
+    # -----------------------------------------------
+    # --------STEP 2 ENVIRONMENT FUNCTIONS-----------
+    def dummy_optimization_solver(self, budgets, B_cap, product_prices, num_sold_items, nodes_activation_probabilities, exp_num_clicks):
+        '''
+        This functions generates the target for the dynamic programming optimization solver of the ecommerce
+        '''
+        assert(num_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        assert(exp_num_clicks.shape == (NUM_OF_PRODUCTS, budgets.shape[0]))
+        assert(nodes_activation_probabilities.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+
+        num_of_items_sold_for_each_product = np.sum(
+            num_sold_items, axis=0)  # shape = 1x5
+        total_margin_for_each_product = np.multiply(
+            num_of_items_sold_for_each_product, product_prices)  # shape = 1x5
+
+        value_per_click = np.dot(
+            nodes_activation_probabilities, total_margin_for_each_product.T)
+
+        exp_reward = np.multiply(exp_num_clicks.T, value_per_click).T
+         
         # generating all the possible combination with replacement of 5 (campaigns) 
         # over the possible budgets
         combinations = np.array([comb for comb in combinations_with_replacement(budgets, 5) if np.sum(comb) <= B_cap], dtype=float)
@@ -61,36 +82,21 @@ class Environment:
         best_allocation = np.zeros(NUM_OF_PRODUCTS)
         max_expected_reward = 0
 
+
         for allocation in perms:
-            # in order to get also the alpha_0 for the users landing on a webpage of a competitor,
-            # we set the 'fictitious budget' of the competitor as the average of our allocations
-
-            alpha = self.compute_alpha(allocation / B_cap)
-            assert (alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
-
-
-            tot_sold_per_product = np.sum(num_sold_items, axis=0)
-            tot_alpha_per_product = np.sum(alpha, axis=0)
-
-            exp_rew = np.sum(
-                np.multiply(
-                    np.multiply(nodes_activation_probabilities, tot_alpha_per_product),
-                    np.multiply(tot_sold_per_product, product_prices)
-                )
-            ) - np.sum(allocation)
-
-
+            allocation_reward = 0
+            for i in range(NUM_OF_PRODUCTS):
+                budget_idx = int(np.where(budgets == allocation[i])[0])
+                allocation_reward += exp_reward[i][budget_idx] - allocation[i]
             
-            if exp_rew > max_expected_reward:
-                max_expected_reward = exp_rew
+            if allocation_reward > max_expected_reward:
+                max_expected_reward = allocation_reward
                 best_allocation = allocation
 
         return best_allocation, max_expected_reward
 
 
-    # -----------------------------------------------
-    # --------STEP 2 ENVIRONMENT FUNCTIONS-----------
-    def estimate_expected_user_alpha(self, budgets: np.ndarray):
+    def estimate_num_of_clicks(self, budgets: np.ndarray):
         '''
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
         :return: the expected alpha for each couple (prod_id, budget_allocated)
@@ -106,107 +112,85 @@ class Environment:
                 # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
                 samples = self.rng.dirichlet(
                     alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
-                )
+                ) / NUM_OF_USERS_CLASSES
 
+                prod_samples = np.minimum(samples[:, 0], self.users_alpha[:, (prod_id +1)])
                 # min because for each campaign we expect a maximum alpha, which is alpha_bar
-                exp_user_alpha[prod_id][j] = min(
-                    np.sum(
-                        samples[:, 0]) / NUM_OF_USERS_CLASSES, np.sum(self.users_alpha[:, prod_id])
-                )
+                assert(prod_samples.shape == (NUM_OF_USERS_CLASSES,))
+                exp_user_alpha[prod_id][j] = np.sum(prod_samples)
+        
+        exp_user_alpha[:, 0] = 0 # set to zero the expected alpha when the budget allocated is zero
 
         return exp_user_alpha
 
-    # -----------------------------------------------
-    # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
-    def compute_alpha(self, pulled_arm):
 
-        # if the pulled arm is composed all of zero, return zero !
-        if not np.any(pulled_arm):
-            return np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+    def compute_alpha(self, allocation):
+        '''
+        This function is the same as the estimate_num_of_clicks but instead of computing the alpha for each couple (product, budget)
+        it computes tha alpha just for the budgets of the allocation
 
-        alphas = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        @returns:
+            - exp_user_alpha -> shape= (NUM_OF_USERS_CLASSES, allocation.shape[0]) 3x5
+        '''
 
-        for j in range(pulled_arm.shape[0]):
+        # if the allocation is composed all of zero, return zero !
+        if not np.any(allocation):
+            return np.zeros(shape=(NUM_OF_USERS_CLASSES, allocation.shape[0]))
 
+        exp_user_alpha = np.zeros(shape= (NUM_OF_USERS_CLASSES, allocation.shape[0]))
+
+        for prod_id in range(NUM_OF_PRODUCTS):
             # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-            conc_param = self.functions_dict[j](pulled_arm[j])
-
+            conc_param = self.functions_dict[prod_id](allocation[prod_id])
+            
             # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
             samples = self.rng.dirichlet(
                 alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
             ) / NUM_OF_USERS_CLASSES
 
-            samples = np.minimum(samples[:,0],self.users_alpha[:,j+1])
+            prod_samples = np.minimum(samples[:, 0], self.users_alpha[:, (prod_id +1)])
 
             # min because for each campaign we expect a maximum alpha, which is alpha_bar
-            alphas[:,j] = samples
+            exp_user_alpha[:, prod_id] = prod_samples
 
-        return alphas
-
-
-        """
-        concentration_parameters = np.array(
-            [self.functions_dict[i](pulled_arm[i]) for i in range(len(pulled_arm))])
-
-        concentration_parameters = np.insert(
-            arr=concentration_parameters, obj=0, values=np.max(concentration_parameters)
-        )
-        concentration_parameters = renormalize(concentration_parameters)
-
-        # Multiply the concentration parameters by 100 to give more stability
-        concentration_parameters = np.multiply(concentration_parameters, self.dirichlet_variance_keeper)
-        concentration_parameters = np.maximum(concentration_parameters, 0.001)
-
-        samples = self.rng.dirichlet(
-            alpha=concentration_parameters, size=NUM_OF_USERS_CLASSES
-        ) / NUM_OF_USERS_CLASSES
-
-        return np.minimum(samples, self.users_alpha)[:, 1:]
-        """
+        return exp_user_alpha
 
 
-    def round_step3(self, pulled_arm, nodes_activation_probabilities, num_sold_items, product_prices):
+    # -----------------------------------------------
+    # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
+    def round_step3(self, pulled_arm, B_cap):
 
         assert (pulled_arm.shape[0] == NUM_OF_PRODUCTS)
-        assert (nodes_activation_probabilities.shape ==
-                (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-        assert (num_sold_items.shape == (
-            NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
-        assert (product_prices.shape[0] == NUM_OF_PRODUCTS)
 
-
-        alpha = self.compute_alpha(pulled_arm)
+        alpha = self.compute_alpha(pulled_arm / B_cap)
         assert (alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        assert(np.greater_equal(self.users_alpha[:, 1:], alpha).all())
 
-        sold_items = np.multiply(
-            np.divide(alpha, self.users_alpha[:, 1:]), num_sold_items)
+        tot_alpha_per_product = np.sum(alpha, axis=0)         
 
-        tot_sold_per_product = np.sum(sold_items, axis=0)
-        tot_alpha_per_product = np.sum(alpha, axis=0)
-
-        allocation_gain = np.sum(np.multiply(np.multiply(
-            nodes_activation_probabilities, tot_alpha_per_product.T), tot_sold_per_product * product_prices))
-        
-
-        return tot_alpha_per_product, allocation_gain
+        return tot_alpha_per_product
 
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
 
-    def round_step4(self, pulled_arm, nodes_activation_probabilities, num_sold_items, product_prices):
-        alpha = self.compute_alpha(pulled_arm)
+    def round_step4(self, pulled_arm, B_cap, nodes_activation_probabilities, num_sold_items):
 
-        # the number of items sold in this round is directly proportional to the
-        # reward obtained. In fact, if the reward that I obtain for my allocation
-        # is equal to the maximum I can get, also the number of sold items would be
-        # the maximum available ( the one yielded by the montecarlo sampling)
-        sold_items = np.multiply(np.divide(alpha, np.sum(
-            self.users_alpha, axis=0)[1:]), num_sold_items)
+        assert (nodes_activation_probabilities.shape ==
+            (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
-        allocation_gain = np.sum(np.multiply(np.multiply(
-            nodes_activation_probabilities, alpha.T), sold_items * product_prices))
+        assert (num_sold_items.shape == (
+            NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        
+        tot_alpha_per_product = self.round_step3(pulled_arm, B_cap)
 
-        return alpha, sold_items, allocation_gain
+        tot_sold_per_product = np.sum(num_sold_items, axis=0)
+
+        estimated_sold_items = np.sum(
+            np.multiply(nodes_activation_probabilities.T, tot_alpha_per_product).T,
+            axis = 0) * tot_sold_per_product
+            
+        return tot_alpha_per_product, estimated_sold_items
+
 
     # -----------------------------------------------
     # --------STEP 5 ENVIRONMENT FUNCTIONS-----------

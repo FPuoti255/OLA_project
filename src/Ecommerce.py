@@ -62,32 +62,25 @@ class Ecommerce(object):
         """
         The algorithm returns the best budget allocation for each product
         :num_of_items_sold: shape 3x5
+        
+        @returns: optimal_allocation, reward 
         """
-        assert(num_items_sold.shape == (3, 5))
         assert(exp_num_clicks.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
         assert(nodes_activation_probabilities.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-        
-        num_of_items_sold_for_each_product = np.sum(
-            num_items_sold, axis=0)  # shape = 1x5
+
+        if num_items_sold.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS):
+            num_of_items_sold_for_each_product = np.sum(
+                num_items_sold, axis=0)  # shape = 1x5
+        else:
+            num_of_items_sold_for_each_product = num_items_sold.copy()
+
         total_margin_for_each_product = np.multiply(
             num_of_items_sold_for_each_product, self.product_prices)  # shape = 1x5
 
         value_per_click = np.dot(
             nodes_activation_probabilities, total_margin_for_each_product.T)
 
-        # print(exp_num_clicks)
-
-        # Notice that we can find the situation in which for subsequent values of budgets,
-        # the expected number of clicks is not monotonic (increasing or decreasing) since it
-        # is the result of a dirichlet sampling. In fact, you can also observe that for the same
-        # "concentration parameters list" the value sampled from the dirichlet can be higher or lower
-
-        reshaped_value_per_click = np.tile(
-            A=np.atleast_2d(value_per_click).T, reps=self.budgets.shape[0]
-        )
-        exp_reward = (
-            np.multiply(exp_num_clicks, reshaped_value_per_click)
-        )
+        exp_reward = np.multiply(exp_num_clicks.T, value_per_click).T
 
         budgets_indexes, reward = self.dynamic_knapsack_solver(
             table=exp_reward

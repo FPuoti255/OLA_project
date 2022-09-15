@@ -51,11 +51,11 @@ def compute_beta_parameters(means, sigmas):
 
 def compute_beta_means_variance(a, b):
     means = np.divide(a, np.add(a, b))
-    sigmas = np.divide(
+    sigmas_square = np.divide(
         np.multiply(a, b), np.multiply(
             np.square(np.add(a, b)), np.add(np.add(a, b), 1))
     )
-    return means, sigmas
+    return means, sigmas_square
 
 
 def renormalize(arr: np.array):
@@ -63,40 +63,31 @@ def renormalize(arr: np.array):
     return arr.copy() if arr_sum == 0 else arr.copy() / np.sum(arr)
 
 
-def prepare_alpha_or_items_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts):
-    alg1_regret_per_experiment = (opts.T - alg1_rewards_per_experiment.T).T
-    alg2_regret_per_experiment = (opts.T - alg2_rewards_per_experiment.T).T
 
-    alg1_regret = np.sum(alg1_regret_per_experiment, axis=1)
-    alg2_regret = np.sum(alg2_regret_per_experiment, axis=1)
+def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
+    
+    alg1_regret = np.cumsum(np.mean((opts-alg1_rewards_per_experiment.T).T, axis = 0))
+    alg2_regret = np.cumsum(np.mean((opts-alg2_rewards_per_experiment.T).T, axis = 0))
 
-    alg1_mean_regret = np.cumsum(
-        np.mean(alg1_regret, axis=0))
-    alg2_mean_regret = np.cumsum(
-        np.mean(alg2_regret, axis=0))
-
-    alg1_regret_std = np.std(alg1_regret, axis=0)
-    alg2_regret_std = np.std(alg2_regret, axis=0)
-
-    return alg1_mean_regret, alg2_mean_regret, alg1_regret_std, alg2_regret_std
+    alg1_regret_std = np.std((opts-alg1_rewards_per_experiment.T).T, axis = 0)
+    alg2_regret_std = np.std((opts-alg1_rewards_per_experiment.T).T , axis = 0)
 
 
-def plot_regrets(alg1_regret, alg2_regret, alg1_std_regret, alg2_std_regret, legend):
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(10, 10))
 
     ticks = np.arange(start=1, stop=len(alg1_regret) + 1, step=1)
 
     ax[0].plot(ticks, alg1_regret, color='r')
-    ax[0].fill_between(ticks, alg1_regret - alg1_std_regret,
-                       alg1_regret + alg1_std_regret, alpha=0.4)
+    ax[0].fill_between(ticks, alg1_regret - alg1_regret_std,
+                       alg1_regret + alg1_regret_std, alpha=0.4)
     ax[0].set_xlabel('t')
     ax[0].set_ylabel('Regret')
     ax[0].set_xticks(ticks)
     ax[0].set_title(legend[0])
 
     ax[1].plot(ticks, alg2_regret, color='r')
-    ax[1].fill_between(ticks, alg2_regret - alg2_std_regret,
-                       alg2_regret + alg2_std_regret, alpha=0.4)
+    ax[1].fill_between(ticks, alg2_regret - alg2_regret_std,
+                       alg2_regret + alg2_regret_std, alpha=0.4)
     ax[1].set_xlabel('t')
     ax[1].set_ylabel('Regret')
     ax[1].set_xticks(ticks)
@@ -104,41 +95,6 @@ def plot_regrets(alg1_regret, alg2_regret, alg1_std_regret, alg2_std_regret, leg
         
     plt.show()
 
-
-def plot_regrets_step3(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts):
-    gpts_rewards_per_experiment = np.array(gpts_rewards_per_experiment)
-    gpucb_rewards_per_experiment = np.array(gpucb_rewards_per_experiment)
-    opts = np.array(opts)
-
-    gpts_regret, gpucb_regret, gpts_std, gpucb_std = prepare_alpha_or_items_regrets(
-        gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts)
-
-    plot_regrets(gpts_regret, gpucb_regret,  gpts_std,
-                 gpucb_std, ["GPTS", "GPUCB"])
-
-
-def plot_regrets_step4(gpts_rewards_per_experiment,
-                       gpucb_rewards_per_experiment, opts):
-
-    plot_regrets_step3(gpts_rewards_per_experiment,
-                       gpucb_rewards_per_experiment, opts)
-
-
-def plot_regrets_step5(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts):
-    gpts_rewards_per_experiment = np.array(gpts_rewards_per_experiment)
-    gpucb_rewards_per_experiment = np.array(gpucb_rewards_per_experiment)
-    opts = np.array(opts)
-
-    gpts_regret = np.cumsum(
-        np.mean((opts - gpts_rewards_per_experiment.T).T, axis=0))
-    gpucb_regret = np.cumsum(
-        np.mean((opts - gpucb_rewards_per_experiment.T).T, axis=0))
-
-    gpts_std_regret = np.std((opts - gpts_rewards_per_experiment.T).T, axis=0)
-    gpucb_std_regret = np.std((opts - gpts_rewards_per_experiment.T).T, axis=0)
-
-    plot_regrets(gpts_regret, gpucb_regret, gpts_std_regret,
-                 gpucb_std_regret, ["GPTS", "GPUCB"])
 
 
 def plot_regrets_step6(swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts):

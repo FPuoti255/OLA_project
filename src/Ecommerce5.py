@@ -8,6 +8,7 @@ from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from Ecommerce import *
 from Environment import *
 from Utils import *
+from Social_influence import *
 
 
 class Ecommerce5(Ecommerce):
@@ -41,7 +42,7 @@ class Ecommerce5(Ecommerce):
     def update_model(self):
         pass
 
-    def pull_arm(self, nodes_activation_probabilities):
+    def pull_arm(self):
         pass
 
     def get_estimated_nodes_activation_probabilities(self):
@@ -92,7 +93,7 @@ class Ecommerce5_GPTS(Ecommerce5):
         return estimated_nap
 
 
-class Ecommerce5_UCB(Ecommerce5):
+class Ecommerce5_GPUCB(Ecommerce5):
     def __init__(self, B_cap, budgets, product_prices):
         super().__init__(B_cap, budgets, product_prices)
 

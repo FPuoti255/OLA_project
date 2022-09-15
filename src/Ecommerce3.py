@@ -18,8 +18,8 @@ class Ecommerce3(Ecommerce):
 
         self.t = 0
         # I'm generating a distribution of the budgets for each product
-        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.5
-        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 2
+        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.05
+        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.01
 
         self.pulled_arms = [[] for i in range(NUM_OF_PRODUCTS)]
         self.rewards_per_arm = [
@@ -58,8 +58,14 @@ class Ecommerce3(Ecommerce):
             )
             self.sigmas[i] = np.maximum(self.sigmas[i], 1e-2)
 
-    def pull_arm(self, num_items_sold):
+    def pull_arm(self):
         pass
+
+    def solve_optimization_problem(self, num_items_sold, nodes_activation_probabilities):
+        exp_num_clicks = np.random.normal(self.means, self.sigmas)
+        assert(exp_num_clicks.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
+
+        return super().solve_optimization_problem(num_items_sold, exp_num_clicks, nodes_activation_probabilities)
 
 
 
@@ -75,15 +81,10 @@ class Ecommerce3_GPTS(Ecommerce3):
             self.pulled_arms[i].append(pulled_arm[i])
             self.collected_rewards[i].append(reward[i])
 
-    def pull_arm(self, num_items_sold):
+    def pull_arm(self):
         a, b = compute_beta_parameters(self.means, self.sigmas)
         samples = np.random.beta(a=a, b=b)
-
-        # Multiplied by the number of items sold 
-        samples = np.multiply(samples.copy().T , num_items_sold).T 
-
         arm_idxs, _ = self.revisited_knapsack_solver(table=samples)
-
         return self.budgets[arm_idxs]
 
 
@@ -109,11 +110,8 @@ class Ecommerce3_GPUCB(Ecommerce3):
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = np.inf
 
-    def pull_arm(self, num_items_sold):
+    def pull_arm(self):
         upper_conf = self.means + self.confidence_bounds
-        
-        # Multiplied by the number of items sold 
-        upper_conf = np.multiply(upper_conf.copy().T, num_items_sold).T 
         arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
         return self.budgets[arm_idxs]
 

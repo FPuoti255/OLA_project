@@ -49,8 +49,13 @@ class Ecommerce4(Ecommerce3):
         )
         self.sold_items_sigmas = np.maximum(self.sold_items_sigmas, 1)
 
+    def solve_optimization_problem(self, nodes_activation_probabilities):
+        num_sold_items = np.random.normal(self.sold_items_means, self.sold_items_sigmas)
+        assert(num_sold_items.shape == (NUM_OF_PRODUCTS,))
+        return super().solve_optimization_problem(num_sold_items, nodes_activation_probabilities)
 
-class Ecommerce4_GPTS(Ecommerce4):
+
+class Ecommerce4_GPTS(Ecommerce4, Ecommerce3_GPTS):
 
     def update_observations(self, pulled_arm, reward, sold_items):
         for i in range(NUM_OF_PRODUCTS):
@@ -62,27 +67,9 @@ class Ecommerce4_GPTS(Ecommerce4):
         
             self.collected_sold_items[i].append(sold_items[i])
 
-    def pull_arm(self):
-        a, b = compute_beta_parameters(self.means, self.sigmas)
-        samples = np.random.beta(a=a, b=b)
-        num_items_sold = np.floor(np.random.normal(self.sold_items_means, self.sold_items_sigmas))
-
-        samples = np.multiply(samples.copy().T , num_items_sold).T 
-
-        arm_idxs, _ = self.revisited_knapsack_solver(table=samples)
-        return self.budgets[arm_idxs]
 
 
-class Ecommerce4_GPUCB(Ecommerce4):
-
-    def __init__(self, B_cap, budgets, product_prices):
-        super().__init__(B_cap, budgets, product_prices)
-
-        self.confidence_bounds = np.full(
-            shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf
-        )
-        # Number of times the arm has been pulled
-        self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
+class Ecommerce4_GPUCB(Ecommerce4, Ecommerce3_GPUCB):
 
     def update_observations(self, pulled_arm, reward, sold_items):
         for i in range(NUM_OF_PRODUCTS):
@@ -97,12 +84,3 @@ class Ecommerce4_GPUCB(Ecommerce4):
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = np.inf
         
-
-    def pull_arm(self):
-        upper_conf = self.means + self.confidence_bounds
-
-        num_items_sold = np.floor(np.random.normal(self.sold_items_means, self.sold_items_sigmas))
-
-        upper_conf = np.multiply(upper_conf.copy().T , num_items_sold).T 
-        arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
-        return self.budgets[arm_idxs]
