@@ -206,8 +206,7 @@ def simulate_step2():
     )
     optimal_allocation, optimal_gain = env.clairvoyant_optimization_solver(budgets, B_cap, product_prices, num_sold_items, nodes_activation_probabilities)
 
-    print("optimal allocation is:", "".join(
-        str(optimal_allocation)), "with a reward of:", int(optimal_gain))
+    print("optimal allocation is:", "".join(str(optimal_allocation)), "with a reward of:", int(optimal_gain))
 
     ecomm = Ecommerce(B_cap, budgets, product_prices)
    

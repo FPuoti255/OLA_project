@@ -1,3 +1,4 @@
+from random import sample
 import numpy as np
 from itertools import combinations_with_replacement, permutations
 
@@ -19,8 +20,7 @@ class Environment:
 
         self.functions_dict = [
             lambda x: 0.5 if x > 0.5 else x+0.001,
-            lambda x: 0.001 if x < 0.2 else (
-                np.exp(x**2)-1 if x >= 0.2 and x <= 0.7 else 0.64),
+            lambda x: 0.001 if x < 0.2 else (np.exp(x**2)-1 if x >= 0.2 and x <= 0.7 else 0.64),
             lambda x: min(x + 0.001, 0.99),
             lambda x: np.log(x+1) + 0.001,
             lambda x: 1 / (1 + np.exp(- (x ** 4))) - 0.499,
@@ -118,12 +118,33 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
-
     def compute_alpha(self, pulled_arm):
+
         # if the pulled arm is composed all of zero, return zero !
         if not np.any(pulled_arm):
             return np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
 
+        alphas = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+
+        for j in range(pulled_arm.shape[0]):
+
+            # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
+            conc_param = self.functions_dict[j](pulled_arm[j])
+
+            # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
+            samples = self.rng.dirichlet(
+                alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
+            ) / NUM_OF_USERS_CLASSES
+
+            samples = np.minimum(samples[:,0],self.users_alpha[:,j+1])
+
+            # min because for each campaign we expect a maximum alpha, which is alpha_bar
+            alphas[:,j] = samples
+
+        return alphas
+
+
+        """
         concentration_parameters = np.array(
             [self.functions_dict[i](pulled_arm[i]) for i in range(len(pulled_arm))])
 
@@ -133,8 +154,7 @@ class Environment:
         concentration_parameters = renormalize(concentration_parameters)
 
         # Multiply the concentration parameters by 100 to give more stability
-        concentration_parameters = np.multiply(
-            concentration_parameters, self.dirichlet_variance_keeper)
+        concentration_parameters = np.multiply(concentration_parameters, self.dirichlet_variance_keeper)
         concentration_parameters = np.maximum(concentration_parameters, 0.001)
 
         samples = self.rng.dirichlet(
@@ -142,6 +162,8 @@ class Environment:
         ) / NUM_OF_USERS_CLASSES
 
         return np.minimum(samples, self.users_alpha)[:, 1:]
+        """
+
 
     def round_step3(self, pulled_arm, nodes_activation_probabilities, num_sold_items, product_prices):
 
