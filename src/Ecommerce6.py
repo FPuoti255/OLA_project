@@ -56,7 +56,7 @@ class Ecommerce6(Ecommerce):
                 self.sold_items_means, self.sold_items_sigmas))
 
             upper_conf = np.multiply(upper_conf.copy().T, num_items_sold).T
-            arm_idxs, _ = self.dynamic_knapsack_solver(table=upper_conf)
+            arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
             return self.budgets[arm_idxs]
         else:
             pulled_arm = np.zeros(shape=NUM_OF_PRODUCTS)
@@ -71,16 +71,6 @@ class Ecommerce6(Ecommerce):
                         found = True
             return pulled_arm
 
-            
-
-    def dynamic_knapsack_solver(self, table):
-        """
-        In this phase we do not need to subtract the budgets to the final row,
-        since we use the dynamic algorithm find the allocation that comply with the 
-        UCB pulling rules and the B_cap
-        """
-        table_opt, max_pointer = self.compute_table(table)
-        return self.choose_best(table_opt, max_pointer)
 
 
 class Ecommerce6_SWUCB(Ecommerce6):

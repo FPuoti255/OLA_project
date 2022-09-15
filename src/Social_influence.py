@@ -4,9 +4,12 @@ from constants import *
 from Utils import *
 
 
-def estimate_nodes_activation_probabilities(click_probabilities, users_reservation_prices, product_prices, observations_probabilities):
+def estimate_nodes_activation_probabilities(click_probabilities, users_reservation_prices, users_poisson_parameters, product_prices, observations_probabilities):
     '''
     MONTECARLO SAMPLING to estimate nodes_activation_probabilities
+    @returns:
+        - nodes_activation_probabilities shape 5x5
+        - num_sold_items shape 3x5 (where 3 == NUM_OF_USERS_CLASSES)
     '''
 
     num_of_user_classes = users_reservation_prices.shape[0]                     # 3
@@ -18,6 +21,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     delta = 1e-2
     k = int((1/epsilon**2) * np.log(NUM_OF_PRODUCTS/2) * np.log(1/delta))
 
+
     for i in range(num_of_user_classes):        # 3
         for node in range(NUM_OF_PRODUCTS):     # 5
             for _ in range(k):
@@ -25,6 +29,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
                     seed = node, 
                     click_probabilities = click_probabilities, 
                     users_reservation_prices = users_reservation_prices[i], 
+                    users_poisson_parameters = users_poisson_parameters[i],
                     product_prices = product_prices, 
                     observations_probabilities = observations_probabilities, 
                     show_plots = False
@@ -33,11 +38,11 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
                 sold[i]+=sold_items
 
     nodes_activation_probabilities = np.mean(z, axis=0) / k
-    sold = np.ceil(np.sum(sold, axis=0) / k).astype(int)
+    sold = np.ceil(sold / k).astype(int)
     return nodes_activation_probabilities, sold
 
 
-def generate_live_edge_graph(seed, click_probabilities, users_reservation_prices, product_prices, observations_probabilities, show_plots=False):
+def generate_live_edge_graph(seed, click_probabilities, users_reservation_prices, users_poisson_parameters, product_prices, observations_probabilities, show_plots=False):
     '''
     '''
     
@@ -75,7 +80,7 @@ def generate_live_edge_graph(seed, click_probabilities, users_reservation_prices
             # the number of items a user will buy is a random variable independent of any other
             # variable; that is, the user decides first whether to buy or not the products and,
             # subsequently, in the case of a purchase, the number of units to buy
-            bought_items[primary_product] += np.random.randint(low = 1, high = 5+1)
+            bought_items[primary_product] += np.random.poisson(lam = users_poisson_parameters[primary_product])
             
             for idxs in np.argwhere(slots):
                 # the user clicks on a secondary product with a probability depending on the primary product

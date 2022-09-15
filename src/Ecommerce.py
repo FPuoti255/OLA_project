@@ -48,16 +48,25 @@ class Ecommerce(object):
         table_opt[-1] = np.subtract(table_opt[-1], self.budgets)
         return self.choose_best(table_opt, max_pointer)
 
+    def revisited_knapsack_solver(self, table):
+        """
+        When we will apply GPTS/GPUB we will use this algorithm to computed the best allocation 
+        considering the parameters the GPTS/GPUCB will have and we won't need to subtract the budgets to the final row
+        """
+        table_opt, max_pointer = self.compute_table(table)
+        return self.choose_best(table_opt, max_pointer)
+
     # -------- STEP 2 -----------------
 
-    def solve_optimization_problem(
-            self, weights, num_items_sold, users_reservation_prices, 
-            exp_num_clicks, nodes_activation_probabilities):
+    def solve_optimization_problem( self, num_items_sold, exp_num_clicks, nodes_activation_probabilities):
         """
         The algorithm returns the best budget allocation for each product
         :num_of_items_sold: shape 3x5
         """
-
+        assert(num_items_sold.shape == (3, 5))
+        assert(exp_num_clicks.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
+        assert(nodes_activation_probabilities.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+        
         num_of_items_sold_for_each_product = np.sum(
             num_items_sold, axis=0)  # shape = 1x5
         total_margin_for_each_product = np.multiply(
@@ -80,10 +89,10 @@ class Ecommerce(object):
             np.multiply(exp_num_clicks, reshaped_value_per_click)
         )
 
-        budgets_indexes, optimal_solution = self.dynamic_knapsack_solver(
+        budgets_indexes, reward = self.dynamic_knapsack_solver(
             table=exp_reward
         )
         optimal_allocation = self.budgets[budgets_indexes]
-        print("optimal solution found is:", "".join(str(optimal_allocation)))
-        return optimal_allocation
+
+        return optimal_allocation, reward 
     # --------------------------------------------------

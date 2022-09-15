@@ -69,7 +69,7 @@ class Ecommerce4_GPTS(Ecommerce4):
 
         samples = np.multiply(samples.copy().T , num_items_sold).T 
 
-        arm_idxs, _ = self.dynamic_knapsack_solver(table=samples)
+        arm_idxs, _ = self.revisited_knapsack_solver(table=samples)
         return self.budgets[arm_idxs]
 
 
@@ -104,5 +104,5 @@ class Ecommerce4_GPUCB(Ecommerce4):
         num_items_sold = np.floor(np.random.normal(self.sold_items_means, self.sold_items_sigmas))
 
         upper_conf = np.multiply(upper_conf.copy().T , num_items_sold).T 
-        arm_idxs, _ = self.dynamic_knapsack_solver(table=upper_conf)
+        arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
         return self.budgets[arm_idxs]

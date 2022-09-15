@@ -32,13 +32,13 @@ class Ecommerce5(Ecommerce):
     def update(self, arm_idx, reward):
         self.t += 1
         self.update_observations(arm_idx, reward)
-        self.update_model(arm_idx, reward)
+        self.update_model()
 
     # The methods below will be implemented in the sub-classes
     def update_observations(self, arm_idx, reward):
         pass
 
-    def update_model(self, arm_idx, reward):
+    def update_model(self):
         pass
 
     def pull_arm(self, nodes_activation_probabilities):
@@ -72,7 +72,7 @@ class Ecommerce5_GPTS(Ecommerce5):
         self.collected_rewards = np.append(self.collected_rewards, reward)
         self.pulled_arms = np.append(self.pulled_arms, arm_idx)
 
-    def update_model(self, arm_idx, reward):
+    def update_model(self):
         x = np.atleast_2d(self.pulled_arms).T
         y = self.collected_rewards
         self.gp.fit(x, y)
@@ -83,7 +83,7 @@ class Ecommerce5_GPTS(Ecommerce5):
 
         self.a, self.b = compute_beta_parameters(means, sigmas)
 
-    def get_estimated_nodes_activation_probabilities(self):
+    def get_estimated_graph_weights(self):
         samples = np.random.beta(a=self.a, b=self.b)
         estimated_nap = np.identity(n=NUM_OF_PRODUCTS)
         for i in range(self.n_arms):
@@ -126,7 +126,7 @@ class Ecommerce5_UCB(Ecommerce5):
             2 * np.log(self.t) / self.N_a[arm_idx]
         )
 
-    def update_model(self, arm_idx, reward):
+    def update_model(self):
         x = np.atleast_2d(self.pulled_arms).T
         y = self.collected_rewards
         self.gp.fit(x, y)
@@ -134,7 +134,7 @@ class Ecommerce5_UCB(Ecommerce5):
             np.atleast_2d(np.arange(0, self.n_arms)).T, return_std=True
         )
 
-    def get_estimated_nodes_activation_probabilities(self):
+    def get_estimated_graph_weights(self):
         a, b = compute_beta_parameters(self.means, self.sigmas)
         samples = np.random.beta(a=a, b=b)
         estimated_nap = np.identity(n=NUM_OF_PRODUCTS)
