@@ -20,8 +20,8 @@ class Ecommerce6(Ecommerce):
         self.t = 0
 
         # I'm generating a distribution of the budgets for each product
-        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms))
-        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms))
+        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.5
+        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) *0.01
 
         self.collected_rewards = [[] for i in range(NUM_OF_PRODUCTS)]
 
@@ -70,6 +70,17 @@ class Ecommerce6(Ecommerce):
                         current_budget_sum +=arm
                         found = True
             return pulled_arm
+
+    def solve_optimization_problem(self, nodes_activation_probabilities):
+
+        num_sold_items = np.random.normal(self.sold_items_means, self.sold_items_sigmas)
+        assert(num_sold_items.shape == (NUM_OF_PRODUCTS,))
+
+        exp_num_clicks = np.random.normal(self.means, self.sigmas)
+        assert(exp_num_clicks.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
+
+        return super().solve_optimization_problem(num_sold_items, exp_num_clicks, nodes_activation_probabilities)
+
 
 
 
@@ -132,8 +143,6 @@ class Ecommerce6_SWUCB(Ecommerce6):
         self.confidence_bounds = np.sqrt(
             2 * np.log(self.t) / np.sum(self.N_a, axis=2))
         # We do not set np.inf since the division by 0 yields np.inf by default in numpy
-
-
 
 
 

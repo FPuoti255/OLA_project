@@ -46,8 +46,6 @@ class Environment:
             plt.plot(budgets, [self.functions_dict[i](bu) for bu in budgets])
 
 
-
-
     # -----------------------------------------------
     # --------STEP 2 ENVIRONMENT FUNCTIONS-----------
     def dummy_optimization_solver(self, budgets, B_cap, product_prices, num_sold_items, nodes_activation_probabilities, exp_num_clicks):

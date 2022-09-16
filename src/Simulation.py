@@ -158,11 +158,12 @@ def generate_new_non_stationary_environment():
     product_prices = np.round(np.random.random(
         size=NUM_OF_PRODUCTS) * products_price_range, 2)
 
+    users_alpha = []
     users_reservation_prices = []
+    users_poisson_parameters = []
     nodes_activation_probabilities = []
     num_sold_items = []
     product_functions_idxs = []
-    users_alpha = []
     prod_fun_idx = np.arange(NUM_OF_PRODUCTS)
 
     for _ in range(n_phases):
@@ -171,6 +172,7 @@ def generate_new_non_stationary_environment():
 
         users_alpha.append(alphas)
         users_reservation_prices.append(res_prices)
+        users_poisson_parameters.append(poisson_par)
 
         estimation = estimate_nodes_activation_probabilities(
             click_probabilities,
@@ -186,11 +188,13 @@ def generate_new_non_stationary_environment():
         product_functions_idxs.append(prod_fun_idx.copy())
 
     env = Non_Stationary_Environment(
-        users_reservation_prices, product_functions_idxs, click_probabilities, users_alpha, num_sold_items, T)
+        users_reservation_prices, product_functions_idxs, click_probabilities,
+        users_alpha, num_sold_items, nodes_activation_probabilities, users_poisson_parameters, T
+    )
 
     # Network.print_graph(G=env.network.G)
 
-    return env, observations_probabilities, click_probabilities, product_prices, num_sold_items, nodes_activation_probabilities
+    return env, observations_probabilities, click_probabilities, product_prices
 
 
 def simulate_step2():
@@ -322,7 +326,9 @@ def simulate_step5():
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
 
-        env, observations_probabilities, click_probabilities, product_prices, users_reservation_prices, users_poisson_parameters = generate_new_environment()
+        env, observations_probabilities, click_probabilities, product_prices,\
+             users_reservation_prices, users_poisson_parameters = generate_new_environment()
+
         ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices)
         ecomm5_gpucb = Ecommerce5_GPUCB(B_cap, budgets, product_prices)
 
@@ -391,7 +397,8 @@ def simulate_step5():
 
 def simulate_step6():
 
-    swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts = [], [], []
+    swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
+        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
 
     tau = np.floor(np.sqrt(T)).astype(int)
 
@@ -401,30 +408,34 @@ def simulate_step6():
 
     for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
 
-        env, _, _, product_prices, _, _ = generate_new_non_stationary_environment()
+        env, observations_probabilities, click_probabilities,\
+            product_prices = generate_new_non_stationary_environment()
 
-        env2 = env.copy()
-
-        ecomm6_ucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
-        ecomm6_cducb = Ecommerce6_CDUCB(
-            B_cap, budgets, product_prices, M, eps, h)
+        ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
+        ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
 
         for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
+            
+            exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
+            ecomm = Ecommerce(B_cap, budgets, product_prices)
+            _ , optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
+                env.get_num_sold_items(),
+                exp_clicks,
+                env.get_nodes_activation_probabilities()
+            )
 
-            arm = ecomm6_ucb.pull_arm()
-            reward, sold_items = env.round_step6(arm)
-            ecomm6_ucb.update(arm, reward, sold_items)
+            arm = ecomm6_swucb.pull_arm()
+            reward, sold_items = env.round_step6(arm, B_cap)
+            ecomm6_swucb.update(arm, reward, sold_items)
+            _, swucb_gains_per_experiment[e][t] = ecomm6_swucb.solve_optimization_problem(env.get_nodes_activation_probabilities())
 
             arm = ecomm6_cducb.pull_arm()
-            reward, sold_items = env2.round_step6(arm)
+            reward, sold_items = env.round_step6(arm, B_cap, True)
             ecomm6_cducb.update(arm, reward, sold_items)
+            _, cducb_gains_per_experiment[e][t] = ecomm6_cducb.solve_optimization_problem(env.get_nodes_activation_probabilities())
 
-        swucb_rewards_per_experiment.append(ecomm6_ucb.collected_rewards)
-        cducb_rewards_per_experiment.append(ecomm6_cducb.collected_rewards)
+    return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain_per_experiment
 
-        opts.append(np.sum(env.get_users_alpha(), axis=0)[1:])
-
-    return swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts
 
 
 if __name__ == "__main__":
@@ -446,5 +457,4 @@ if __name__ == "__main__":
 
     # -----------STEP 6------------
     swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts = simulate_step6()
-    plot_regrets_step6(swucb_rewards_per_experiment,
-                       cducb_rewards_per_experiment, opts)
+    plot_regrets(swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts, ["SWUCB", "CDUCB"])
