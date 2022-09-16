@@ -58,7 +58,7 @@ class Ecommerce(object):
 
     # -------- STEP 2 -----------------
 
-    def solve_optimization_problem( self, num_items_sold, exp_num_clicks, nodes_activation_probabilities):
+    def solve_optimization_problem( self, num_sold_items, exp_num_clicks, nodes_activation_probabilities):
         """
         The algorithm returns the best budget allocation for each product
         :num_of_items_sold: shape 3x5
@@ -68,11 +68,10 @@ class Ecommerce(object):
         assert(exp_num_clicks.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
         assert(nodes_activation_probabilities.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
-        if num_items_sold.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS):
-            num_of_items_sold_for_each_product = np.sum(
-                num_items_sold, axis=0)  # shape = 1x5
+        if num_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS):
+            num_of_items_sold_for_each_product = np.sum(num_sold_items, axis=0)  # shape = 1x5
         else:
-            num_of_items_sold_for_each_product = num_items_sold.copy()
+            num_of_items_sold_for_each_product = num_sold_items.copy()
 
         total_margin_for_each_product = np.multiply(
             num_of_items_sold_for_each_product, self.product_prices)  # shape = 1x5

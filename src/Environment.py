@@ -102,10 +102,9 @@ class Environment:
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
         :return: the expected alpha for each couple (prod_id, budget_allocated)
         '''
-        if not aggregated:
-            exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
-        else:
-            exp_user_alpha = np.zeros(shape=(NUM_OF_PRODUCTS, budgets.shape[0]))
+
+        exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
+
 
         for prod_id in range(NUM_OF_PRODUCTS):
             for j in range(1, budgets.shape[0]):
@@ -120,11 +119,11 @@ class Environment:
                 prod_samples = np.minimum(samples[:, 0], self.users_alpha[:, (prod_id +1)])
                 assert(prod_samples.shape == (NUM_OF_USERS_CLASSES,))
                 
-                if not aggregated:
-                    exp_user_alpha[:, prod_id, j] = prod_samples
-                else:
-                    exp_user_alpha[prod_id, j] = np.sum(prod_samples)
+                exp_user_alpha[:, prod_id, j] = prod_samples
 
+        if aggregated:
+            return np.sum(exp_user_alpha, axis = 0)
+            
         return exp_user_alpha
 
 
