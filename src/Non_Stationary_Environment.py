@@ -84,18 +84,19 @@ class Non_Stationary_Environment(Environment):
         exp_user_alpha = np.zeros(shape= (NUM_OF_USERS_CLASSES, allocation.shape[0]))
 
         for prod_id in range(NUM_OF_PRODUCTS):
-            # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-            conc_param = self.functions_dict[prd_function_idx[prod_id]](allocation[prod_id])
-            
-            # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
-            samples = self.rng.dirichlet(
-                alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
-            ) / NUM_OF_USERS_CLASSES
+            if allocation[prod_id] != 0:
+                # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
+                conc_param = self.functions_dict[prd_function_idx[prod_id]](allocation[prod_id])
+                
+                # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
+                samples = self.rng.dirichlet(
+                    alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
+                ) / NUM_OF_USERS_CLASSES
 
-            prod_samples = np.minimum(samples[:, 0], self.users_alpha[self.current_phase][:, (prod_id +1)])
+                prod_samples = np.minimum(samples[:, 0], self.users_alpha[self.current_phase][:, (prod_id +1)])
 
-            # min because for each campaign we expect a maximum alpha, which is alpha_bar
-            exp_user_alpha[:, prod_id] = prod_samples
+                # min because for each campaign we expect a maximum alpha, which is alpha_bar
+                exp_user_alpha[:, prod_id] = prod_samples
 
         return exp_user_alpha
 

@@ -1,33 +1,17 @@
-from mimetypes import init
-from platform import node
 import numpy as np
 
 from Utils import *
 from constants import *
 
+from Social_influence import *
 from Environment import *
 from Non_Stationary_Environment import *
-
-from Social_influence import *
-from Network import Network
 
 from Ecommerce import *
 from Ecommerce3 import *
 from Ecommerce4 import *
 from Ecommerce5 import *
 from Ecommerce6 import *
-
-
-B_cap = 200
-budgets = np.arange(start=0, stop=B_cap + 1, step=B_cap / 10)
-
-users_price_range = 100
-products_price_range = 60
-
-n_experiments = 2
-T = 20
-n_phases = int(ceil(T/10))
-phase_len = int(ceil(T/n_phases))
 
 
 def generate_click_probabilities():

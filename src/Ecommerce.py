@@ -80,7 +80,9 @@ class Ecommerce(object):
         value_per_click = np.dot(
             nodes_activation_probabilities, total_margin_for_each_product.T)
 
-        exp_reward = np.multiply(exp_num_clicks.T, value_per_click).T
+        value_per_click = np.repeat(value_per_click, exp_num_clicks.shape[-1], axis = -1).reshape(exp_num_clicks.shape)
+
+        exp_reward = np.multiply(exp_num_clicks, value_per_click)
 
         budgets_indexes, reward = self.dynamic_knapsack_solver(
             table=exp_reward
@@ -88,4 +90,5 @@ class Ecommerce(object):
         optimal_allocation = self.budgets[budgets_indexes]
 
         return optimal_allocation, reward 
-    # --------------------------------------------------
+    
+    

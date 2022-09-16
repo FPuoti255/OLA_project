@@ -58,13 +58,16 @@ class Environment:
 
         num_of_items_sold_for_each_product = np.sum(
             num_sold_items, axis=0)  # shape = 1x5
+
         total_margin_for_each_product = np.multiply(
-            num_of_items_sold_for_each_product, product_prices)  # shape = 1x5
+            num_of_items_sold_for_each_product, self.product_prices)  # shape = 1x5
 
         value_per_click = np.dot(
             nodes_activation_probabilities, total_margin_for_each_product.T)
 
-        exp_reward = np.multiply(exp_num_clicks.T, value_per_click).T
+        value_per_click = np.repeat(value_per_click, exp_num_clicks.shape[-1], axis = -1).reshape(exp_num_clicks.shape)
+
+        exp_reward = np.multiply(exp_num_clicks, value_per_click)
          
         # generating all the possible combination with replacement of 5 (campaigns) 
         # over the possible budgets
@@ -94,16 +97,18 @@ class Environment:
         return best_allocation, max_expected_reward
 
 
-    def estimate_num_of_clicks(self, budgets: np.ndarray):
+    def estimate_num_of_clicks(self, budgets: np.ndarray, aggregated = True):
         '''
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
         :return: the expected alpha for each couple (prod_id, budget_allocated)
         '''
-        exp_user_alpha = np.zeros(shape=(NUM_OF_PRODUCTS, budgets.shape[0]))
+        if not aggregated:
+            exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
+        else:
+            exp_user_alpha = np.zeros(shape=(NUM_OF_PRODUCTS, budgets.shape[0]))
 
         for prod_id in range(NUM_OF_PRODUCTS):
-            for j in range(budgets.shape[0]):
-
+            for j in range(1, budgets.shape[0]):
                 # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
                 conc_param = self.functions_dict[prod_id](budgets[j])
 
@@ -113,11 +118,12 @@ class Environment:
                 ) / NUM_OF_USERS_CLASSES
 
                 prod_samples = np.minimum(samples[:, 0], self.users_alpha[:, (prod_id +1)])
-                # min because for each campaign we expect a maximum alpha, which is alpha_bar
                 assert(prod_samples.shape == (NUM_OF_USERS_CLASSES,))
-                exp_user_alpha[prod_id][j] = np.sum(prod_samples)
-        
-        exp_user_alpha[:, 0] = 0 # set to zero the expected alpha when the budget allocated is zero
+                
+                if not aggregated:
+                    exp_user_alpha[:, prod_id, j] = prod_samples
+                else:
+                    exp_user_alpha[prod_id, j] = np.sum(prod_samples)
 
         return exp_user_alpha
 
@@ -138,18 +144,19 @@ class Environment:
         exp_user_alpha = np.zeros(shape= (NUM_OF_USERS_CLASSES, allocation.shape[0]))
 
         for prod_id in range(NUM_OF_PRODUCTS):
-            # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-            conc_param = self.functions_dict[prod_id](allocation[prod_id])
-            
-            # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
-            samples = self.rng.dirichlet(
-                alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
-            ) / NUM_OF_USERS_CLASSES
+            if allocation[prod_id] != 0:
+                # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
+                conc_param = self.functions_dict[prod_id](allocation[prod_id])
+                
+                # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
+                samples = self.rng.dirichlet(
+                    alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
+                ) / NUM_OF_USERS_CLASSES
 
-            prod_samples = np.minimum(samples[:, 0], self.users_alpha[:, (prod_id +1)])
+                prod_samples = np.minimum(samples[:, 0], self.users_alpha[:, (prod_id +1)])
 
-            # min because for each campaign we expect a maximum alpha, which is alpha_bar
-            exp_user_alpha[:, prod_id] = prod_samples
+                # min because for each campaign we expect a maximum alpha, which is alpha_bar
+                exp_user_alpha[:, prod_id] = prod_samples
 
         return exp_user_alpha
 
@@ -196,3 +203,8 @@ class Environment:
         row = pulled_arm[0]
         col = pulled_arm[1]
         return np.random.binomial(n=1, p=self.network.get_adjacency_matrix()[row][col])
+
+    # -----------------------------------------------
+    # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
+    def estimate_disaggregated_num_clicks(self, budgets):
+        return self.estimate_num_of_clicks(budgets, aggregated=False)
