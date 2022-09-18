@@ -1,11 +1,47 @@
+from step7 import ContextNode
+from step7 import Algorithms
+import numpy as np
 from Ecommerce import *
 
-
 class Ecommerce7(Ecommerce):
-    def __init__(self, B_cap: float, budgets, product_prices):
+    def __init__(self, B_cap: float, budgets, product_prices, features:dict, algorithm_type = 'TS'):
         super().__init__(B_cap, budgets, product_prices)
+        self.features = features
+
+
+        if algorithm_type == 'TS' :
+            algorithm = Algorithms.TS(B_cap, budgets, product_prices)
+        elif algorithm_type == 'UCB' :
+            algorithm = Algorithms.UCB(B_cap, budgets, product_prices)
+        else :
+            raise ValueError ('Algorithm type can be TS or UCB')
+
+        self.contexts_tree = ContextNode.ContextNode(context_features=features.copy(), algorithm = algorithm)
+        
+        self.pulled_arms = []
+        self.collected_rewards = []
+        self.collected_sold_items = []
     
-    def solve_optimization_problem(self, num_sold_items, exp_num_clicks, nodes_activation_probabilities):
+    def update_history(self, pulled_arms, collected_rewards, collected_sold_items):
+        self.pulled_arms.append(pulled_arms)
+        self.collected_rewards.append(collected_rewards)
+        self.collected_sold_items.append(collected_sold_items)
+
+
+    def get_pulled_arms(self):
+        return np.array(self.pulled_arms)
+    
+    def get_collected_rewards(self):
+        return np.array(self.collected_rewards)
+    
+    def get_collected_sold_items(self):
+        return np.array(self.collected_sold_items)
+    
+    
+    def get_context_tree(self):
+        return self.contexts_tree
+    
+    def clairvoyant_solve_optimization_problem(self, num_sold_items, exp_num_clicks, nodes_activation_probabilities):
         '''
         Disaggregated version of the optimization problem
         '''

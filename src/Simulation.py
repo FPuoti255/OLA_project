@@ -20,13 +20,13 @@ def generate_click_probabilities():
     '''
 
     adjacency_matrix = np.random.uniform(
-        low=1e-2, high=1+1e-5, size=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+        low=0.1, high=1.00001, size=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
     adjacency_matrix[np.diag_indices(n=NUM_OF_PRODUCTS, ndim=2)] = 0.0
 
     # set some values to zero is not fully connected, otherwise it's ready
     if not fully_connected:
         graph_mask = np.random.randint(
-            low=0, high=1+1, size=adjacency_matrix.shape)
+            low=0, high=2, size=adjacency_matrix.shape)
         adjacency_matrix = np.multiply(adjacency_matrix, graph_mask)
 
     adjacency_matrix = np.round(adjacency_matrix, 2)

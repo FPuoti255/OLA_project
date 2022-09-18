@@ -136,27 +136,40 @@ class Environment:
             - exp_user_alpha -> shape= (NUM_OF_USERS_CLASSES, allocation.shape[0]) 3x5
         '''
 
-        # if the allocation is composed all of zero, return zero !
-        if not np.any(allocation):
-            return np.zeros(shape=(NUM_OF_USERS_CLASSES, allocation.shape[0]))
+        exp_user_alpha = np.zeros(shape= (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        
+        if allocation.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS):
+            for user_class in range(NUM_OF_USERS_CLASSES):
+                arm = allocation[user_class]               
+                for prod_id in range(NUM_OF_PRODUCTS):
+                    if arm[prod_id] != 0:
+                        # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
+                        conc_param = self.functions_dict[prod_id](arm[prod_id])
+                        
+                        # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
+                        samples = self.rng.dirichlet(
+                            alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper)
+                        ) / NUM_OF_USERS_CLASSES
 
-        exp_user_alpha = np.zeros(shape= (NUM_OF_USERS_CLASSES, allocation.shape[0]))
+                        exp_user_alpha[user_class][prod_id] = min(samples[0], self.users_alpha[user_class][prod_id])
+            
+        else:            
+            for prod_id in range(NUM_OF_PRODUCTS):
+                if allocation[prod_id] != 0:
+                    # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
+                    conc_param = self.functions_dict[prod_id](allocation[prod_id])
+                    
+                    # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
+                    samples = self.rng.dirichlet(
+                        alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
+                    ) / NUM_OF_USERS_CLASSES
 
-        for prod_id in range(NUM_OF_PRODUCTS):
-            if allocation[prod_id] != 0:
-                # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-                conc_param = self.functions_dict[prod_id](allocation[prod_id])
-                
-                # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
-                samples = self.rng.dirichlet(
-                    alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
-                ) / NUM_OF_USERS_CLASSES
+                    prod_samples = np.minimum(samples[:, 0], self.users_alpha[:, (prod_id +1)])
 
-                prod_samples = np.minimum(samples[:, 0], self.users_alpha[:, (prod_id +1)])
+                    # min because for each campaign we expect a maximum alpha, which is alpha_bar
+                    exp_user_alpha[:, prod_id] = prod_samples
 
-                # min because for each campaign we expect a maximum alpha, which is alpha_bar
-                exp_user_alpha[:, prod_id] = prod_samples
-
+#        assert(np.greater_equal(self.users_alpha[:, 1:], exp_user_alpha).all())
         return exp_user_alpha
 
 
@@ -164,7 +177,7 @@ class Environment:
     # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
     def round_step3(self, pulled_arm, B_cap):
 
-        assert (pulled_arm.shape[0] == NUM_OF_PRODUCTS)
+        assert (pulled_arm.shape == (NUM_OF_PRODUCTS,))
 
         alpha = self.compute_alpha(pulled_arm / B_cap)
         assert (alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
@@ -207,3 +220,19 @@ class Environment:
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
     def estimate_disaggregated_num_clicks(self, budgets):
         return self.estimate_num_of_clicks(budgets, aggregated=False)
+    
+    def round_step7(self, pulled_arm, B_cap, nodes_activation_probabilities, num_sold_items):
+        assert (pulled_arm.shape == (NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
+
+        alpha = self.compute_alpha(pulled_arm / B_cap)
+        assert (alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+
+        estimated_sold_items = np.multiply(
+            np.dot(num_sold_items, nodes_activation_probabilities.T),
+            alpha
+        )
+
+        return alpha, estimated_sold_items
+
+
+

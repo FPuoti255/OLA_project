@@ -9,7 +9,7 @@ NUM_OF_USERS_CLASSES = 3
 # probability of observing the second slot of suggested products. Assumed to be known in the project.
 LAMBDA = 0.6
 
-fully_connected = False
+fully_connected = True
 
 B_cap = 100
 budgets = np.arange(start=0, stop=B_cap + 1, step=5)
@@ -21,3 +21,6 @@ n_experiments = 2
 T = 20
 n_phases = np.ceil(T/10).astype(int)
 phase_len = np.ceil(T/n_phases).astype(int)
+
+features = {'A' : 0, 'B' : 1, 'C' : 2, 'D' : 0}
+split_time = 14

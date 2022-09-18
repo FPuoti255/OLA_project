@@ -48,6 +48,7 @@ class Ecommerce5(Ecommerce):
     def get_estimated_nodes_activation_probabilities(self):
         pass
 
+
 class Ecommerce5_GPTS(Ecommerce5):
     def __init__(self, B_cap, budgets, product_prices):
         super().__init__(B_cap, budgets, product_prices)
