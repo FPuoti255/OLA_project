@@ -73,9 +73,6 @@ class ContextNode(object):
             p_left = len(left) / len(features)
             p_right = len(right) / len(features)
 
-            alg1 = self.algorithm.get_new_instance()
-            alg2 = self.algorithm.get_new_instance()
-
             c1 = dict.fromkeys(left)
             c2 = dict.fromkeys(right)
 
@@ -84,6 +81,9 @@ class ContextNode(object):
             
             for k, _ in c2.items():
                 c2[k] = self.context_features[k]
+
+            alg1 = self.algorithm.get_new_instance()
+            alg2 = self.algorithm.get_new_instance()
 
             arms, rew, sold_it  = self.get_context_data(c1, pulled_arms, collected_rewards, collected_sold_items)
             alg1.train_offline(arms, rew, sold_it)
@@ -95,7 +95,6 @@ class ContextNode(object):
             mu_2 = alg2.get_best_bound_arm()
 
             if mu_1 * p_left + mu_2 * p_right >= mu_0:
-
                 self.left_child = ContextNode(c1, alg1)
                 self.right_child = ContextNode(c2, alg2)
                 print('Better split_found', c1, c2)
@@ -113,4 +112,5 @@ class ContextNode(object):
         assert(context_sold_items.shape == (NUM_OF_PRODUCTS,))
         self.algorithm.update(pulled_arm, context_reward, context_sold_items)
         
-            
+    def solve_optimization_problem(self, nodes_activation_probabilities):
+        return self.algorithm.solve_optimization_problem(nodes_activation_probabilities)       

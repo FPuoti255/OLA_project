@@ -7,7 +7,7 @@ class TS(Ecommerce4_GPTS):
     def __init__(self, B_cap, budgets, product_prices):
         super().__init__(B_cap, budgets, product_prices)
 
-    def get_new_instance(self):
+    def get_new_instance(self):        
         return TS(self.B_cap, self.budgets, self.product_prices)
 
     def train_offline(self, pulled_arms, rewards, sold_items):
