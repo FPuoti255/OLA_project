@@ -22,5 +22,5 @@ T = 50
 n_phases = np.ceil(T/10).astype(int)
 phase_len = np.ceil(T/n_phases).astype(int)
 
-features = {'A' : 0, 'B' : 1, 'C' : 2, 'D' : 0}
+features = {'A' : 1, 'B' : 0, 'C' : 0, 'D' : 2}
 split_time = 14

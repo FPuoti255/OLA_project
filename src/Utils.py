@@ -115,15 +115,3 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
 
     plt.show()
 
-
-def plot_regrets_step6(swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts):
-
-    swucb_rewards_per_experiment = np.array(swucb_rewards_per_experiment)
-    cducb_rewards_per_experiment = np.array(cducb_rewards_per_experiment)
-    opts = np.array(opts)
-
-    swucb_regret, cducb_regret, swucb_std, cducb_std = prepare_alpha_or_items_regrets(
-        swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts)
-
-    plot_regrets(swucb_regret, cducb_regret,  swucb_std,
-                 cducb_std, ["SWUCB", "CDUCB"])

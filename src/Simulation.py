@@ -479,9 +479,16 @@ def simulate_step7():
 
             
             for learner in context_learners:
-                arm, idx = learner.pull_arm()
-                idxs.append(idx)
-                pulled_arms[idx, :] = arm
+                arm, learner_idxs = learner.pull_arm()
+
+                # avoid_class_overlapping
+                for idx in learner_idxs:
+                    if not np.array_equal(pulled_arms[idx, :] , np.zeros(shape = NUM_OF_PRODUCTS)):
+                        learner_idxs.remove(idx)
+                
+                idxs.append(learner_idxs)
+                pulled_arms[learner_idxs, :] = arm
+
 
             reward, estimated_sold_items = env.round_step7(
                 pulled_arms, B_cap, nodes_activation_probabilities, num_sold_items)
@@ -518,9 +525,16 @@ def simulate_step7():
 
             
             for learner in context_learners:
-                arm, idx = learner.pull_arm()
-                idxs.append(idx)
-                pulled_arms[idx, :] = arm
+                arm, learner_idxs = learner.pull_arm()
+
+                # avoid_class_overlapping
+                for idx in learner_idxs:
+                    if not np.array_equal(pulled_arms[idx, :] , np.zeros(shape = NUM_OF_PRODUCTS)):
+                        learner_idxs.remove(idx)
+                
+                idxs.append(learner_idxs)
+                pulled_arms[learner_idxs, :] = arm
+
 
             reward, estimated_sold_items = env.round_step7(
                 pulled_arms, B_cap, nodes_activation_probabilities, num_sold_items)
@@ -560,3 +574,7 @@ if __name__ == "__main__":
     # -----------STEP 6------------
     swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts = simulate_step6()
     plot_regrets(swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts, ["SWUCB", "CDUCB"])
+
+    # -----------STEP 7------------
+    gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step7()
+    plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, ["GPTS", "GPUCB"])

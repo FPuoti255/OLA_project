@@ -38,6 +38,6 @@ class UCB(Ecommerce4_GPUCB):
 
     def get_best_bound_arm(self):
         estimate_sold_product = np.random.normal(self.sold_items_means, self.sold_items_sigmas)
-        exp_rew = np.multiply(self.means .T, estimate_sold_product).T
+        exp_rew = np.multiply(self.means.T, estimate_sold_product).T
         _, mu = self.revisited_knapsack_solver(table=exp_rew)
         return max(0.01, mu - np.sqrt( - np.log(confidence) / (2 * self.t)))
