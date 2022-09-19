@@ -13,7 +13,7 @@ class Ecommerce4(Ecommerce3):
     def __init__(self, B_cap, budgets, product_prices):
         super().__init__(B_cap, budgets, product_prices)
 
-        self.sold_items_means = np.ones(shape=NUM_OF_PRODUCTS)
+        self.sold_items_means = np.ones(shape=NUM_OF_PRODUCTS) * 20
         self.sold_items_sigmas = np.ones(shape=NUM_OF_PRODUCTS)
 
         self.collected_sold_items = [

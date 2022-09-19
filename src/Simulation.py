@@ -406,19 +406,21 @@ def simulate_step6():
 
         ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
         ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
+        
+        optimal_phase_gain = 0
 
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
             
             exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
             ecomm = Ecommerce(B_cap, budgets, product_prices)
             
-            optimal_phase_gain = 0
             if t % phase_len == 0:
                 _, optimal_phase_gain = ecomm.solve_optimization_problem(
                     env.get_num_sold_items(),
                     exp_clicks,
                     env.get_nodes_activation_probabilities()
                 )
+            
             optimal_gain_per_experiment[e][t] = optimal_phase_gain
 
             arm = ecomm6_swucb.pull_arm()

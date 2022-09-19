@@ -93,6 +93,7 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
 
     ax[0][0].set_xlabel('t')
     ax[0][0].legend()
+
     ax[0][1].set_xlabel('t')
     ax[0][1].legend()
 
@@ -113,6 +114,8 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
 
     ax[1][0].set_xlabel('t')
     ax[1][0].legend()
+
     ax[1][1].set_xlabel('t')
     ax[1][1].legend()
+    
     plt.show()
