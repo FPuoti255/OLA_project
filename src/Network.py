@@ -39,7 +39,7 @@ class Network:
         plt.show()
 
     @staticmethod
-    def print_live_edge_graphs(G: nx.Graph, subplots: list[dict]):
+    def print_live_edge_graphs(G: nx.Graph, subplots: list):
 
         # plt.ion()
         # plt.axis("off")

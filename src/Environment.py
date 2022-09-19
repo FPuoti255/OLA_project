@@ -60,7 +60,7 @@ class Environment:
             num_sold_items, axis=0)  # shape = 1x5
 
         total_margin_for_each_product = np.multiply(
-            num_of_items_sold_for_each_product, self.product_prices)  # shape = 1x5
+            num_of_items_sold_for_each_product, product_prices)  # shape = 1x5
 
         value_per_click = np.dot(
             nodes_activation_probabilities, total_margin_for_each_product.T)

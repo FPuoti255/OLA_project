@@ -72,11 +72,10 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
     #----------------- ALG 1 -------------------
 
     alg1_mean_reward = np.mean(alg1_rewards_per_experiment, axis=0)
-    alg1_reward_std = np.std(alg1_mean_reward)
+    alg1_reward_std = np.std(alg1_rewards_per_experiment, axis=0)
 
-    alg1_average_regret = np.mean((opts-alg1_rewards_per_experiment.T).T, axis=0)
-    alg1_cumulative_regret = np.cumsum(alg1_average_regret)    
-    alg1_regret_std = np.std(alg1_average_regret)
+    alg1_cumulative_regret = np.cumsum(np.mean((opts-alg1_rewards_per_experiment.T).T, axis=0))    
+    alg1_regret_std = np.std((opts-alg1_rewards_per_experiment.T).T, axis = 0)
 
     ax[0].plot(alg1_cumulative_regret, color='r',
                   label=legend[0] + '_cumulative_regret')
@@ -94,11 +93,10 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
     #----------------- ALG 2 ------------------
 
     alg2_mean_reward = np.mean(alg2_rewards_per_experiment, axis=0)
-    alg2_reward_std = np.std(alg2_mean_reward)
+    alg2_reward_std = np.std(alg2_rewards_per_experiment, axis = 0)
 
-    alg2_average_regret = np.mean((opts-alg2_rewards_per_experiment.T).T, axis=0)
-    alg2_cumulative_regret = np.cumsum(alg2_average_regret)
-    alg2_regret_std = np.std(alg2_average_regret)
+    alg2_cumulative_regret = np.cumsum(np.mean((opts-alg2_rewards_per_experiment.T).T, axis=0))
+    alg2_regret_std = np.std((opts-alg2_rewards_per_experiment.T).T, axis=0)
 
 
     ax[1].plot(alg2_cumulative_regret, color='r',
