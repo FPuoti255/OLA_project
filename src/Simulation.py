@@ -390,7 +390,7 @@ def simulate_step5():
 def simulate_step6():
 
     swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
-        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
+        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments,T))
 
     tau = np.floor(np.sqrt(T)).astype(int)
 
@@ -399,7 +399,7 @@ def simulate_step6():
     h = 2 * np.log(T)
 
     for e in range(0, n_experiments):
-        print('Experiment n°:', e)
+        print('Experiment n°', e)
 
         env, observations_probabilities, click_probabilities,\
             product_prices = generate_new_non_stationary_environment()
@@ -411,11 +411,15 @@ def simulate_step6():
             
             exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
             ecomm = Ecommerce(B_cap, budgets, product_prices)
-            _ , optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
-                env.get_num_sold_items(),
-                exp_clicks,
-                env.get_nodes_activation_probabilities()
-            )
+            
+            optimal_phase_gain = 0
+            if t % phase_len == 0:
+                _, optimal_phase_gain = ecomm.solve_optimization_problem(
+                    env.get_num_sold_items(),
+                    exp_clicks,
+                    env.get_nodes_activation_probabilities()
+                )
+            optimal_gain_per_experiment[e][t] = optimal_phase_gain
 
             arm = ecomm6_swucb.pull_arm()
             reward, sold_items = env.round_step6(arm, B_cap)
