@@ -19,7 +19,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     # number of repetition to have theoretical guarantees on the error of the estimation
     epsilon = 3*1e-2
     delta = 1e-2
-    k = int((1/epsilon**2) * np.log(NUM_OF_PRODUCTS/2) * np.log(1/delta))
+    k = int((1/epsilon**2) * np.log(NUM_OF_PRODUCTS)/2 * np.log(1/delta))
 
 
     for i in range(num_of_user_classes):        # 3
