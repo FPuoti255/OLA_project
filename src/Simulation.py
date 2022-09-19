@@ -214,8 +214,13 @@ def simulate_step2():
 
 def simulate_step3():
 
-    gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
-        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
+    gpts_gains_per_experiment = np.zeros(shape=(n_experiments, T))
+    gpts_max_variance_per_experiment = np.zeros(shape=(n_experiments, T))
+
+    gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
+    gpucb_max_variance_per_experiment = np.zeros(shape=(n_experiments, T))
+    
+    optimal_gain_per_experiment = np.zeros(shape=(n_experiments))
 
     for e in range(0, n_experiments):
         print('Experiment n°:', e)
@@ -242,21 +247,21 @@ def simulate_step3():
             nodes_activation_probabilities
         )
 
-
         for t in tqdm(range(0, T), position = 0, desc="n_iteration", leave=False):
 
             arm = ecomm3_gpts.pull_arm()
             reward = env.round_step3(arm, B_cap)
             ecomm3_gpts.update(arm, reward)
             _, gpts_gains_per_experiment[e][t] = ecomm3_gpts.solve_optimization_problem(num_sold_items, nodes_activation_probabilities)
-
+            gpts_max_variance_per_experiment[e][t] = ecomm3_gpts.get_max_gp_variance()
 
             arm = ecomm3_gpucb.pull_arm()
             reward = env.round_step3(arm, B_cap)
             ecomm3_gpucb.update(arm, reward)
             _,  gpucb_gains_per_experiment[e][t] = ecomm3_gpucb.solve_optimization_problem(num_sold_items, nodes_activation_probabilities)
+            gpucb_max_variance_per_experiment[e][t] = ecomm3_gpucb.get_max_gp_variance()
 
-    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
+    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment, gpts_max_variance_per_experiment, gpucb_max_variance_per_experiment
 
 
 def simulate_step4():
@@ -554,14 +559,15 @@ def simulate_step7():
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment 
 
+
 if __name__ == "__main__":
 
     # -----------SOCIAL INFLUENCE SIMULATION + STEP2 OPTIMIZATION PROBLEM --------------
     simulate_step2()
 
     # -----------STEP 3------------
-    gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step3()
-    plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, ["GPTS", "GPUCB"])
+    gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, gpts_max_variance_per_experiment, gpucb_max_variance_per_experiment = simulate_step3()
+    plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, gpts_max_variance_per_experiment, gpucb_max_variance_per_experiment, ["GPTS", "GPUCB"])
 
     # -----------STEP 4------------
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step4()
