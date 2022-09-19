@@ -1,3 +1,4 @@
+from constants import *
 import warnings
 import numpy as np
 from matplotlib import pyplot as plt
@@ -63,38 +64,56 @@ def renormalize(arr: np.array):
     return arr.copy() if arr_sum == 0 else arr.copy() / np.sum(arr)
 
 
-
 def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
-    
-    alg1_regret = np.cumsum(np.mean((opts-alg1_rewards_per_experiment.T).T, axis = 0))
-    alg2_regret = np.cumsum(np.mean((opts-alg2_rewards_per_experiment.T).T, axis = 0))
-
-    alg1_regret_std = np.std((opts-alg1_rewards_per_experiment.T).T, axis = 0)
-    alg2_regret_std = np.std((opts-alg1_rewards_per_experiment.T).T , axis = 0)
-
 
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(10, 10))
+    ticks = np.arange(start=1, stop=T + 1, step=1)
+    
+    #----------------- ALG 1 -------------------
 
-    ticks = np.arange(start=1, stop=len(alg1_regret) + 1, step=1)
+    alg1_mean_reward = np.mean(alg1_rewards_per_experiment, axis=0)
+    alg1_reward_std = np.std(alg1_mean_reward)
 
-    ax[0].plot(ticks, alg1_regret, color='r')
-    ax[0].fill_between(ticks, alg1_regret - alg1_regret_std,
-                       alg1_regret + alg1_regret_std, alpha=0.4)
+    alg1_average_regret = np.mean((opts-alg1_rewards_per_experiment.T).T, axis=0)
+    alg1_cumulative_regret = np.cumsum(alg1_average_regret)    
+    alg1_regret_std = np.std(alg1_average_regret)
+
+    ax[0].plot(alg1_cumulative_regret, color='r',
+                  label=legend[0] + '_cumulative_regret')
+    ax[0].fill_between(ticks, alg1_cumulative_regret - alg1_regret_std,
+                          alg1_cumulative_regret + alg1_regret_std, alpha=0.4)
+
+    ax[0].plot(alg1_mean_reward, label=legend[0] + '_average_reward')
+    ax[0].fill_between(ticks, alg1_mean_reward - alg1_reward_std,
+                          alg1_mean_reward + alg1_reward_std, alpha=0.4)
+
     ax[0].set_xlabel('t')
-    ax[0].set_ylabel('Regret')
-    ax[0].set_xticks(ticks)
-    ax[0].set_title(legend[0])
+    ax[0].legend()
 
-    ax[1].plot(ticks, alg2_regret, color='r')
-    ax[1].fill_between(ticks, alg2_regret - alg2_regret_std,
-                       alg2_regret + alg2_regret_std, alpha=0.4)
+
+    #----------------- ALG 2 ------------------
+
+    alg2_mean_reward = np.mean(alg2_rewards_per_experiment, axis=0)
+    alg2_reward_std = np.std(alg2_mean_reward)
+
+    alg2_average_regret = np.mean((opts-alg2_rewards_per_experiment.T).T, axis=0)
+    alg2_cumulative_regret = np.cumsum(alg2_average_regret)
+    alg2_regret_std = np.std(alg2_average_regret)
+
+
+    ax[1].plot(alg2_cumulative_regret, color='r',
+                  label=legend[1] + '_cumulative_regret')
+    ax[1].fill_between(ticks, alg2_cumulative_regret - alg2_regret_std,
+                          alg2_cumulative_regret + alg2_regret_std, alpha=0.4)
+
+    ax[1].plot(alg2_mean_reward, label=legend[1] + '_average_reward')
+    ax[1].fill_between(ticks, alg2_mean_reward - alg2_reward_std,
+                          alg2_mean_reward + alg2_reward_std, alpha=0.4)
+
     ax[1].set_xlabel('t')
-    ax[1].set_ylabel('Regret')
-    ax[1].set_xticks(ticks)
-    ax[1].set_title(legend[1])
-        
-    plt.show()
+    ax[1].legend()
 
+    plt.show()
 
 
 def plot_regrets_step6(swucb_rewards_per_experiment, cducb_rewards_per_experiment, opts):

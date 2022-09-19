@@ -12,7 +12,7 @@ from Ecommerce3 import *
 from Ecommerce4 import *
 from Ecommerce5 import *
 from Ecommerce6 import *
-
+from step7.Ecommerce7 import *
 
 def generate_click_probabilities():
     '''
@@ -217,7 +217,8 @@ def simulate_step3():
     gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
 
-    for e in tqdm(range(0, n_experiments),  desc="n_experiment", leave=False):
+    for e in range(0, n_experiments):
+        print('Experiment n°:', e)
 
         env, observations_probabilities, click_probabilities, product_prices, users_reservation_prices, users_poisson_parameters = generate_new_environment()
 
@@ -242,7 +243,7 @@ def simulate_step3():
         )
 
 
-        for t in tqdm(range(0, T), desc="n_iteration", leave=False):
+        for t in tqdm(range(0, T), position = 0, desc="n_iteration", leave=False):
 
             arm = ecomm3_gpts.pull_arm()
             reward = env.round_step3(arm, B_cap)
@@ -264,7 +265,8 @@ def simulate_step4():
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
     
 
-    for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
+    for e in range(0, n_experiments):
+        print('Experiment n°:', e)
 
         env, observations_probabilities, click_probabilities, product_prices, users_reservation_prices, users_poisson_parameters = generate_new_environment()
         ecomm4_gpts = Ecommerce4_GPTS(B_cap, budgets, product_prices)
@@ -286,7 +288,7 @@ def simulate_step4():
             nodes_activation_probabilities
         )
 
-        for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
+        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
 
             arm = ecomm4_gpts.pull_arm()
             reward, estimated_sold_items = env.round_step4(arm, B_cap, nodes_activation_probabilities, num_sold_items)
@@ -308,7 +310,8 @@ def simulate_step5():
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
     
 
-    for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
+    for e in range(0, n_experiments):
+        print('Experiment n°:', e)
 
         env, observations_probabilities, click_probabilities, product_prices,\
              users_reservation_prices, users_poisson_parameters = generate_new_environment()
@@ -334,7 +337,7 @@ def simulate_step5():
         )
 
 
-        for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
+        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
 
             arm, arm_idx = ecomm5_gpts.pull_arm()
             reward = env.round_step5(arm)
@@ -390,7 +393,8 @@ def simulate_step6():
     eps = 0.1
     h = 2 * np.log(T)
 
-    for e in tqdm(range(0, n_experiments), position=0, desc="n_experiment", leave=False):
+    for e in range(0, n_experiments):
+        print('Experiment n°:', e)
 
         env, observations_probabilities, click_probabilities,\
             product_prices = generate_new_non_stationary_environment()
@@ -398,7 +402,7 @@ def simulate_step6():
         ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
         ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
 
-        for t in tqdm(range(0, T), position=1, desc="n_iteration", leave=False):
+        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
             
             exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
             ecomm = Ecommerce(B_cap, budgets, product_prices)
@@ -421,6 +425,120 @@ def simulate_step6():
     return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain_per_experiment
 
 
+def simulate_step7():
+
+    gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
+        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
+    
+
+    for e in range(0, n_experiments):
+        print('Experiment n°:', e)
+
+        
+        env, observations_probabilities, click_probabilities, product_prices,\
+            users_reservation_prices, users_poisson_parameters = generate_new_environment()
+
+
+        nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
+            click_probabilities,
+            users_reservation_prices,
+            users_poisson_parameters,
+            product_prices,
+            observations_probabilities
+        )
+
+        exp_num_clicks = env.estimate_disaggregated_num_clicks(budgets/B_cap)
+
+        ecomm7_gpts = Ecommerce7(B_cap, budgets, product_prices, features, 'TS')
+        ecomm7_gpucb = Ecommerce7(B_cap, budgets, product_prices, features, 'UCB')
+
+        _, optimal_gain_per_experiment[e] = ecomm7_gpts.clairvoyant_solve_optimization_problem(num_sold_items,
+                                                                        exp_num_clicks,
+                                                                        nodes_activation_probabilities)
+
+
+        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
+
+        # ------------------- TS --------------------------------------------
+            
+            context_learners = ecomm7_gpts.get_context_tree().get_leaves()
+            idxs = []
+            pulled_arms = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+
+            if t % split_time == 0 and t != 0:
+                print('------- Thompson_Sampling splitting evaluation --------')
+                for learner in context_learners:
+                    learner.evaluate_splitting_condition(features,
+                                                        ecomm7_gpts.get_pulled_arms(
+                                                        )[-split_time:],
+                                                        ecomm7_gpts.get_collected_rewards(
+                                                        )[-split_time:],
+                                                        ecomm7_gpts.get_collected_sold_items()[-split_time:])
+
+                context_learners = ecomm7_gpts.get_context_tree().get_leaves()
+
+            
+            for learner in context_learners:
+                arm, idx = learner.pull_arm()
+                idxs.append(idx)
+                pulled_arms[idx, :] = arm
+
+            reward, estimated_sold_items = env.round_step7(
+                pulled_arms, B_cap, nodes_activation_probabilities, num_sold_items)
+
+            for i in range(len(context_learners)):
+                context_learners[i].update(
+                    pulled_arms[idxs[i][0]],
+                    np.sum(reward[idxs[i]], axis=0),
+                    np.sum(estimated_sold_items[idxs[i]], axis=0)
+                )
+
+            ecomm7_gpts.update_history(pulled_arms, reward, estimated_sold_items)
+            for learner in context_learners:
+                _, rew = learner.algorithm.solve_optimization_problem(nodes_activation_probabilities)
+                gpts_gains_per_experiment[e][t] += rew
+
+        # ------------------------------ UCB ----------------------------
+                        
+            context_learners = ecomm7_gpucb.get_context_tree().get_leaves()
+            idxs = []
+            pulled_arms = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+
+            if t % split_time == 0 and t != 0:
+                print('------- UCB splitting evaluation --------')
+                for learner in context_learners:
+                    learner.evaluate_splitting_condition(features,
+                                                        ecomm7_gpucb.get_pulled_arms(
+                                                        )[-split_time:],
+                                                        ecomm7_gpucb.get_collected_rewards(
+                                                        )[-split_time:],
+                                                        ecomm7_gpucb.get_collected_sold_items()[-split_time:])
+
+                context_learners = ecomm7_gpucb.get_context_tree().get_leaves()
+
+            
+            for learner in context_learners:
+                arm, idx = learner.pull_arm()
+                idxs.append(idx)
+                pulled_arms[idx, :] = arm
+
+            reward, estimated_sold_items = env.round_step7(
+                pulled_arms, B_cap, nodes_activation_probabilities, num_sold_items)
+
+            for i in range(len(context_learners)):
+                context_learners[i].update(
+                    pulled_arms[idxs[i][0]],
+                    np.sum(reward[idxs[i]], axis=0),
+                    np.sum(estimated_sold_items[idxs[i]], axis=0)
+                )
+
+            ecomm7_gpucb.update_history(pulled_arms, reward, estimated_sold_items)
+            for learner in context_learners:
+                _, rew = learner.algorithm.solve_optimization_problem(nodes_activation_probabilities)
+                gpucb_gains_per_experiment[e][t] += rew
+
+
+    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment 
 
 if __name__ == "__main__":
 
