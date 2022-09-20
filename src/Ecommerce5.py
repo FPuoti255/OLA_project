@@ -67,7 +67,7 @@ class Ecommerce5(Ecommerce):
 
     def get_estimated_nodes_activation_probabilities(self):
         #a, b = compute_beta_parameters(self.means, self.sigmas)
-        samples = np.clip(np.random.normal(self.means, self.sigmas), a_min = 0.001, a_max= 0.99)
+        samples = np.random.normal(self.means, self.sigmas)
         estimated_nap = np.identity(n=NUM_OF_PRODUCTS)
         for i in range(self.n_arms):
             row, col = self.arms[i][0], self.arms[i][1]
@@ -85,8 +85,10 @@ class Ecommerce5_GPTS(Ecommerce5):
         super().__init__(B_cap, budgets, product_prices)
 
     def pull_arm(self):
-        a, b = compute_beta_parameters(self.means, self.sigmas)
-        samples = np.random.beta(a=a, b=b)
+        #a, b = compute_beta_parameters(self.means, self.sigmas)
+        #samples = np.random.beta(a=a, b=b)
+
+        samples = np.random.normal(self.means, self.sigmas)
         arm_idx = np.argmax(samples)
         return self.arms[arm_idx], arm_idx
 
