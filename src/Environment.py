@@ -214,7 +214,7 @@ class Environment:
     def round_step5(self, pulled_arm, nodes_activation_probabilities):
         row = pulled_arm[0]
         col = pulled_arm[1]
-        return np.random.binomial(n=1, p=nodes_activation_probabilities[row][col])
+        return nodes_activation_probabilities[row][col]
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
