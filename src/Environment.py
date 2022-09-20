@@ -211,10 +211,10 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 5 ENVIRONMENT FUNCTIONS-----------
-    def round_step5(self, pulled_arm):
+    def round_step5(self, pulled_arm, nodes_activation_probabilities):
         row = pulled_arm[0]
         col = pulled_arm[1]
-        return np.random.binomial(n=1, p=self.network.get_adjacency_matrix()[row][col])
+        return np.random.binomial(n=1, p=nodes_activation_probabilities[row][col])
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 

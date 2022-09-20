@@ -345,43 +345,27 @@ def simulate_step5():
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
 
             arm, arm_idx = ecomm5_gpts.pull_arm()
-            reward = env.round_step5(arm)
-            ecomm5_gpts.update(arm_idx, reward)
+            reward = env.round_step5(arm, nodes_activation_probabilities)
+            ecomm5_gpts.update(arm, arm_idx, reward)
             
-            # In this case we do not assign num_sold_items because we want to use the one computed at the beginning og the experiment
-            nodes_activation_probabilities, _ = estimate_nodes_activation_probabilities(
-                ecomm5_gpts.get_estimated_graph_weights(),
-                users_reservation_prices,
-                users_poisson_parameters,
-                product_prices,
-                observations_probabilities
-            )
-            #same_reasoning as before: we do not want to override the exp_clicks computed at the beginning og the experiment
-            _ , gpts_gains_per_experiment[e][t] = ecomm5_gpts.solve_optimization_problem(
+            _, gain = ecomm5_gpts.solve_optimization_problem(
                 num_sold_items,
-                exp_clicks,
-                nodes_activation_probabilities
+                exp_clicks
             )
+
+            gpts_gains_per_experiment[e][t] = 0 if gain > optimal_gain_per_experiment[e] else gain
 
             # ----------------------
 
             arm, arm_idx = ecomm5_gpucb.pull_arm()
-            reward = env.round_step5(arm)
-            ecomm5_gpucb.update(arm_idx, reward)
+            reward = env.round_step5(arm, nodes_activation_probabilities)
+            ecomm5_gpucb.update(arm, arm_idx, reward)
 
-            nodes_activation_probabilities, _ = estimate_nodes_activation_probabilities(
-                ecomm5_gpucb.get_estimated_graph_weights(),
-                users_reservation_prices,
-                users_poisson_parameters,
-                product_prices,
-                observations_probabilities
-            )
-
-            _ , gpucb_gains_per_experiment[e][t] = ecomm5_gpucb.solve_optimization_problem(
+            _, gain = ecomm5_gpucb.solve_optimization_problem(
                 num_sold_items,
-                exp_clicks,
-                nodes_activation_probabilities
+                exp_clicks
             )
+            gpucb_gains_per_experiment[e][t] = 0 if gain > optimal_gain_per_experiment[e] else gain
 
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
