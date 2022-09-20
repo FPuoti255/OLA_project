@@ -199,9 +199,9 @@ class Environment:
 
         tot_sold_per_product = np.sum(num_sold_items, axis=0)
 
-        estimated_sold_items = np.divide(tot_alpha_per_product, np.sum(self.users_alpha, axis = 0)[1:])* tot_sold_per_product
+        #estimated_sold_items = np.divide(tot_alpha_per_product, np.sum(self.users_alpha, axis = 0)[1:])* tot_sold_per_product
             
-        return tot_alpha_per_product, estimated_sold_items
+        return tot_alpha_per_product, tot_sold_per_product
 
 
     # -----------------------------------------------
