@@ -214,7 +214,7 @@ class Environment:
     def round_step5(self, pulled_arm, nodes_activation_probabilities):
         row = pulled_arm[0]
         col = pulled_arm[1]
-        n_trials = 1000
+        n_trials = 200
         return np.random.binomial(n = n_trials, p = nodes_activation_probabilities[row][col]) / n_trials
 
     # -----------------------------------------------
