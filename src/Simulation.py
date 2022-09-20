@@ -348,10 +348,13 @@ def simulate_step5():
             reward = env.round_step5(arm, nodes_activation_probabilities)
             ecomm5_gpts.update(arm, arm_idx, reward)
             
-            _, gpts_gains_per_experiment[e][t] = ecomm5_gpts.solve_optimization_problem(
+            _, gain = ecomm5_gpts.solve_optimization_problem(
                 num_sold_items,
                 exp_clicks
             )
+
+            gpts_gains_per_experiment[e][t] = np.minimum(gain, optimal_gain_per_experiment[e])
+            #gpts_gains_per_experiment[e][t] = gain
             
             # ----------------------
 
@@ -359,11 +362,12 @@ def simulate_step5():
             reward = env.round_step5(arm, nodes_activation_probabilities)
             ecomm5_gpucb.update(arm, arm_idx, reward)
 
-            _, gpucb_gains_per_experiment[e][t] = ecomm5_gpucb.solve_optimization_problem(
+            _, gain = ecomm5_gpucb.solve_optimization_problem(
                 num_sold_items,
                 exp_clicks
             )
-
+            gpucb_gains_per_experiment[e][t] = np.minimum(gain, optimal_gain_per_experiment[e])
+            #gpucb_gains_per_experiment[e][t] = gain
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
 

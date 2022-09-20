@@ -26,7 +26,7 @@ class Ecommerce5(Ecommerce):
         
         # I'm generating a distribution for each possible PRODUCT-PRODUCT edge
         self.means = np.ones(shape=self.n_arms) * 0.5
-        self.sigmas = np.ones(shape=self.n_arms) * 2
+        self.sigmas = np.ones(shape=self.n_arms) * 10
 
         self.t = 0
 
@@ -65,8 +65,7 @@ class Ecommerce5(Ecommerce):
 
     def get_estimated_nodes_activation_probabilities(self):
         #a, b = compute_beta_parameters(self.means, self.sigmas)
-        #samples = np.random.normal(self.means, self.sigmas)
-        samples = self.means
+        samples = np.random.normal(self.means, self.sigmas)
         estimated_nap = np.identity(n=NUM_OF_PRODUCTS)
         for i in range(self.n_arms):
             row, col = self.arms[i][0], self.arms[i][1]
