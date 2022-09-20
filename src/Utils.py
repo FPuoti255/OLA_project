@@ -19,31 +19,13 @@ def log(msg):
 
 
 def compute_beta_parameters(means, sigmas):
+    # https://stats.stackexchange.com/a/316088
 
-    # https://en.wikipedia.org/wiki/Beta_distribution#Method_of_moments
+    precision = np.divide(1, np.square(sigmas))
+    a = np.multiply(means, precision)
+    b = np.multiply(precision, (1 - means))
 
-    variance = np.square(sigmas)
-
-    second_term = np.subtract(
-        np.divide(np.multiply(means, np.subtract(1, means)), variance), 
-        1
-    )
-
-    a = np.multiply(means, second_term)
-    b = np.multiply(np.subtract(1, means), second_term)
-
-    a = np.maximum(a, 0.01)
-    b = np.maximum(b, 0.01)
-    return a, b
-
-# def compute_beta_parameters(means, sigmas):
-#     # https://stats.stackexchange.com/a/316088
-
-#     precision = np.divide(1, np.square(sigmas))
-#     a = np.multiply(means, precision)
-#     b = np.multiply(precision, (1 - means))
-
-#     return np.maximum(a, 0.001), np.maximum(b, 0.001)
+    return np.maximum(a, 0.01), np.maximum(b, 0.01)
 
 
 def compute_beta_means_variance(a, b):
