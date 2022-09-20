@@ -43,8 +43,8 @@ class Ecommerce6(Ecommerce):
     def pull_arm(self):
         upper_conf = self.means + self.confidence_bounds
 
-        num_items_sold = np.floor(np.random.normal(
-            self.sold_items_means, self.sold_items_sigmas))
+        num_items_sold = np.ceil(np.random.normal(
+            self.sold_items_means, self.sold_items_sigmas)).astype(int)
 
         upper_conf = np.multiply(upper_conf.copy().T, num_items_sold).T
         arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)

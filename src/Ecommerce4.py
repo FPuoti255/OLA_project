@@ -57,6 +57,18 @@ class Ecommerce4(Ecommerce3):
 
 class Ecommerce4_GPTS(Ecommerce4, Ecommerce3_GPTS):
 
+    def pull_arm(self):
+        a, b = compute_beta_parameters(self.means, self.sigmas)
+        samples = np.random.beta(a=a, b=b)
+
+        num_items_sold = np.ceil(np.random.normal(
+            self.sold_items_means, self.sold_items_sigmas)).astype(int)
+
+        samples = np.multiply(samples.copy().T, num_items_sold).T
+
+        arm_idxs, _ = self.revisited_knapsack_solver(table=samples)
+        return self.budgets[arm_idxs]
+
     def update_observations(self, pulled_arm, reward, sold_items):
         for i in range(NUM_OF_PRODUCTS):
             self.rewards_per_arm[i][
@@ -83,4 +95,14 @@ class Ecommerce4_GPUCB(Ecommerce4, Ecommerce3_GPUCB):
 
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = np.inf
+    
+    def pull_arm(self):
+        upper_conf = self.means + self.confidence_bounds
+
+        num_items_sold = np.ceil(np.random.normal(
+            self.sold_items_means, self.sold_items_sigmas)).astype(int)
+
+        upper_conf = np.multiply(upper_conf.copy().T, num_items_sold).T
+        arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
+        return self.budgets[arm_idxs]
         
