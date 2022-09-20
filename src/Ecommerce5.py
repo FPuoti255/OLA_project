@@ -59,6 +59,7 @@ class Ecommerce5(Ecommerce):
         self.means, self.sigmas = self.gp.predict(
             np.atleast_2d(self.arms), return_std=True
         )
+        self.means = np.maximum(self.means, 1e-3)
         self.sigmas = np.maximum(self.sigmas, 1e-3)
 
     def pull_arm(self):

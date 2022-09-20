@@ -18,36 +18,32 @@ def log(msg):
 # -------------------------------
 
 
-# -------------------OLD FUNCTION NOT USED ANYMORE----------------
-#
-# def compute_beta_parameters(means, sigmas):
-
-#     # https://en.wikipedia.org/wiki/Beta_distribution#Method_of_moments
-
-#     # needed constraints on the values for the beta
-#     means = np.minimum(np.maximum(0, means), 1)
-#     variance = np.square(sigmas)
-#     variance = np.minimum(variance, np.multiply(means, np.subtract(1,means)))
-
-
-#     second_term = np.subtract(
-#         np.divide(np.multiply(means, np.subtract(1, means)), variance), 1
-#     )
-#     a = np.multiply(means, second_term)
-#     b = np.multiply(np.subtract(1, means), second_term)
-
-#     a = np.maximum(a, 0.01)
-#     b = np.maximum(b, 0.01)
-#     return a, b
-
 def compute_beta_parameters(means, sigmas):
-    # https://stats.stackexchange.com/a/316088
 
-    precision = np.divide(1, np.square(sigmas))
-    a = np.multiply(means, precision)
-    b = np.multiply(precision, (1 - means))
+    # https://en.wikipedia.org/wiki/Beta_distribution#Method_of_moments
 
-    return np.maximum(a, 0.001), np.maximum(b, 0.001)
+    variance = np.square(sigmas)
+
+    second_term = np.subtract(
+        np.divide(np.multiply(means, np.subtract(1, means)), variance), 
+        1
+    )
+
+    a = np.multiply(means, second_term)
+    b = np.multiply(np.subtract(1, means), second_term)
+
+    a = np.maximum(a, 0.01)
+    b = np.maximum(b, 0.01)
+    return a, b
+
+# def compute_beta_parameters(means, sigmas):
+#     # https://stats.stackexchange.com/a/316088
+
+#     precision = np.divide(1, np.square(sigmas))
+#     a = np.multiply(means, precision)
+#     b = np.multiply(precision, (1 - means))
+
+#     return np.maximum(a, 0.001), np.maximum(b, 0.001)
 
 
 def compute_beta_means_variance(a, b):
@@ -58,10 +54,6 @@ def compute_beta_means_variance(a, b):
     )
     return means, sigmas_square
 
-
-def renormalize(arr: np.array):
-    arr_sum = np.sum(arr)
-    return arr.copy() if arr_sum == 0 else arr.copy() / np.sum(arr)
 
 
 def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):

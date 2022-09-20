@@ -23,16 +23,12 @@ class Ecommerce6(Ecommerce):
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.5
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.01
 
-        self.collected_rewards = [[] for i in range(NUM_OF_PRODUCTS)]
-
         self.confidence_bounds = np.full(
             shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf
         )
 
         self.sold_items_means = np.ones(shape=NUM_OF_PRODUCTS) * 20
         self.sold_items_sigmas = np.ones(shape=NUM_OF_PRODUCTS)
-
-        self.collected_sold_items = [[] for i in range(NUM_OF_PRODUCTS)]
 
     def update(self, pulled_arm, reward, sold_items):
         pass
@@ -45,43 +41,29 @@ class Ecommerce6(Ecommerce):
         pass
 
     def pull_arm(self):
-        if np.random.binomial(1, 1-self.alpha):
-            upper_conf = self.means + self.confidence_bounds
+        upper_conf = self.means + self.confidence_bounds
 
-            num_items_sold = np.floor(np.random.normal(
-                self.sold_items_means, self.sold_items_sigmas))
+        num_items_sold = np.floor(np.random.normal(
+            self.sold_items_means, self.sold_items_sigmas))
 
-            upper_conf = np.multiply(upper_conf.copy().T, num_items_sold).T
-            arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
-            return self.budgets[arm_idxs]
-        else:
-            pulled_arm = np.zeros(shape=NUM_OF_PRODUCTS)
-            current_budget_sum = 0
-            for i in range(NUM_OF_PRODUCTS):
-                found = False
-                while not found:
-                    arm = np.random.choice(self.budgets)
-                    if current_budget_sum + arm <= self.B_cap:
-                        pulled_arm[i] = arm
-                        current_budget_sum += arm
-                        found = True
-            return pulled_arm
+        upper_conf = np.multiply(upper_conf.copy().T, num_items_sold).T
+        arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
+        return self.budgets[arm_idxs]
+
 
     def solve_optimization_problem(self, nodes_activation_probabilities):
 
-        num_sold_items = np.maximum(np.zeros(NUM_OF_PRODUCTS),
-                            np.random.normal(self.sold_items_means,
-                                            self.sold_items_sigmas)).astype(int)
-        assert (num_sold_items.shape == (NUM_OF_PRODUCTS,))
+        num_sold_items = np.maximum(
+            np.zeros(NUM_OF_PRODUCTS),
+            np.random.normal(self.sold_items_means, self.sold_items_sigmas)
+        ).astype(int)
 
-        exp_num_clicks=np.maximum(np.zeros(
-            (NUM_OF_PRODUCTS, self.budgets.shape[0])), np.random.normal(self.means, self.sigmas))
-        assert (exp_num_clicks.shape == (
-            NUM_OF_PRODUCTS, self.budgets.shape[0]))
+        exp_num_clicks=np.maximum(
+            np.zeros((NUM_OF_PRODUCTS, self.budgets.shape[0])),
+            np.random.normal(self.means, self.sigmas)
+        )
 
         return super().solve_optimization_problem(num_sold_items, exp_num_clicks, nodes_activation_probabilities)
-
-
 
 
 class Ecommerce6_SWUCB(Ecommerce6):
@@ -124,9 +106,6 @@ class Ecommerce6_SWUCB(Ecommerce6):
             self.pulled_arms[i][slot_idx]=pulled_arm[i]
 
             self.reward_sold_items[i][slot_idx]=sold_items[i]
-
-            self.collected_rewards[i].append(reward[i])
-            self.collected_sold_items[i].append(sold_items[i])
 
 
     def update_model(self):
@@ -189,19 +168,13 @@ class Ecommerce6_CDUCB(Ecommerce6):
         self.change_detection=[[CUSUM(M, eps, h) for i in range(
             self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
 
-        self.detections=[
-            [[] for i in range(self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
-
         self.change_detection_sold_items=[
             CUSUM(M, eps, h) for i in range(NUM_OF_PRODUCTS)]
-
-        self.detections_sold_items=[[] for i in range(NUM_OF_PRODUCTS)]
 
 
         self.pulled_arms=[[] for i in range(NUM_OF_PRODUCTS)]
         self.rewards_per_arm=[
             [[] for i in range(self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
-
 
         self.rewards_sold_items=[[] for i in range(NUM_OF_PRODUCTS)]
 
@@ -213,12 +186,10 @@ class Ecommerce6_CDUCB(Ecommerce6):
 
             if self.change_detection[i][arm_idx].update(reward[i]):
                 print('CUSUM: change detected at time ', self.t)
-                self.detections[i][arm_idx].append(self.t)
                 self.rewards_per_arm[i][arm_idx]=[]
                 self.change_detection[i][arm_idx].reset()
 
             if self.change_detection_sold_items[i].update(sold_items[i]):
-                self.detections_sold_items[i].append(self.t)
                 self.rewards_sold_items[i]=[]
                 self.change_detection_sold_items[i].reset()
 
@@ -229,10 +200,9 @@ class Ecommerce6_CDUCB(Ecommerce6):
     def update_observations(self, prod_id, arm_idx, arm_reward, prod_sold_items):
         self.rewards_per_arm[prod_id][arm_idx].append(arm_reward)
         self.pulled_arms[prod_id].append(self.budgets[arm_idx])
-        self.collected_rewards[prod_id].append(arm_reward)
 
         self.rewards_sold_items[prod_id].append(prod_sold_items)
-        self.collected_sold_items[prod_id].append(prod_sold_items)
+
 
     def update_model(self):
         # equivalent to n_t in the paper
