@@ -26,7 +26,7 @@ class Ecommerce5(Ecommerce):
         
         # I'm generating a distribution for each possible PRODUCT-PRODUCT edge
         self.means = np.ones(shape=self.n_arms) * 0.5
-        self.sigmas = np.ones(shape=self.n_arms) * 0.2
+        self.sigmas = np.ones(shape=self.n_arms) * 2
 
         self.t = 0
 
@@ -38,7 +38,7 @@ class Ecommerce5(Ecommerce):
         kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-3, 1e3))
         # we need one gaussian regressor for each product
         self.gp = GaussianProcessRegressor(
-                kernel=kernel, alpha=alpha)
+                kernel=kernel, alpha=alpha, normalize_y= True, n_restarts_optimizer= 9)
 
     def update(self, arm, arm_idx, reward):
         self.t += 1
@@ -52,21 +52,21 @@ class Ecommerce5(Ecommerce):
         self.pulled_arms.append(arm)
         
     def update_model(self):
-        x = np.atleast_2d(self.pulled_arms)
-        y = self.collected_rewards
+        x = np.array(self.pulled_arms)
+        y = np.array(self.collected_rewards)
         self.gp.fit(x, y)
         self.means, self.sigmas = self.gp.predict(
-            np.atleast_2d(self.arms), return_std=True
+            np.array(self.arms), return_std=True
         )
-        self.sigmas = np.maximum(self.sigmas, 1e-3)
+        self.sigmas = np.maximum(self.sigmas, 1e-2)
 
     def pull_arm(self):
         pass
 
     def get_estimated_nodes_activation_probabilities(self):
-        #a, b = compute_beta_parameters(self.means, self.sigmas)
-        #samples = np.random.beta(a=a, b=b)
-        samples = np.random.normal(self.means, self.sigmas)
+        a, b = compute_beta_parameters(self.means, self.sigmas)
+        samples = np.random.beta(a=a, b=b)
+
         estimated_nap = np.identity(n=NUM_OF_PRODUCTS)
         for i in range(self.n_arms):
             row, col = self.arms[i][0], self.arms[i][1]
@@ -103,8 +103,8 @@ class Ecommerce5_GPUCB(Ecommerce5):
         return self.arms[arm_idx], arm_idx
 
     def update_observations(self, arm, arm_idx, reward):
-        super().update_observations(arm, arm_idx, reward)
         self.N_a[arm_idx] += 1
+        super().update_observations(arm, arm_idx, reward)
         self.confidence_bounds[arm_idx] = np.sqrt(
             2 * np.log(self.t) / self.N_a[arm_idx]
         )

@@ -369,7 +369,6 @@ def simulate_step5():
             gpucb_gains_per_experiment[e][t] = np.minimum(gain, optimal_gain_per_experiment[e])
             #gpucb_gains_per_experiment[e][t] = gain
 
-
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
 
 
