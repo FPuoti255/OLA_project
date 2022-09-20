@@ -353,7 +353,7 @@ def simulate_step5():
                 exp_clicks
             )
 
-            gpts_gains_per_experiment[e][t] = 0 if gain > optimal_gain_per_experiment[e] else gain
+            gpts_gains_per_experiment[e][t] = np.maximum(gain, optimal_gain_per_experiment[e])
             #gpts_gains_per_experiment[e][t] = gain
             
             # ----------------------
@@ -366,7 +366,7 @@ def simulate_step5():
                 num_sold_items,
                 exp_clicks
             )
-            gpucb_gains_per_experiment[e][t] = 0 if gain > optimal_gain_per_experiment[e] else gain
+            gpucb_gains_per_experiment[e][t] = np.maximum(gain, optimal_gain_per_experiment[e])
             #gpucb_gains_per_experiment[e][t] = gain
 
 
@@ -566,7 +566,7 @@ if __name__ == "__main__":
     plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, ["GPTS", "GPUCB"])
 
     # -----------STEP 5------------
-    gpucb_rewards_per_experiment, gpts_rewards_per_experiment, opts = simulate_step5()
+    gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step5()
     plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, ["GPTS", "GPUCB"])
 
     # -----------STEP 6------------
