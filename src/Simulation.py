@@ -296,12 +296,12 @@ def simulate_step4():
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
 
             arm = ecomm4_gpts.pull_arm()
-            reward, estimated_sold_items = env.round_step4(arm, B_cap, nodes_activation_probabilities, num_sold_items)
+            reward, estimated_sold_items = env.round_step4(arm, B_cap, num_sold_items)
             ecomm4_gpts.update(arm, reward, estimated_sold_items)
             _, gpts_gains_per_experiment[e][t] = ecomm4_gpts.solve_optimization_problem(nodes_activation_probabilities)
 
             arm = ecomm4_gpucb.pull_arm()
-            reward, estimated_sold_items = env.round_step4(arm, B_cap, nodes_activation_probabilities, num_sold_items)
+            reward, estimated_sold_items = env.round_step4(arm, B_cap, num_sold_items)
             ecomm4_gpucb.update(arm, reward, estimated_sold_items)
             _, gpucb_gains_per_experiment[e][t] = ecomm4_gpucb.solve_optimization_problem(nodes_activation_probabilities)
 
