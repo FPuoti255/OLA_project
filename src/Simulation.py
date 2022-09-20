@@ -215,7 +215,11 @@ def simulate_step2():
 def simulate_step3():
 
     gpts_gains_per_experiment = np.zeros(shape=(n_experiments, T))
-    gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))    
+    gpts_max_variance_per_experiment = np.zeros(shape=(n_experiments, T))
+
+    gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
+    gpucb_max_variance_per_experiment = np.zeros(shape=(n_experiments, T))
+    
     optimal_gain_per_experiment = np.zeros(shape=(n_experiments))
 
     for e in range(0, n_experiments):
@@ -249,15 +253,15 @@ def simulate_step3():
             reward = env.round_step3(arm, B_cap)
             ecomm3_gpts.update(arm, reward)
             _, gpts_gains_per_experiment[e][t] = ecomm3_gpts.solve_optimization_problem(num_sold_items, nodes_activation_probabilities)
-
+            gpts_max_variance_per_experiment[e][t] = ecomm3_gpts.get_max_gp_variance()
 
             arm = ecomm3_gpucb.pull_arm()
             reward = env.round_step3(arm, B_cap)
             ecomm3_gpucb.update(arm, reward)
             _,  gpucb_gains_per_experiment[e][t] = ecomm3_gpucb.solve_optimization_problem(num_sold_items, nodes_activation_probabilities)
+            gpucb_max_variance_per_experiment[e][t] = ecomm3_gpucb.get_max_gp_variance()
 
-
-    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
+    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment, gpts_max_variance_per_experiment, gpucb_max_variance_per_experiment
 
 
 def simulate_step4():

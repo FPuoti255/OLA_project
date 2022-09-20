@@ -37,6 +37,9 @@ class Ecommerce3(Ecommerce):
             for i in range(NUM_OF_PRODUCTS)
         ]
     
+    def get_max_gp_variance(self):
+        return np.square(np.max(self.sigmas))
+
     def update(self, pulled_arm, reward):
         self.t += 1
         self.update_observations(pulled_arm, reward)
