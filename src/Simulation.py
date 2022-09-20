@@ -353,8 +353,9 @@ def simulate_step5():
                 exp_clicks
             )
 
-            gpts_gains_per_experiment[e][t] = 0 if gain > optimal_gain_per_experiment[e] else gain
-
+            #gpts_gains_per_experiment[e][t] = 0 if gain > optimal_gain_per_experiment[e] else gain
+            gpts_gains_per_experiment[e][t] = gain
+            
             # ----------------------
 
             arm, arm_idx = ecomm5_gpucb.pull_arm()
@@ -365,7 +366,8 @@ def simulate_step5():
                 num_sold_items,
                 exp_clicks
             )
-            gpucb_gains_per_experiment[e][t] = 0 if gain > optimal_gain_per_experiment[e] else gain
+            #gpucb_gains_per_experiment[e][t] = 0 if gain > optimal_gain_per_experiment[e] else gain
+            gpucb_gains_per_experiment[e][t] = gain
 
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment

@@ -66,8 +66,8 @@ class Ecommerce5(Ecommerce):
         pass
 
     def get_estimated_nodes_activation_probabilities(self):
-        a, b = compute_beta_parameters(self.means, self.sigmas)
-        samples = np.random.beta(a=a, b=b)
+        #a, b = compute_beta_parameters(self.means, self.sigmas)
+        samples = np.clip(np.random.normal(self.means, self.sigmas), a_min = 0, a_max= 1)
         estimated_nap = np.identity(n=NUM_OF_PRODUCTS)
         for i in range(self.n_arms):
             row, col = self.arms[i][0], self.arms[i][1]

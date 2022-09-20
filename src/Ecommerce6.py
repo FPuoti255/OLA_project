@@ -121,7 +121,7 @@ class Ecommerce6_SWUCB(Ecommerce6):
 
         self.confidence_bounds=np.sqrt(
             2 * np.log(self.t) / np.sum(self.N_a, axis=2))
-        # We do not set np.inf since the division by 0 yields np.inf by default in numpy
+
 
 
 
