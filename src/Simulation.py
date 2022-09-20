@@ -344,9 +344,9 @@ def simulate_step5():
 
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
 
-            arm = ecomm5_gpts.pull_arm()
+            arm, arm_idx = ecomm5_gpts.pull_arm()
             reward = env.round_step5(arm, nodes_activation_probabilities)
-            ecomm5_gpts.update(arm, reward)
+            ecomm5_gpts.update(arm, arm_idx, reward)
             
             _, gain = ecomm5_gpts.solve_optimization_problem(
                 num_sold_items,
@@ -358,9 +358,9 @@ def simulate_step5():
             
             # ----------------------
 
-            arm = ecomm5_gpucb.pull_arm()
+            arm, arm_idx = ecomm5_gpucb.pull_arm()
             reward = env.round_step5(arm, nodes_activation_probabilities)
-            ecomm5_gpucb.update(arm, reward)
+            ecomm5_gpucb.update(arm, arm_idx, reward)
 
             _, gain = ecomm5_gpucb.solve_optimization_problem(
                 num_sold_items,
