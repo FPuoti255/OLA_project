@@ -27,8 +27,8 @@ class Ecommerce6(Ecommerce):
             shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf
         )
 
-        self.sold_items_means = np.ones(shape=NUM_OF_PRODUCTS) * 20
-        self.sold_items_sigmas = np.ones(shape=NUM_OF_PRODUCTS)
+        self.sold_items_means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 10
+        self.sold_items_sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) *5
 
     def update(self, pulled_arm, reward, sold_items):
         pass
@@ -42,28 +42,30 @@ class Ecommerce6(Ecommerce):
 
     def pull_arm(self):
         upper_conf = self.means + self.confidence_bounds
-
-        num_items_sold = np.ceil(np.random.normal(
-            self.sold_items_means, self.sold_items_sigmas)).astype(int)
-
-        upper_conf = np.multiply(upper_conf.copy().T, num_items_sold).T
         arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
         return self.budgets[arm_idxs]
 
 
-    def solve_optimization_problem(self, nodes_activation_probabilities):
+    def solve_optimization_problem(self, nodes_activation_probabilities): #shape 5x5
+        num_sold_items = np.random.normal(self.sold_items_means, self.sold_items_sigmas) # 5 x 21
+        exp_num_clicks = np.random.normal(self.means, self.sigmas) # 5 x 21
 
-        num_sold_items = np.maximum(
-            np.zeros(NUM_OF_PRODUCTS),
-            np.random.normal(self.sold_items_means, self.sold_items_sigmas)
-        ).astype(int)
+        total_margin_for_each_product = np.multiply(num_sold_items.T, self.product_prices).T  # shape = 5x21
 
-        exp_num_clicks=np.maximum(
-            np.zeros((NUM_OF_PRODUCTS, self.budgets.shape[0])),
-            np.random.normal(self.means, self.sigmas)
+        value_per_click = np.ones_like(exp_num_clicks)
+        for i in range(self.budgets.shape[0]):
+            value_per_click[ : , i] = np.dot(nodes_activation_probabilities, total_margin_for_each_product[:, i])
+        
+        assert(value_per_click.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
+
+        exp_reward = np.multiply(exp_num_clicks, value_per_click)
+
+        budgets_indexes, reward = self.dynamic_knapsack_solver(
+            table=exp_reward
         )
+        optimal_allocation = self.budgets[budgets_indexes]
 
-        return super().solve_optimization_problem(num_sold_items, exp_num_clicks, nodes_activation_probabilities)
+        return optimal_allocation, reward
 
 
 class Ecommerce6_SWUCB(Ecommerce6):
@@ -81,7 +83,7 @@ class Ecommerce6_SWUCB(Ecommerce6):
 
 
         self.reward_sold_items=np.full(
-            shape=(NUM_OF_PRODUCTS, self.tau), fill_value=np.nan)
+            shape=(NUM_OF_PRODUCTS, self.n_arms, self.tau), fill_value=np.nan)
 
 
     def update(self, pulled_arm, reward, sold_items):
@@ -97,15 +99,18 @@ class Ecommerce6_SWUCB(Ecommerce6):
             arm_idx=int(np.where(self.budgets == pulled_arm[i])[0])
             non_pulled_arm_idxs=np.nonzero(
                 np.in1d(self.budgets, np.setdiff1d(self.budgets, pulled_arm[i])))[0]
-
+            
             self.N_a[i][arm_idx][slot_idx]=1
             self.N_a[i][non_pulled_arm_idxs][slot_idx]=0
             self.rewards_per_arm[i][arm_idx][slot_idx]=reward[i]
             self.rewards_per_arm[i][non_pulled_arm_idxs][slot_idx]=np.nan
-
+            
             self.pulled_arms[i][slot_idx]=pulled_arm[i]
+            
+            self.reward_sold_items[i][arm_idx][slot_idx]=sold_items[i]
+            self.reward_sold_items[i][non_pulled_arm_idxs][slot_idx]=np.nan
 
-            self.reward_sold_items[i][slot_idx]=sold_items[i]
+
 
 
     def update_model(self):
@@ -113,8 +118,8 @@ class Ecommerce6_SWUCB(Ecommerce6):
             for j in range(0, self.n_arms):
                 self.means[i][j]=np.nanmean(self.rewards_per_arm[i][j])
                 self.sigmas[i][j]=np.nanstd(self.rewards_per_arm[i][j])
-            self.sold_items_means[i]=np.nanmean(self.reward_sold_items[i])
-            self.sold_items_sigmas[i]=np.nanstd(self.reward_sold_items[i])
+                self.sold_items_means[i][j]=np.nanmean(self.reward_sold_items[i][j])
+                self.sold_items_sigmas[i][j]=np.nanstd(self.reward_sold_items[i][j])
 
         self.sigmas=np.maximum(self.sigmas, 1e-2)
         self.sold_items_sigmas=np.maximum(self.sold_items_sigmas, 1)
@@ -168,15 +173,16 @@ class Ecommerce6_CDUCB(Ecommerce6):
         self.change_detection=[[CUSUM(M, eps, h) for i in range(
             self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
 
-        self.change_detection_sold_items=[
-            CUSUM(M, eps, h) for i in range(NUM_OF_PRODUCTS)]
+        self.change_detection_sold_items=[[CUSUM(M, eps, h) for i in range(
+            self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
 
 
         self.pulled_arms=[[] for i in range(NUM_OF_PRODUCTS)]
         self.rewards_per_arm=[
             [[] for i in range(self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
 
-        self.rewards_sold_items=[[] for i in range(NUM_OF_PRODUCTS)]
+        self.rewards_sold_items=[
+            [[] for i in range(self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
 
 
     def update(self, pulled_arm, reward, sold_items):
@@ -189,9 +195,9 @@ class Ecommerce6_CDUCB(Ecommerce6):
                 self.rewards_per_arm[i][arm_idx]=[]
                 self.change_detection[i][arm_idx].reset()
 
-            if self.change_detection_sold_items[i].update(sold_items[i]):
-                self.rewards_sold_items[i]=[]
-                self.change_detection_sold_items[i].reset()
+            if self.change_detection_sold_items[i][arm_idx].update(sold_items[i]):
+                self.rewards_sold_items[i][arm_idx]=[]
+                self.change_detection_sold_items[i][arm_idx].reset()
 
             self.update_observations(i, arm_idx, reward[i], sold_items[i])
 
@@ -201,7 +207,7 @@ class Ecommerce6_CDUCB(Ecommerce6):
         self.rewards_per_arm[prod_id][arm_idx].append(arm_reward)
         self.pulled_arms[prod_id].append(self.budgets[arm_idx])
 
-        self.rewards_sold_items[prod_id].append(prod_sold_items)
+        self.rewards_sold_items[prod_id][arm_idx].append(prod_sold_items)
 
 
     def update_model(self):
@@ -221,10 +227,10 @@ class Ecommerce6_CDUCB(Ecommerce6):
                 self.confidence_bounds[prod_id][arm_idx]=np.sqrt(
                     2 * np.log(total_valid_rewards[prod_id]) / n_reward) if n_reward > 0 else np.inf
 
-            self.sold_items_means[prod_id]=np.mean(
-                self.rewards_sold_items[prod_id])
-            self.sold_items_sigmas[prod_id]=np.std(
-                self.rewards_sold_items[prod_id])
+                self.sold_items_means[prod_id][arm_idx]=np.mean(
+                    self.rewards_sold_items[prod_id][arm_idx])
+                self.sold_items_sigmas[prod_id][arm_idx]=np.std(
+                    self.rewards_sold_items[prod_id][arm_idx])
 
         self.sigmas=np.maximum(self.sigmas, 1e-2)
         self.sold_items_sigmas=np.maximum(self.sold_items_sigmas, 1)

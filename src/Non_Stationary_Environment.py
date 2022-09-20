@@ -115,9 +115,11 @@ class Non_Stationary_Environment(Environment):
 
         tot_sold_per_product = np.sum(self.num_sold_items[self.current_phase], axis=0)
 
-        estimated_sold_items = np.sum(
-            np.multiply(self.nodes_activation_probabilities[self.current_phase].T, tot_alpha_per_product).T,
-            axis = 0) * tot_sold_per_product
+        estimated_sold_items = np.divide(
+            tot_alpha_per_product, 
+            np.sum(self.users_alpha[self.current_phase], axis = 0)[1:]
+        )* tot_sold_per_product
+
             
         if end_phase : #in this way also the second learner to pull will have the same phase parameters
             self.t += 1

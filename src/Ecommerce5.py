@@ -25,48 +25,34 @@ class Ecommerce5(Ecommerce):
         self.n_arms = len(self.arms)
         
         # I'm generating a distribution for each possible PRODUCT-PRODUCT edge
-        self.means = np.ones(shape=self.n_arms) * 0.5
-        self.sigmas = np.ones(shape=self.n_arms) * 10
+        self.means = np.zeros(shape=self.n_arms)
+        self.sigmas = np.ones(shape=self.n_arms)
 
         self.t = 0
 
         self.pulled_arms = []
         self.rewards_per_arm = [[] for _ in range(self.n_arms)]
-        self.collected_rewards = []
-
-        alpha = 10.0
-        kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-3, 1e3))
-        # we need one gaussian regressor for each product
-        self.gp = GaussianProcessRegressor(
-                kernel=kernel, alpha=alpha, normalize_y= True, n_restarts_optimizer= 9)
 
     def update(self, arm, arm_idx, reward):
         self.t += 1
         self.update_observations(arm, arm_idx, reward)
-        self.update_model()
+        self.update_model(arm_idx)
 
     # The methods below will be implemented in the sub-classes
     def update_observations(self, arm, arm_idx, reward):
         self.rewards_per_arm[arm_idx].append(reward)
-        self.collected_rewards.append(reward)
         self.pulled_arms.append(arm)
-        
-    def update_model(self):
-        x = np.array(self.pulled_arms)
-        y = np.array(self.collected_rewards)
-        self.gp.fit(x, y)
-        self.means, self.sigmas = self.gp.predict(
-            np.array(self.arms), return_std=True
-        )
-        self.sigmas = np.maximum(self.sigmas, 1e-2)
+
+
+    def update_model(self, arm_idx):
+        self.means[arm_idx] = np.mean(self.rewards_per_arm[arm_idx])
+        self.sigmas[arm_idx] = np.std(self.rewards_per_arm[arm_idx])
 
     def pull_arm(self):
         pass
 
     def get_estimated_nodes_activation_probabilities(self):
-        #a, b = compute_beta_parameters(self.means, self.sigmas)
-        #samples = np.random.normal(self.means, self.sigmas)
-        samples = self.means
+        samples = np.random.normal(self.means, self.sigmas)
         estimated_nap = np.identity(n=NUM_OF_PRODUCTS)
         for i in range(self.n_arms):
             row, col = self.arms[i][0], self.arms[i][1]

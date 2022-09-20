@@ -169,7 +169,6 @@ class Environment:
                     # min because for each campaign we expect a maximum alpha, which is alpha_bar
                     exp_user_alpha[:, prod_id] = prod_samples
 
-#        assert(np.greater_equal(self.users_alpha[:, 1:], exp_user_alpha).all())
         return exp_user_alpha
 
 
@@ -199,9 +198,9 @@ class Environment:
 
         tot_sold_per_product = np.sum(num_sold_items, axis=0)
 
-        #estimated_sold_items = np.divide(tot_alpha_per_product, np.sum(self.users_alpha, axis = 0)[1:])* tot_sold_per_product
+        estimated_sold_items = np.divide(tot_alpha_per_product, np.sum(self.users_alpha, axis = 0)[1:])* tot_sold_per_product
             
-        return tot_alpha_per_product, tot_sold_per_product
+        return tot_alpha_per_product, estimated_sold_items
 
 
     # -----------------------------------------------
@@ -209,8 +208,7 @@ class Environment:
     def round_step5(self, pulled_arm, nodes_activation_probabilities):
         row = pulled_arm[0]
         col = pulled_arm[1]
-        n_trials = 200
-        return np.random.binomial(n = n_trials, p = nodes_activation_probabilities[row][col]) / n_trials
+        return np.random.binomial(n = 1, p = nodes_activation_probabilities[row][col])
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
