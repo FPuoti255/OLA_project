@@ -190,10 +190,7 @@ class Environment:
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
 
-    def round_step4(self, pulled_arm, B_cap, nodes_activation_probabilities, num_sold_items):
-
-        assert (nodes_activation_probabilities.shape ==
-            (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+    def round_step4(self, pulled_arm, B_cap, num_sold_items):
 
         assert (num_sold_items.shape == (
             NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
@@ -202,9 +199,7 @@ class Environment:
 
         tot_sold_per_product = np.sum(num_sold_items, axis=0)
 
-        estimated_sold_items = np.sum(
-            np.multiply(nodes_activation_probabilities.T, tot_alpha_per_product).T,
-            axis = 0) * tot_sold_per_product
+        estimated_sold_items = np.divide(tot_alpha_per_product, np.sum(self.users_alpha, axis = 0)[1:])* tot_sold_per_product
             
         return tot_alpha_per_product, estimated_sold_items
 
