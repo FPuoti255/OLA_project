@@ -203,6 +203,7 @@ def simulate_step3():
                 product_prices,
                 observations_probabilities
             )
+            aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
@@ -213,13 +214,13 @@ def simulate_step3():
             _ , optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
 
 
-            arm, arm_idxs = ecomm3_gpts.pull_arm()
+            arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
             # the environment returns the users_alpha and the reward for that allocation
             alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
             ecomm3_gpts.update(arm, alpha)
 
 
-            arm, arm_idxs = ecomm3_gpucb.pull_arm()
+            arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
             alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
             ecomm3_gpucb.update(arm, alpha)
 
