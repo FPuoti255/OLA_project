@@ -5,6 +5,7 @@ from constants import *
 
 from Social_influence import *
 from Environment import *
+from Scenario import *
 from Non_Stationary_Environment import *
 
 from Ecommerce import *
@@ -19,8 +20,7 @@ def generate_graph_weights():
     :return: matrix representing the probability of going from a node to another
     '''
 
-    adjacency_matrix = np.random.uniform(
-        low=0.1, high=1.00001, size=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+    adjacency_matrix = np.random.uniform(low=0.1, high=1.00001, size=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
     adjacency_matrix[np.diag_indices(n=NUM_OF_PRODUCTS, ndim=2)] = 0.0
 
     # set some values to zero is not fully connected, otherwise it's ready
@@ -65,10 +65,10 @@ def generate_observation_probabilities(graph_weights):
     return obs_prob
 
 
-def generate_users_parameters():
+def generate_users_parameters(users_reservation_prices):
     '''
     :return: 
-        - alphas represents the percentage of users (for each class) landing on a specific product webpage including the competitor's
+        - alpha_bars represents the MAX percentage of users (for each class) landing on a specific product webpage including the competitor's
         - users_reservation prices (NUM_OF_USERS_CLASSES x NUM_OF_PRODUCTS)
         - users_poisson_parameters = NUM_OF_USERS_CLASSES x NUM_OF_PRODUCTS matrix giving, 
                         for each users class and for each product, the poisson distribution of the bought items in the montecarlo sampling
@@ -80,19 +80,16 @@ def generate_users_parameters():
         np.multiply(np.random.beta(a = 1, b = 1, size = NUM_OF_PRODUCTS + 1), 1000),
         np.random.random_integers(low = 0, high = 1000, size = NUM_OF_PRODUCTS + 1)
     ]
+    log("users_concentration_parametersss:\n")
+    log(users_concentration_parameters)
+    log("\n\n")
+
 
     # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
     alpha_bars = renormalize(users_concentration_parameters)
-
-    users_reservation_prices = np.array(
-        [
-            np.clip(a=np.random.normal(loc=50, scale=10,
-                                       size=NUM_OF_PRODUCTS), a_min=30, a_max=100),
-            np.clip(a=np.random.normal(loc=75, scale=10,
-                                       size=NUM_OF_PRODUCTS), a_min=50, a_max=100),
-            np.clip(a=np.random.normal(loc=40, scale=10,
-                                       size=NUM_OF_PRODUCTS), a_min=15, a_max=100)
-        ])
+    log("alpha_bars:\n")
+    log(alpha_bars)
+    log("\n\n")
 
     max_expected_poisson_realization = 5
 
@@ -100,30 +97,31 @@ def generate_users_parameters():
         [np.full(shape=NUM_OF_PRODUCTS, fill_value=max_expected_poisson_realization) * users_reservation_prices[user_class] / 100
          for user_class in range(NUM_OF_USERS_CLASSES)]
     )  # 3x5
+    log("users_poisson_parameters:\n")
+    log(users_poisson_parameters)
+    log("\n\n")
 
-    return alpha_bars, users_reservation_prices, users_poisson_parameters
+    return alpha_bars, users_poisson_parameters
 
 
-def generate_new_environment():
+def setup_environment():
     '''
     :return: env, observations_probabilities, graph_weights, product_prices, users_reservation_prices,  users_poisson_parameters
     '''
 
     graph_weights = generate_graph_weights()
     # Secondary product set by the business unit
-    observations_probabilities = generate_observation_probabilities(
-        graph_weights)
+    observations_probabilities = generate_observation_probabilities(graph_weights)
+    log("observations_probabilities:\n")
+    log(observations_probabilities)
+    log("\n\n")
 
-    product_prices = np.round(np.random.random(
-        size=NUM_OF_PRODUCTS) * products_price_range, 2)
+    scenario = Scenario()
 
-    users_alpha, users_reservation_prices, users_poisson_parameters = generate_users_parameters()
-
-    env = Environment(users_reservation_prices,
-                      graph_weights, users_alpha)
+    alpha_bars, users_poisson_parameters = generate_users_parameters(scenario.users_reservation_prices)
 
     # Network.print_graph(G=env.network.G)
-    return env, observations_probabilities, graph_weights, product_prices, users_reservation_prices, users_poisson_parameters
+    return graph_weights, alpha_bars, scenario.product_prices, scenario.users_reservation_prices, observations_probabilities, users_poisson_parameters
 
 
 def generate_new_non_stationary_environment():
@@ -147,9 +145,9 @@ def generate_new_non_stationary_environment():
 
     for _ in range(n_phases):
 
-        alphas, res_prices, poisson_par = generate_users_parameters()
+        alpha_bars, res_prices, poisson_par = generate_users_parameters()
 
-        users_alpha.append(alphas)
+        users_alpha.append(alpha_bars)
         users_reservation_prices.append(res_prices)
         users_poisson_parameters.append(poisson_par)
 
@@ -173,7 +171,7 @@ def generate_new_non_stationary_environment():
 
     # Network.print_graph(G=env.network.G)
 
-    return env, observations_probabilities, graph_weights, product_prices
+    return env, observations_probabilities, product_prices
 
 
 def simulate_step3():
@@ -185,45 +183,48 @@ def simulate_step3():
     for e in range(0, n_experiments):
         print('Experiment n°:', e)
 
-        env, observations_probabilities, graph_weights, product_prices,\
-             users_reservation_prices, users_poisson_parameters = generate_new_environment()
+        graph_weights, alpha_bars, product_prices, users_reservation_prices, observations_probabilities, users_poisson_parameters = setup_environment()
+        env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
         ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
-
 
         for t in tqdm(range(0, T), position = 0, desc="n_iteration", leave=False):
             # Every day a new montecarlo simulation must be run to sample num of items sold
             num_sold_items = estimate_nodes_activation_probabilities(
-                graph_weights,
-                users_reservation_prices,
+                env.network.get_adjacency_matrix(),
+                env.users_reservation_prices,
                 users_poisson_parameters,
                 product_prices,
                 observations_probabilities
             )
+            
+            log("num_sold_items:\n")
+            log(num_sold_items)
+            log("\n\n")
+
             aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
                 product_prices,
                 budgets
-            )            
+            )     
+            log("expected_reward:\n")
+            log(expected_reward)
+            log("\n\n")       
 
             _ , optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
-
 
             arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
             # the environment returns the users_alpha and the reward for that allocation
             alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
             ecomm3_gpts.update(arm, alpha)
 
-
             arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
             alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
             ecomm3_gpucb.update(arm, alpha)
-
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 
@@ -233,24 +234,24 @@ def simulate_step4():
     gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
     
-
     for e in range(0, n_experiments):
         print('Experiment n°:', e)
 
-        env, observations_probabilities, graph_weights, product_prices, users_reservation_prices, users_poisson_parameters = generate_new_environment()
+        env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
+        
+        ecomm = Ecommerce(B_cap, budgets, product_prices)
         ecomm4_gpts = Ecommerce4_GPTS(B_cap, budgets, product_prices)
         ecomm4_gpucb = Ecommerce4_GPUCB(B_cap, budgets, product_prices)
 
         nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
-                graph_weights,
-                users_reservation_prices,
-                users_poisson_parameters,
-                product_prices,
-                observations_probabilities
-            )
+            env.graph_weights,
+            env.users_reservation_prices,
+            users_poisson_parameters,
+            product_prices,
+            observations_probabilities
+        )
 
         exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
-        ecomm = Ecommerce(B_cap, budgets, product_prices)
         _ , optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
             num_sold_items,
             exp_clicks,
@@ -282,15 +283,14 @@ def simulate_step5():
     for e in range(0, n_experiments):
         print('Experiment n°:', e)
 
-        env, observations_probabilities, graph_weights, product_prices,\
-             users_reservation_prices, users_poisson_parameters = generate_new_environment()
+        env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
 
         ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices)
         ecomm5_gpucb = Ecommerce5_GPUCB(B_cap, budgets, product_prices)
 
         nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
-                graph_weights,
-                users_reservation_prices,
+                env.graph_weights,
+                env.users_reservation_prices,
                 users_poisson_parameters,
                 product_prices,
                 observations_probabilities
@@ -350,8 +350,7 @@ def simulate_step6():
     for e in range(0, n_experiments):
         print('Experiment n°', e)
 
-        env, observations_probabilities, graph_weights,\
-            product_prices = generate_new_non_stationary_environment()
+        env, observations_probabilities, product_prices = generate_new_non_stationary_environment()
 
         ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
         ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
@@ -393,15 +392,12 @@ def simulate_step7():
 
     for e in range(0, n_experiments):
         print('Experiment n°:', e)
-
         
-        env, observations_probabilities, graph_weights, product_prices,\
-            users_reservation_prices, users_poisson_parameters = generate_new_environment()
-
+        env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
 
         nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
-            graph_weights,
-            users_reservation_prices,
+            env.graph_weights,
+            env.users_reservation_prices,
             users_poisson_parameters,
             product_prices,
             observations_probabilities
