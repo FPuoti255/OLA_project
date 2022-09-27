@@ -63,11 +63,10 @@ class Ecommerce3(Ecommerce):
     def pull_arm(self):
         pass
 
-    def solve_optimization_problem(self, num_items_sold, nodes_activation_probabilities):
-        exp_num_clicks = np.random.normal(self.means, self.sigmas)
-        assert(exp_num_clicks.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
+    def compute_value_per_click (self, num_sold_items):
+        assert(num_sold_items.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+        return np.sum(np.multiply(num_sold_items, self.product_prices), axis = 1) # shape = (NUM_OF_PRODUCTS,)
 
-        return super().solve_optimization_problem(num_items_sold, exp_num_clicks, nodes_activation_probabilities)
 
 
 
@@ -83,11 +82,17 @@ class Ecommerce3_GPTS(Ecommerce3):
             self.pulled_arms[i].append(pulled_arm[i])
             self.collected_rewards[i].append(reward[i])
 
-    def pull_arm(self):
-        a, b = compute_beta_parameters(self.means, self.sigmas)
-        samples = np.random.beta(a=a, b=b)
-        arm_idxs, _ = self.revisited_knapsack_solver(table=samples)
-        return self.budgets[arm_idxs]
+
+    def pull_arm(self, num_sold_items):
+        
+        value_per_click = self.compute_value_per_click(num_sold_items)
+        samples = np.random.normal(self.means, self.sigmas)        
+        estimated_reward = np.multiply(samples, np.atleast_2d(value_per_click).T)
+        
+        arm_idxs, _ = self.dynamic_knapsack_solver(table=estimated_reward)
+
+        assert(np.sum(self.budgets[arm_idxs]) <= self.B_cap)
+        return self.budgets[arm_idxs], np.array(arm_idxs)
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
@@ -112,8 +117,13 @@ class Ecommerce3_GPUCB(Ecommerce3):
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = np.inf
 
-    def pull_arm(self):
-        upper_conf = self.means + self.confidence_bounds
-        arm_idxs, _ = self.revisited_knapsack_solver(table=upper_conf)
-        return self.budgets[arm_idxs]
+    def pull_arm(self, num_sold_items):
+
+        value_per_click = self.compute_value_per_click(num_sold_items)
+        upper_conf = np.multiply(self.means, np.atleast_2d(value_per_click).T ) + self.confidence_bounds
+
+        arm_idxs, _ = self.dynamic_knapsack_solver(table=upper_conf)
+
+        assert(np.sum(self.budgets[arm_idxs]) <= self.B_cap)
+        return self.budgets[arm_idxs], np.array(arm_idxs)
 

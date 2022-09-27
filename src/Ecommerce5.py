@@ -15,7 +15,7 @@ class Ecommerce5(Ecommerce):
     def __init__(self, B_cap: float, budgets, product_prices):
 
         super().__init__(B_cap, budgets, product_prices)
-
+        
         self.arms = [
             [i, j]
             for i in range(NUM_OF_PRODUCTS)
@@ -25,49 +25,34 @@ class Ecommerce5(Ecommerce):
         self.n_arms = len(self.arms)
         
         # I'm generating a distribution for each possible PRODUCT-PRODUCT edge
-        self.means = np.ones(shape=self.n_arms) * 0.5
-        self.sigmas = np.ones(shape=self.n_arms) * 0.2
+        self.means = np.zeros(shape=self.n_arms)
+        self.sigmas = np.ones(shape=self.n_arms)
 
         self.t = 0
 
         self.pulled_arms = []
         self.rewards_per_arm = [[] for _ in range(self.n_arms)]
-        self.collected_rewards = []
-
-        alpha = 10.0
-        kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-3, 1e3))
-        # we need one gaussian regressor for each product
-        self.gp = GaussianProcessRegressor(
-            kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
-        )
 
     def update(self, arm, arm_idx, reward):
         self.t += 1
         self.update_observations(arm, arm_idx, reward)
-        self.update_model()
+        self.update_model(arm_idx)
 
     # The methods below will be implemented in the sub-classes
     def update_observations(self, arm, arm_idx, reward):
         self.rewards_per_arm[arm_idx].append(reward)
-        self.collected_rewards.append(reward)
         self.pulled_arms.append(arm)
 
-    def update_model(self):
-        x = np.atleast_2d(self.pulled_arms)
-        y = self.collected_rewards
-        self.gp.fit(x, y)
-        self.means, self.sigmas = self.gp.predict(
-            np.atleast_2d(self.arms), return_std=True
-        )
-        self.means = np.maximum(self.means, 1e-3)
-        self.sigmas = np.maximum(self.sigmas, 1e-3)
+
+    def update_model(self, arm_idx):
+        self.means[arm_idx] = np.mean(self.rewards_per_arm[arm_idx])
+        self.sigmas[arm_idx] = np.std(self.rewards_per_arm[arm_idx])
 
     def pull_arm(self):
         pass
 
     def get_estimated_nodes_activation_probabilities(self):
-        #a, b = compute_beta_parameters(self.means, self.sigmas)
-        samples = np.clip(np.random.normal(self.means, self.sigmas), a_min = 0.001, a_max= 0.99)
+        samples = np.random.normal(self.means, self.sigmas)
         estimated_nap = np.identity(n=NUM_OF_PRODUCTS)
         for i in range(self.n_arms):
             row, col = self.arms[i][0], self.arms[i][1]
@@ -104,8 +89,8 @@ class Ecommerce5_GPUCB(Ecommerce5):
         return self.arms[arm_idx], arm_idx
 
     def update_observations(self, arm, arm_idx, reward):
-        super().update_observations(arm, arm_idx, reward)
         self.N_a[arm_idx] += 1
+        super().update_observations(arm, arm_idx, reward)
         self.confidence_bounds[arm_idx] = np.sqrt(
             2 * np.log(self.t) / self.N_a[arm_idx]
         )
