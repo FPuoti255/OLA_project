@@ -10,6 +10,7 @@ class Network:
     def __init__(self, adjacency_matrix):
         self.G = nx.from_numpy_matrix(A=adjacency_matrix, create_using=nx.DiGraph)
 
+    # graph weights
     def get_adjacency_matrix(self):
         return nx.to_numpy_array(G=self.G)
 

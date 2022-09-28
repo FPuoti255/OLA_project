@@ -1,4 +1,3 @@
-from numpy import *
 from Environment import *
 from constants import *
 from Utils import *
@@ -12,8 +11,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     '''
 
     num_of_user_classes = users_reservation_prices.shape[0]
-    num_sold_items = np.zeros(
-        shape=(num_of_user_classes, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+    num_sold_items = np.zeros(shape=(num_of_user_classes, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
     # number of repetition to have theoretical guarantees on the error of the estimation
     epsilon = 3*1e-2

@@ -130,11 +130,9 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
-
     def round_step4(self, pulled_arm, B_cap, num_sold_items):
 
-        assert (num_sold_items.shape == (
-            NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        assert (num_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
         
         tot_alpha_per_product = self.round_step3(pulled_arm, B_cap)
 
@@ -148,13 +146,13 @@ class Environment:
     # -----------------------------------------------
     # --------STEP 5 ENVIRONMENT FUNCTIONS-----------
     def round_step5(self, pulled_arm, nodes_activation_probabilities):
-        row = pulled_arm[0]
-        col = pulled_arm[1]
+        row, col = pulled_arm
         return np.random.binomial(n = 1, p = nodes_activation_probabilities[row][col])
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
     def estimate_disaggregated_num_clicks(self, budgets):
+        # TODO
         return self.estimate_num_of_clicks(budgets, aggregated=False)
     
     def round_step7(self, pulled_arm, B_cap, nodes_activation_probabilities, num_sold_items):

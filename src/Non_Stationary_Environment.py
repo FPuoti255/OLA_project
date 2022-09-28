@@ -42,6 +42,10 @@ class Non_Stationary_Environment(Environment):
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap is expected
         :return: the expected alpha for each couple (prod_id, budget_allocated)
         '''
+
+        if not sum(budgets) == 1:
+            budgets /= B_cap
+
         exp_user_alpha = np.zeros(shape=(NUM_OF_PRODUCTS, budgets.shape[0]))
 
         prd_function_idx = self.product_functions_idxs[self.current_phase]
