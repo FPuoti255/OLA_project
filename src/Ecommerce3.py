@@ -86,7 +86,8 @@ class Ecommerce3_GPTS(Ecommerce3):
     def pull_arm(self, num_sold_items):
         
         value_per_click = self.compute_value_per_click(num_sold_items)
-        samples = np.random.normal(self.means, self.sigmas)        
+        a,b = compute_beta_parameters(self.means, self.sigmas)
+        samples = np.random.beta(a, b)        
         estimated_reward = np.multiply(samples, np.atleast_2d(value_per_click).T)
         
         arm_idxs, _ = self.dynamic_knapsack_solver(table=estimated_reward)
