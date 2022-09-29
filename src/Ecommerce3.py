@@ -17,45 +17,23 @@ class Ecommerce3(Ecommerce):
         assert(self.n_arms == self.budgets.shape[0] * NUM_OF_PRODUCTS)
 
         self.t = 0
+        self.exploration_probability = 0.03
 
-        self.means = np.ones(self.n_arms) * 0.5
-        self.sigmas = np.ones_like(self.n_arms) * 0.5
+        self.means = np.ones(shape=self.n_arms) * 0.5
+        self.sigmas = np.ones(shape=self.n_arms) * 0.5
 
         self.pulled_arms = []
         self.rewards_per_arm = [[] for _ in range(self.n_arms)]
 
         self.collected_rewards = []
 
-        alpha = 10.0
+        alpha = 0.5
         kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-3, 1e3))
 
         self.gaussian_process = GaussianProcessRegressor(
                 kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
             )
 
-        # # The budgets are our arms!
-        # self.n_arms = self.budgets.shape[0]
-
-        # self.t = 0
-        # # I'm generating a distribution of the budgets for each product
-        # self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.05
-        # self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.01
-
-        # self.pulled_arms = [[] for i in range(NUM_OF_PRODUCTS)]
-        # self.rewards_per_arm = [
-        #     [[] for i in range(self.n_arms)] for j in range(NUM_OF_PRODUCTS)
-        # ]
-        # self.collected_rewards = [[] for i in range(NUM_OF_PRODUCTS)]
-
-        # alpha = 10.0
-        # kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-3, 1e3))
-        # # we need one gaussian regressor for each product
-        # self.gaussian_regressors = [
-        #     GaussianProcessRegressor(
-        #         kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
-        #     )
-        #     for _ in range(NUM_OF_PRODUCTS)
-        # ]
     
 
     def update(self, pulled_budgets_idxs, reward):
@@ -83,9 +61,19 @@ class Ecommerce3(Ecommerce):
         self.sigmas = np.maximum(self.sigmas, 1e-2)
 
     def pull_arm(self, num_sold_items):
-        estimated_reward = self.estimate_reward(num_sold_items)     
+
+        if np.random.binomial(n=1, p= 1 - self.exploration_probability):
+            estimated_reward = self.estimate_reward(num_sold_items)    
+        else :
+            value_per_click = self.compute_value_per_click(num_sold_items)
+            estimated_reward = np.multiply(
+                np.random.random(size=(NUM_OF_PRODUCTS, self.budgets.shape[0])),
+                np.atleast_2d(value_per_click).T
+            ) 
+
         budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
         return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
+
 
     def compute_value_per_click (self, num_sold_items):
         assert(num_sold_items.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
@@ -115,7 +103,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
             shape=self.n_arms, fill_value=np.inf
         )
         # Number of times the arm has been pulled
-        self.N_a = np.zeros_like(self.confidence_bounds)
+        self.N_a = np.zeros(shape=self.n_arms)
 
     def update_observations(self, pulled_budgets_idxs, reward):
 
@@ -136,5 +124,5 @@ class Ecommerce3_GPUCB(Ecommerce3):
             np.add(self.means, self.confidence_bounds).reshape((NUM_OF_PRODUCTS, self.budgets.shape[0])),
             np.atleast_2d(value_per_click).T
         )
+        estimated_reward[np.isinf(estimated_reward)] = 1e4
         return estimated_reward
-
