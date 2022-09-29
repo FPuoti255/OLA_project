@@ -61,11 +61,11 @@ class Environment:
 
                 for user_class in range(NUM_OF_USERS_CLASSES):
                     exp_user_alpha[user_class, prod_id, j] = min(
-                        self.rng.dirichlet(
-                            np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 1000)
-                            )[0],
-                        self.alpha_bars[user_class, prod_id + 1]
-                    )
+                            self.rng.dirichlet(
+                                np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 1000)
+                                )[0],
+                            self.alpha_bars[user_class, prod_id + 1]
+                        )
 
         self.expected_users_alpha = exp_user_alpha   
 
@@ -82,20 +82,6 @@ class Environment:
         value_per_click = np.sum(np.multiply(num_sold_items, product_prices), axis = 2) # shape = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)
         
         self.compute_users_alpha(budgets) # (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_BUDGETS)
-
-        # expected_reward = np.zeros_like(self.expected_users_alpha)
-
-        # for user_class in range(NUM_OF_USERS_CLASSES):
-        #     for prod in range(NUM_OF_PRODUCTS):
-        #         expected_reward[user_class][prod] = \
-        #             self.expected_users_alpha[user_class][prod] * value_per_click[user_class][prod]
-
-        # self.expected_reward = expected_reward 
-
-        # if aggregated:
-        #     return np.sum(expected_reward, axis = 0)
-        # else:
-        #     return expected_reward
 
         aggregated_value_per_click = np.sum(value_per_click, axis=0)
         aggregated_users_alpha = np.sum(self.expected_users_alpha, axis = 0)
@@ -114,18 +100,18 @@ class Environment:
         assert(self.expected_reward is not None)
         assert(self.expected_users_alpha is not None)
 
-        # pulled_arm = ecommerce.budgets[pulled_arm_idxs]
+        # pulled_arm is equal to the ecommerce.budgets[pulled_arm_idxs]
 
         aggregated_exp_users_alpha = np.sum(self.expected_users_alpha, axis = 0)
 
-        alpha = np.zeros_like(pulled_arm_idxs)
+        alpha = np.zeros(shape=(NUM_OF_PRODUCTS,))
         reward = 0
 
-        for i in range(NUM_OF_PRODUCTS):
-            alpha[i] = aggregated_exp_users_alpha[i][pulled_arm_idxs[i]]
-            reward += self.expected_reward[i][pulled_arm_idxs[i]] 
+        for prod_id in range(NUM_OF_PRODUCTS):
+            alpha[prod_id] = aggregated_exp_users_alpha[prod_id][pulled_arm_idxs[prod_id]]
+            reward += self.expected_reward[prod_id][pulled_arm_idxs[prod_id]] - pulled_arm[prod_id] 
 
-        return alpha, reward - np.sum(pulled_arm)
+        return alpha, reward
 
 
     # -----------------------------------------------

@@ -16,7 +16,7 @@ PRODUCTS:
 USERS CLASSES:
     1: teenagers
     2: adults
-    3: elderlies
+    3: elders
 
 '''
 
@@ -35,9 +35,9 @@ class Scenario:
         product_prices = self.get_product_prices()
         appreciation = np.array([[5,4,-1,-1,5],[-1,-2,3,4,3],[-1,-1,5,-2,-1]])
 
-        #for i in range(NUM_OF_USERS_CLASSES):
-            #for j in range(NUM_OF_PRODUCTS):
-                #users_reservation_prices[i][j] = np.random.normal(loc=product_prices[j], scale=appreciation[i][j])
+        # TODO : implements the users_reservation_prices sampling from a normal distribution
+        # with loc = product_prices and scale = sqrt(appreciation)
+
         users_reservation_prices = product_prices + appreciation 
         return users_reservation_prices
 
