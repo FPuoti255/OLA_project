@@ -5,6 +5,7 @@ from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from Ecommerce import *
 from constants import *
 from Utils import *
+from genetic_algorithm import *
 
 
 class Ecommerce3(Ecommerce):
@@ -33,8 +34,6 @@ class Ecommerce3(Ecommerce):
         self.gaussian_process = GaussianProcessRegressor(
             kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
         )
-
-    
 
     def update(self, pulled_budgets_idxs, reward):
         self.t += 1
@@ -73,7 +72,6 @@ class Ecommerce3(Ecommerce):
 
         budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
         return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
-
 
     def compute_value_per_click (self, num_sold_items):
         assert(num_sold_items.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
@@ -116,7 +114,6 @@ class Ecommerce3_GPUCB(Ecommerce3):
 
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = np.inf
-
 
     def estimate_reward(self, num_sold_items):
         value_per_click = self.compute_value_per_click(num_sold_items)
