@@ -31,8 +31,8 @@ class Ecommerce3(Ecommerce):
         kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-3, 1e3))
 
         self.gaussian_process = GaussianProcessRegressor(
-                kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
-            )
+            kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
+        )
 
     
 
