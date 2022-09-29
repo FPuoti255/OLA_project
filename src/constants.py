@@ -17,7 +17,7 @@ budgets = np.arange(start = 0, stop = B_cap + 1, step = B_cap/10)
 users_price_range = 100
 products_price_range = 100
 
-n_experiments = 10
+n_experiments = 3
 T = 100
 n_phases = 3
 phase_len = np.ceil(T/n_phases).astype(int)

@@ -15,6 +15,7 @@ from Ecommerce5 import *
 from Ecommerce6 import *
 from step7.Ecommerce7 import *
 
+
 def generate_graph_weights():
     '''
     :return: matrix representing the probability of going from a node to another
@@ -181,7 +182,7 @@ def simulate_step3():
     optimal_gain = np.zeros(shape=(n_experiments, T))
 
     for e in range(0, n_experiments):
-        print('Experiment n°:', e)
+        print('Experiment n°:', e+1)
 
         graph_weights, alpha_bars, product_prices, users_reservation_prices, \
             observations_probabilities, users_poisson_parameters = setup_environment()
@@ -243,7 +244,7 @@ def simulate_step4():
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
     
     for e in range(0, n_experiments):
-        print('Experiment n°:', e)
+        print('Experiment n°:', e+1)
 
         env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
         
@@ -289,7 +290,7 @@ def simulate_step5():
     
 
     for e in range(0, n_experiments):
-        print('Experiment n°:', e)
+        print('Experiment n°:', e+1)
 
         env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
 
@@ -356,7 +357,7 @@ def simulate_step6():
     h = 2 * np.log(T)
 
     for e in range(0, n_experiments):
-        print('Experiment n°', e)
+        print('Experiment n°', e+1)
 
         env, observations_probabilities, product_prices = generate_new_non_stationary_environment()
 
