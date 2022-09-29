@@ -28,11 +28,11 @@ class Ecommerce3(Ecommerce):
         self.collected_rewards = []
 
         alpha = 0.5
-        kernel = C(1.0, (1e-3, 1e3)) * RBF(1.0, (1e-3, 1e3))
+        kernel = C(1.0, (1e-3, 1e3)) * RBF(10.0, (1e-3, 1e3))
 
         self.gaussian_process = GaussianProcessRegressor(
-                kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
-            )
+            kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
+        )
 
     
 
