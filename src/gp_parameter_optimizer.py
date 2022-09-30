@@ -22,37 +22,50 @@ from scipy.optimize import differential_evolution, Bounds
 
 from Simulation import *
 
+# def generate_data():
+#     n_run = 50
+#     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
+#             observations_probabilities, users_poisson_parameters = setup_environment()
+
+#     env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+
+#     arms = [(prod, int(budget)) for prod in range(NUM_OF_PRODUCTS) for budget in budgets]
+#     n_arms = len(arms)
+
+#     X = []
+#     y = []
+#     for _ in range(n_run):        
+#         X.append(arms)
+        
+#         env.compute_users_alpha(budgets)
+#         exp_user_alpha = np.sum(env.expected_users_alpha, axis = 0).reshape(n_arms)
+#         y.append(exp_user_alpha)
+
+#     return np.array(X), np.array(y)
+
 def generate_data():
-    n_run = 50
-    graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-            observations_probabilities, users_poisson_parameters = setup_environment()
+
+    graph_weights, alpha_bars, _, users_reservation_prices, _, _ = setup_environment()
 
     env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
-    arms = [(prod, int(budget)) for prod in range(NUM_OF_PRODUCTS) for budget in budgets]
-    n_arms = len(arms)
+    X = np.array([(prod, int(budget)) for prod in range(NUM_OF_PRODUCTS) for budget in budgets])
+    
+    env.compute_users_alpha(budgets)
+    y = np.sum(env.expected_users_alpha, axis = 0).reshape(X.shape[0])
 
-    X = []
-    y = []
-    for _ in range(n_run):        
-        X.append(arms)
-        
-        env.compute_users_alpha(budgets)
-        exp_user_alpha = np.sum(env.expected_users_alpha, axis = 0).reshape(n_arms)
-        y.append(exp_user_alpha)
-
-    return np.array(X), np.array(y)
+    return X,y
 
     
 
 def gpts_function(hyperparams, X, y):
 
     assert(X.shape[0]== y.shape[0])
-    alpha, c_const, rbf_ls, n_restart_optimizer = hyperparams   
+    alpha, c_const, rbf_ls = hyperparams   
     kernel = C(c_const, (1e-3, 1e3)) * RBF(rbf_ls, (1e-3, 1e3))
 
 
-    kf = KFold(n_splits=10,shuffle=True,random_state=2020)
+    kf = KFold(n_splits=2,shuffle=True,random_state=2020)
     y_pred_total = []
     y_test_total = []
     # kf-fold cross-validation loop
@@ -61,23 +74,22 @@ def gpts_function(hyperparams, X, y):
         y_train, y_test = y[train_index], y[test_index]
 
 
-
         gaussian_process = GaussianProcessRegressor(
-                    kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=int(n_restart_optimizer)
+                    kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
                 )
         
+        # for i in range(0, X_train.shape[0]):
+        #     a = np.atleast_2d(X_train[i])
+        #     b = y_train[i]
+        #     gaussian_process.fit(a,b)
 
-        for i in range(0, X_train.shape[0]):
-            a = np.atleast_2d(X_train[i])
-            b = y_train[i]
-            gaussian_process.fit(a,b)
-
-        y_pred= []
-        for i in range(X_test.shape[0]):
-            y_pred.append(gaussian_process.predict(np.atleast_2d(X_test[i])))
+        # y_pred= []
+        # for i in range(X_test.shape[0]):
+        #     y_pred.append(gaussian_process.predict(np.atleast_2d(X_test[i])))
         
-        np.array(y_pred)
-    #y_pred = gaussian_process.fit(X_train, y_train).predict(X_test)
+        # np.array(y_pred)
+        
+        y_pred = gaussian_process.fit(X_train, y_train).predict(X_test)
 
         # Append y_pred and y_test values of this k-fold step to list with total values
         y_pred_total.append(y_pred)
@@ -98,9 +110,8 @@ if __name__ == '__main__':
     alpha_bounds = (0.5, 100.0)
     c_constant_value = (0.5, 100.0)
     rbf_lenght_scale = (0.5, 100.0)
-    n_restart_optimizer = (1, 20)
 
-    bounds = [alpha_bounds, c_constant_value, rbf_lenght_scale, n_restart_optimizer]
+    bounds = [alpha_bounds] + [c_constant_value] + [rbf_lenght_scale]
 
     X, y = generate_data()
     extra_variables = (X, y)
