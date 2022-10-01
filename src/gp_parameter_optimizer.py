@@ -4,6 +4,9 @@ from Environment import *
 from Scenario import *
 
 import numpy as np
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
+
 from sklearn.model_selection import KFold
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.metrics import mean_squared_error
@@ -18,7 +21,7 @@ def generate_data():
 
     env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
-    n_tests = 25
+    n_tests = 10
 
     X = np.array([(prod, int(budget)) for prod in range(NUM_OF_PRODUCTS)
                  for budget in budgets] * n_tests)
@@ -36,12 +39,20 @@ def generate_data():
     return X, y
 
 
+
+def callback(xk, convergence):
+  print("best_solution so far: alpha, c_const, rbf_ls = ", xk)
+  print("Minimum rmse: %.6f" % (convergence))
+
+
+
 def gpts_function(hyperparams, X, y):
-
     alpha, c_const, rbf_ls = hyperparams
-    kernel = C(c_const, (1e-3, 1e3)) * RBF(rbf_ls, (1e-3, 1e3))
 
-    kf = KFold(n_splits=2, shuffle=True, random_state=2020)
+    #kernel = C(constant_value = c_const, constant_value_bounds=(c_const_lb, c_const_ub)) * RBF(length_scale = rbf_ls, length_scale_bounds=(rbf_ls_lb, rbf_length_scale_ub))
+    kernel = C(constant_value = c_const) * RBF(length_scale = rbf_ls)
+
+    kf = KFold(n_splits=3, shuffle=True, random_state=2020)
     y_pred_total = []
     y_test_total = []
     # kf-fold cross-validation loop
@@ -67,17 +78,18 @@ def gpts_function(hyperparams, X, y):
 
 if __name__ == '__main__':
 
-    alpha_bounds = (0.5, 100.0)
-    c_constant_value = (0.5, 100.0)
-    rbf_lenght_scale = (0.5, 100.0)
+    alpha_bounds = (0.01, 5.0)
+    c_constant_value = (1.0, 100.0)
+    rbf_length_scale = (1.0, 100.0)
 
-    bounds = [alpha_bounds] + [c_constant_value] + [rbf_lenght_scale]
+
+    bounds = [alpha_bounds] + [c_constant_value] + [rbf_length_scale]
 
     X, y = generate_data()
     extra_variables = (X, y)
 
-    solver = differential_evolution(gpts_function, bounds, args=extra_variables, strategy='best1bin',
-                                    popsize=40, mutation=0.5, recombination=0.7, tol=0.01, seed=2020)
+    solver = differential_evolution(gpts_function, bounds, args=extra_variables, strategy='best1bin', updating = 'immediate',
+                                    workers = -1, popsize=15, mutation=0.5, recombination=0.7, tol=0.01, seed=2020, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
