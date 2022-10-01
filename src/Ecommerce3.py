@@ -202,22 +202,6 @@ class Ecommerce3(Ecommerce):
             self.sigmas[i] = np.maximum(self.sigmas[i], 5e-2)
 
 
-    # def update_model(self):
-    #     scaler = 1000
-    #     for i in range(NUM_OF_PRODUCTS):
-
-    #         X = np.atleast_2d(self.pulled_arms[i]).T
-    #         X_test = np.atleast_2d(self.budgets).T
-    #         y = np.array(self.collected_rewards[i]) * scaler
-
-    #         self.gaussian_regressors[i].fit(X, y)
-            
-    #         self.means[i], self.sigmas[i] = self.gaussian_regressors[i].predict(
-    #             X=X_test,
-    #             return_std=True
-    #         ) / scaler
-    #         self.sigmas[i] = np.maximum(self.sigmas[i], 5e-2)
-
    
     def update_observations(self, pulled_arm_idxs, reward):
         for i in range(NUM_OF_PRODUCTS):
