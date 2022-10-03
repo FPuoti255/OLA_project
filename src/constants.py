@@ -12,13 +12,13 @@ LAMBDA = 0.6
 fully_connected = True
 
 B_cap = 100
-budgets = np.arange(start = 0, stop = B_cap + 1, step = B_cap/10)
+budgets = np.linspace(start = 0, stop = B_cap, num=10)
 
 users_price_range = 100
 products_price_range = 100
 
 n_experiments = 2
-T = 1000
+T = 100
 n_phases = 3
 phase_len = np.ceil(T/n_phases).astype(int)
 
