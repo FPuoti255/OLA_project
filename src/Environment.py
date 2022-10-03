@@ -1,5 +1,4 @@
 import numpy as np
-from itertools import combinations_with_replacement, permutations
 
 from constants import *
 from Utils import *
@@ -38,7 +37,7 @@ class Environment:
         '''
         @returns a map for each user class. shape = (NUM_OF_USER_CLASSES, 1)
         '''
-        return 2 * self.alpha_bars[:, prod_id + 1] / (1 + 1/budget)
+        return np.clip( a = 2 * self.alpha_bars[:, prod_id + 1] / (1 + 1/budget), a_min=0.001, a_max = 0.999)
 
     def plot_mapping_functions(self, budgets):
         for i in range(NUM_OF_PRODUCTS):

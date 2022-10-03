@@ -9,7 +9,7 @@ from Ecommerce import *
 # https://www.osti.gov/servlets/purl/1659396
 
 # ALGORITHM:
-# step1
+#   step1
 #   step2
 #   step3
 #   step4
@@ -21,6 +21,7 @@ from Ecommerce import *
 
 N_pop = 40
 hyperparameters_len = 3
+N_max = 5
 
 # HYPERPARAMETERS
 alpha = 1.0
@@ -31,7 +32,7 @@ constant_value = 1.0
 
 # Constraints
 length_scale_bounds1 = 1e-3
-length_scale_bounds2 = 1e3              
+length_scale_bounds2 = 1e5              
 constant_value_bounds1 = 1e-5         
 constant_value_bounds2 = 1e5          
 
@@ -139,75 +140,17 @@ def fitness_function(regrets):
     return regrets
 
 
-def step3_genetic_algorithm(initial_kernel_params):
+def gp_genetic_algorithm():
 
-    gpts_gains_per_experiment = np.zeros(shape=(n_experiments, T))
-    gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))    
-    optimal_gain = np.zeros(shape=(n_experiments, T))
+    initial_kernal_params = initialize_population()  
 
-    for e in range(0, n_experiments):
-        print('Experiment n°:', e+1)
+    consecutive_generations = 0 #see N_max value
 
-        graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-            observations_probabilities, users_poisson_parameters = setup_environment()
-
-        env = Environment(users_reservation_prices, graph_weights, alpha_bars)
-
-        ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, initial_kernel_params=initial_kernel_params)
-        ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, initial_kernel_params=initial_kernel_params)
-
-        for t in tqdm(range(0, T), position = 0, desc="n_iteration"):
-            # Every day a new montecarlo simulation must be run to sample num of items sold
-            num_sold_items = estimate_nodes_activation_probabilities(
-                env.network.get_adjacency_matrix(),
-                env.users_reservation_prices,
-                users_poisson_parameters,
-                product_prices,
-                observations_probabilities
-            )
-            
-            log("num_sold_items:\n")
-            log(num_sold_items)
-            log("\n\n")
-
-            expected_reward = env.compute_clairvoyant_reward(
-                num_sold_items,
-                product_prices,
-                budgets
-            )     
-            log("expected_reward:\n")
-            log(expected_reward)
-            log("\n\n")       
-
-            optimal_allocation , optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
-
-            print(f'optimal_allocation: {optimal_allocation}, reward: {optimal_gain[e][t]}')
-
-            # aggregation is needed since in this step the ecommerce
-            # cannot observe the users classes features
-            aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
-
-            arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
-            # the environment returns the users_alpha and the reward for that allocation
-            alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
-            ecomm3_gpts.update(arm_idxs, alpha)
-            log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
-
-            arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
-            alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
-            ecomm3_gpucb.update(arm_idxs, alpha)
-            log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
-            log('-------------------------------------------------')
-    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
-
-
-def main():
-    
-    initial_kernal_params = initialize_population()
-
-    step3_genetic_algorithm(initial_kernal_params)
+    while consecutive_generations < N_max :
+        # TODO implement this for loop
+        return
 
 
 if __name__ == "main":
-    main()    
+    
+    gp_genetic_algorithm()   
