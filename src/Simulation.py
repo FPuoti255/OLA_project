@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import *
 
 from Utils import *
 from constants import *
@@ -193,7 +194,7 @@ def simulate_step3():
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
         ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
 
-        for t in tqdm(range(0, T), position = 0, desc="n_iteration"):
+        for t in tqdm(range(0, T), position = 0, desc="n_iteration", leave=True):
             # Every day a new montecarlo simulation must be run to sample num of items sold
             num_sold_items = estimate_nodes_activation_probabilities(
                 env.network.get_adjacency_matrix(),
@@ -203,18 +204,12 @@ def simulate_step3():
                 observations_probabilities
             )
             
-            log("num_sold_items:\n")
-            log(num_sold_items)
-            log("\n\n")
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
                 product_prices,
                 budgets
             )     
-            log("expected_reward:\n")
-            log(expected_reward)
-            log("\n\n")       
 
             optimal_allocation , optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
 
@@ -224,11 +219,11 @@ def simulate_step3():
             # cannot observe the users classes features
             aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
 
-            arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
-            # the environment returns the users_alpha and the reward for that allocation
-            alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
-            ecomm3_gpts.update(arm_idxs, alpha)
-            log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
+            # arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
+            # # the environment returns the users_alpha and the reward for that allocation
+            # alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
+            # ecomm3_gpts.update(arm_idxs, alpha)
+            # log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
             arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
             alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
