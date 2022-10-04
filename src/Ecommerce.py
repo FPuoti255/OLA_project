@@ -45,6 +45,9 @@ class Ecommerce(object):
         This algorithm solves a generalized knapsack problem using a dynamic_algorithm approach.
         """
         table_opt, max_pointer = self.compute_table(table)
+        print("PULL ARM:")
+        print(table_opt)
+        print()
         table_opt[-1] = np.subtract(table_opt[-1], self.budgets)
         return self.choose_best(table_opt, max_pointer)
 

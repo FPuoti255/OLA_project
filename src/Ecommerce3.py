@@ -1,3 +1,4 @@
+import json
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, WhiteKernel
@@ -28,9 +29,17 @@ class Ecommerce3(Ecommerce):
         ]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
-        alpha = 3.66730775e-04
-        kernel = C(constant_value=3.41159965e+01, constant_value_bounds=(1e-3, 1e3)) \
-            * RBF(length_scale=4.21148459e+01, length_scale_bounds=(1e-3, 1e3))
+
+        hyperparameters = json.load(open("hyperparameters.json"))
+
+        alpha = hyperparameters["alpha"]
+
+        kernel = C(
+            constant_value=hyperparameters["constant_value"], 
+            constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
+            length_scale=hyperparameters["length_scale"], 
+            length_scale_bounds=(hyperparameters["length_scale_bounds1"],hyperparameters["length_scale_bounds2"])
+            )
 
         # we need one gaussian regressor for each product
         self.gaussian_regressors = [
@@ -45,28 +54,21 @@ class Ecommerce3(Ecommerce):
 
     def update(self, pulled_arm_idxs, reward):
         '''
-        :pulled_arm_idxs: it is a vector of shape (NUM_OF_PRODUCTS,) containing
-                          for each product the index of the budget selected in the allocation
+        :pulled_arm_idxs: it is a vector of shape (NUM_OF_PRODUCTS,) containing for each product the index of the budget selected in the allocation
         '''
         self.t += 1
         self.update_observations(pulled_arm_idxs, reward)
         self.update_model()
 
     def pull_arm(self, num_sold_items):
-
         estimated_reward = self.estimate_reward(num_sold_items)
-
-        budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(
-            table=estimated_reward)
+        budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
         return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
 
     def update_observations(self, pulled_arm_idxs, reward):
         for prod_id in range(NUM_OF_PRODUCTS):
-            self.rewards_per_arm[prod_id][pulled_arm_idxs[prod_id]].append(
-                reward[prod_id])
-
-            self.pulled_arms[prod_id].append(
-                self.budgets[pulled_arm_idxs[prod_id]])
+            self.rewards_per_arm[prod_id][pulled_arm_idxs[prod_id]].append(reward[prod_id])
+            self.pulled_arms[prod_id].append(self.budgets[pulled_arm_idxs[prod_id]])
             self.collected_rewards[prod_id].append(reward[prod_id])
 
     def update_model(self):
@@ -77,9 +79,7 @@ class Ecommerce3(Ecommerce):
 
             X_test = np.atleast_2d(self.budgets).T
 
-            self.means[i], self.sigmas[i] = self.gaussian_regressors[i].fit(
-                X, y).predict(X=X_test, return_std=True)
-
+            self.means[i], self.sigmas[i] = self.gaussian_regressors[i].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[i] = np.maximum(self.sigmas[i], 5e-2)
 
     def compute_value_per_click(self, num_sold_items):
@@ -102,8 +102,7 @@ class Ecommerce3_GPTS(Ecommerce3):
             a_max=1.0
         )
 
-        estimated_reward = np.multiply(
-            samples, np.atleast_2d(value_per_click).T)
+        estimated_reward = np.multiply(samples, np.atleast_2d(value_per_click).T)
         return estimated_reward
 
 
