@@ -23,6 +23,14 @@ class Environment:
 
         self.network = Network(adjacency_matrix=graph_weights)
 
+        self.functions= [
+            lambda x : alpha_bars[:, 1]*(1 - np.exp(-10 * x)),
+            lambda x : alpha_bars[:, 2]*(1 - np.exp(-7 * x)),
+            lambda x : alpha_bars[:, 3]*(1 - np.exp(-15 * x)),
+            lambda x : alpha_bars[:, 4]*(1 - np.exp(-12 * x)),
+            lambda x : alpha_bars[:, 5]*(1 - np.exp(-20 * x)),
+        ]
+
 
     def get_users_reservation_prices(self):
         return self.users_reservation_prices
@@ -37,7 +45,7 @@ class Environment:
         '''
         @returns a map for each user class. shape = (NUM_OF_USER_CLASSES, 1)
         '''
-        return np.clip( a = 2 * self.alpha_bars[:, prod_id + 1] / (1 + 1/budget), a_min=0.001, a_max = 0.999)
+        return np.clip( a = self.functions[prod_id](budget), a_min=0.0001, a_max = 0.9999)
 
     def plot_mapping_functions(self, budgets):
         for i in range(NUM_OF_PRODUCTS):
@@ -50,18 +58,18 @@ class Environment:
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
         :return: the expected alpha for each couple (prod_id, budget_allocated)
         '''
-        budgets = budgets / budgets[-1]
+        bdgts = budgets.copy() / budgets[-1]
         exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
 
         for prod_id in range(NUM_OF_PRODUCTS):
-            for j in range(1, budgets.shape[0]):
+            for j in range(1, bdgts.shape[0]):
                 # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-                conc_params = self.mapping_function(prod_id, budgets[j])
+                conc_params = self.mapping_function(prod_id, bdgts[j])
 
                 for user_class in range(NUM_OF_USERS_CLASSES):
                     exp_user_alpha[user_class, prod_id, j] = min(
                             self.rng.dirichlet(
-                                np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 1000)
+                                np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 100)
                                 )[0],
                             self.alpha_bars[user_class, prod_id + 1]
                         )

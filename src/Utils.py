@@ -58,8 +58,8 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
     alg2_mean_reward = np.mean(alg2_rewards_per_experiment, axis=0)
     alg2_reward_std = np.std(alg2_rewards_per_experiment, axis = 0)
 
-    alg2_cumulative_regret = np.cumsum(np.mean((opts-alg2_rewards_per_experiment), axis=0))
-    alg2_regret_std = np.std(alg2_cumulative_regret, axis=0)
+    alg2_cumulative_regret = np.mean(np.cumsum((opts-alg2_rewards_per_experiment), axis = 1), axis=0)
+    alg2_regret_std = np.std(np.cumsum((opts-alg2_rewards_per_experiment), axis = 1), axis=0)
 
     opts_color = 'b'
     alg1_color = 'r'
