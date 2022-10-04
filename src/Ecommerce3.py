@@ -1,4 +1,4 @@
-from re import M
+import json
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
@@ -29,11 +29,18 @@ class Ecommerce3(Ecommerce):
         ]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
-        
-        alpha = 3.66730775e-04
-        kernel = C(constant_value = 3.41159965e+01, constant_value_bounds=(1e-3, 1e3)) \
-                      * RBF(length_scale = 4.21148459e+01, length_scale_bounds=(1e-2, 1e2))
-        
+
+        hyperparameters = json.load(open("hyperparameters.json"))
+
+        alpha = hyperparameters["alpha"]
+
+        kernel = C(
+            constant_value=hyperparameters["constant_value"], 
+            constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
+            length_scale=hyperparameters["length_scale"], 
+            length_scale_bounds=(hyperparameters["length_scale_bounds1"],hyperparameters["length_scale_bounds2"])
+            )
+
         # we need one gaussian regressor for each product
         self.gaussian_regressors = [
             GaussianProcessRegressor(
@@ -47,6 +54,9 @@ class Ecommerce3(Ecommerce):
     
 
     def update(self, pulled_arm, reward):
+        '''
+        :pulled_arm: it is a vector of shape (NUM_OF_PRODUCTS,) containing for each product the index of the budget selected in the allocation
+        '''
         self.t += 1
         self.update_observations(pulled_arm, reward)
         self.update_model()
@@ -72,12 +82,7 @@ class Ecommerce3(Ecommerce):
             X_test = np.atleast_2d(self.budgets).T
             y = np.array(self.collected_rewards[i])
 
-            self.gaussian_regressors[i].fit(X, y)
-            
-            self.means[i], self.sigmas[i] = self.gaussian_regressors[i].predict(
-                X=X_test,
-                return_std=True
-            )
+            self.means[i], self.sigmas[i] = self.gaussian_regressors[i].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[i] = np.maximum(self.sigmas[i], 5e-2)
 
 
