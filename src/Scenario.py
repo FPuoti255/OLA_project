@@ -27,23 +27,12 @@ class Scenario:
         self.users_reservation_prices = self.get_users_reservation_prices()
     
     def get_product_prices(self):       # 1 x 5
-        return np.array([150,70,15,250,750])
+        return np.array([25,14,30,50,40])
 
     def get_users_reservation_prices(self):        # 3 x 5
-
-        users_reservation_prices = np.zeros(shape=(NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
-        product_prices = self.get_product_prices()
-        appreciation = np.array([
-                                    [50,30,-10,-250,250],
-                                    [-15,-20,5,300,-250],
-                                    [-150,-50,35,400,-720]
-                                ])
-
-        # TODO : implements the users_reservation_prices sampling from a normal distribution
-        # with loc = product_prices and scale = sqrt(appreciation)
-
-        users_reservation_prices = product_prices + appreciation 
+        users_reservation_prices = self.get_product_prices() + np.array([[6,10,-12,+15,10],[-20,-13,13,11,-14],[13,16,-21,-24,-15]])
         return users_reservation_prices
+     
 
 
     
