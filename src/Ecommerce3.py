@@ -9,7 +9,7 @@ from Utils import *
 
 
 class Ecommerce3(Ecommerce):
-    def __init__(self, B_cap: float, budgets, product_prices):
+    def __init__(self, B_cap: float, budgets, product_prices, alpha = None, kernel = None):
 
         super().__init__(B_cap, budgets, product_prices)
 
@@ -29,18 +29,20 @@ class Ecommerce3(Ecommerce):
         ]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
+        if kernel is None and alpha is None:    
 
-        hyperparameters = json.load(open("hyperparameters.json"))
+            hyperparameters = json.load(open("hyperparameters.json"))
 
-        alpha = hyperparameters["alpha"]
+            alpha = hyperparameters["alpha"]
 
-        kernel = C(
-            constant_value=hyperparameters["constant_value"], 
-            constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
-            length_scale=hyperparameters["length_scale"], 
-            length_scale_bounds=(hyperparameters["length_scale_bounds1"],hyperparameters["length_scale_bounds2"])
-            )
+            kernel = C(
+                constant_value=hyperparameters["constant_value"], 
+                constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
+                length_scale=hyperparameters["length_scale"], 
+                length_scale_bounds=(hyperparameters["length_scale_bounds1"],hyperparameters["length_scale_bounds2"])
+                )
 
+        assert(alpha is not None and kernel is not None)
         # we need one gaussian regressor for each product
         self.gaussian_regressors = [
             GaussianProcessRegressor(
@@ -67,7 +69,7 @@ class Ecommerce3(Ecommerce):
         else :
             value_per_click = self.compute_value_per_click(num_sold_items)
             estimated_reward = np.multiply(
-                np.random.random(size=(NUM_OF_PRODUCTS, self.budgets.shape[0])),
+                np.random.beta(a = 2, b=5, size=(NUM_OF_PRODUCTS, self.budgets.shape[0])),
                 np.atleast_2d(value_per_click).T
             ) 
 
@@ -101,8 +103,9 @@ class Ecommerce3(Ecommerce):
 
 
 class Ecommerce3_GPTS(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices):
-        super().__init__(B_cap, budgets, product_prices)
+
+    def __init__(self, B_cap: float, budgets, product_prices, alpha=None, kernel=None):
+        super().__init__(B_cap, budgets, product_prices, alpha, kernel)
 
     def estimate_reward(self, num_sold_items):        
         value_per_click = self.compute_value_per_click(num_sold_items)
@@ -112,8 +115,8 @@ class Ecommerce3_GPTS(Ecommerce3):
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices):
-        super().__init__(B_cap, budgets, product_prices)
+    def __init__(self, B_cap: float, budgets, product_prices, alpha=None, kernel=None):
+        super().__init__(B_cap, budgets, product_prices, alpha, kernel)
 
         self.confidence_bounds = np.full(
             shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf

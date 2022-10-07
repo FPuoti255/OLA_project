@@ -108,7 +108,7 @@ def generate_users_parameters(users_reservation_prices):
 
 def setup_environment():
     '''
-    :return: env, observations_probabilities, graph_weights, product_prices, users_reservation_prices,  users_poisson_parameters
+    :return: graph_weights, alpha_bars, scenario.product_prices, scenario.users_reservation_prices, observations_probabilities, users_poisson_parameters
     '''
 
     graph_weights = generate_graph_weights()
@@ -250,9 +250,9 @@ def simulate_step3():
                 budgets
             )     
 
-            print("CLAIRVOYANT")
-            print(expected_reward_table)
-            print()
+            log("CLAIRVOYANT")
+            log(expected_reward_table)
+            log('')
 
             optimal_allocation , optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward_table)
 
@@ -274,7 +274,7 @@ def simulate_step3():
 
             #if optimal_allocation == arm:
             #   log("OPTIMAL PULLED")
-            print('-------------------------------------------------')
+            log('-------------------------------------------------')
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 
