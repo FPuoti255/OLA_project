@@ -215,6 +215,48 @@ def generate_new_non_stationary_environment():
     return env, observations_probabilities, product_prices
 
 
+def observe_learned_functions():
+   
+    graph_weights, alpha_bars, product_prices, users_reservation_prices, observations_probabilities, users_poisson_parameters = setup_environment()
+
+    env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+
+    ecomm = Ecommerce(B_cap, budgets, product_prices)
+    ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
+    ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
+
+    for t in tqdm(range(0, T), position = 0, desc="n_iteration"):
+    # Every day a new montecarlo simulation must be run to sample num of items sold
+        num_sold_items = estimate_nodes_activation_probabilities(
+            env.network.get_adjacency_matrix(),
+            env.users_reservation_prices,
+            users_poisson_parameters,
+            product_prices,
+            observations_probabilities
+        )
+
+        expected_reward = env.compute_clairvoyant_reward(
+            num_sold_items,
+            product_prices,
+            budgets
+        )     
+
+        # aggregation is needed since in this step the ecommerce
+        # cannot observe the users classes features
+        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
+
+        arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
+        # the environment returns the users_alpha and the reward for that allocation
+        alpha, _ = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
+        ecomm3_gpts.update(arm_idxs, alpha)
+
+        arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
+        alpha, _ = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
+        ecomm3_gpucb.update(arm_idxs, alpha)
+
+    plot_learned_functions(ecomm3_gpts, ecomm3_gpucb, env)
+
+
 def simulate_step3():
 
     gpts_gains_per_experiment = np.zeros(shape=(n_experiments, T))
@@ -250,9 +292,8 @@ def simulate_step3():
                 budgets
             )     
 
-            print("CLAIRVOYANT")
-            print(expected_reward_table)
-            print()
+            log("CLAIRVOYANT")
+            log(expected_reward_table)
 
             optimal_allocation , optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward_table)
 
@@ -261,11 +302,11 @@ def simulate_step3():
             # aggregation is needed since in this step the ecommerce cannot observe the users classes features
             aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
 
-            arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
+            #arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
             # the environment returns the users_alpha and the reward for that allocation
-            alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
-            ecomm3_gpts.update(arm_idxs, alpha)
-            log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
+            ##alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
+            #ecomm3_gpts.update(arm_idxs, alpha)
+            #log(f'gpts pulled_arm: \t{arm}, \treward : \t{gpts_gains_per_experiment[e][t]}')
 
             arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
             alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
@@ -274,7 +315,7 @@ def simulate_step3():
 
             #if optimal_allocation == arm:
             #   log("OPTIMAL PULLED")
-            print('-------------------------------------------------')
+            log('-'*100)
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 
@@ -566,8 +607,7 @@ def simulate_step7():
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment 
 
 
-if __name__ == "__main__":
-
+def main():
     # -----------STEP 3------------
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, gpts_max_variance_per_experiment, gpucb_max_variance_per_experiment = simulate_step3()
     plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, gpts_max_variance_per_experiment, gpucb_max_variance_per_experiment, ["GPTS", "GPUCB"])
@@ -587,3 +627,9 @@ if __name__ == "__main__":
     # -----------STEP 7------------
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step7()
     plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, ["GPTS", "GPUCB"])
+
+
+if __name__ == "__main__":
+    main()
+
+    

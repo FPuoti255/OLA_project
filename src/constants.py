@@ -12,7 +12,7 @@ LAMBDA = 0.6
 fully_connected = True
 
 B_cap = 100
-budgets = np.linspace(start = 0, stop = B_cap, num=10)
+budgets = np.linspace(start = 0, stop = B_cap, num=11)
 
 users_price_range = 100
 products_price_range = 100

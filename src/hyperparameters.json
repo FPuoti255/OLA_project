@@ -1,11 +1,11 @@
 {
-    "alpha": 3.66730775e-04,
+    "alpha": 0.11308409562572352, 
 
-    "constant_value": 3.41159965e+01,
+    "constant_value": 88.30118404290295,
     "constant_value_bounds1": 1e-3,
     "constant_value_bounds2": 1e3,
     
-    "length_scale": 4.21148459e+01, 
+    "length_scale": 10.45714817029264, 
     "length_scale_bounds1": 1e-3,
     "length_scale_bounds2": 1e3
 }
