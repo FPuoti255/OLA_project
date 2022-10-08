@@ -92,7 +92,7 @@ class Ecommerce3_GPTS(Ecommerce3):
 
     def estimate_reward(self, num_sold_items):
         value_per_click = self.compute_value_per_click(num_sold_items)
-        samples = np.clip(np.random.normal(loc = self.means, scale=self.sigmas), a_min=0, a_max=0.5)  
+        samples = np.random.normal(loc=self.means, scale=self.sigmas)
         estimated_reward = np.multiply(samples, np.atleast_2d(value_per_click).T)
         return estimated_reward
 
