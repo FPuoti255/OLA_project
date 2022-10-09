@@ -30,7 +30,7 @@ class Ecommerce3(Ecommerce):
 
         alpha = 3.66730775e-04
         kernel = C(constant_value=3.41159965e+01, constant_value_bounds=(1e-3, 1e3)) \
-            * RBF(length_scale=4.21148459e+01, length_scale_bounds=(1e-3, 1e3))
+                 * RBF(length_scale=4.21148459e+01, length_scale_bounds=(1e-3, 1e3))
 
         # we need one gaussian regressor for each product
         self.gaussian_regressors = [
@@ -71,7 +71,6 @@ class Ecommerce3(Ecommerce):
 
     def update_model(self):
         for i in range(NUM_OF_PRODUCTS):
-
             X = np.atleast_2d(self.pulled_arms[i]).T
             y = np.array(self.collected_rewards[i])
 
@@ -129,17 +128,16 @@ class Ecommerce3_GPUCB(Ecommerce3):
 
     def estimate_reward(self, num_sold_items):
         value_per_click = self.compute_value_per_click(num_sold_items)
-        if np.random.binomial(n=1, p= 1 - self.exploration_probability):
+
+        if np.random.binomial(n = 1, p = 1 - self.exploration_probability):
             estimated_reward = np.multiply(
                 np.add(self.means, self.confidence_bounds),
                 np.atleast_2d(value_per_click).T
-            )        
-            estimated_reward[np.isinf(estimated_reward)] = 1e5
+            )
         else:
-            estimated_reward = np.clip(
-                np.random.normal(0.5, 0.5, size = (NUM_OF_PRODUCTS, self.budgets.shape[0])),
-                a_min = 0.0, 
-                a_max = 1.0
-            ) 
-            
+            estimated_reward = np.multiply(
+                np.random.random(size=(NUM_OF_PRODUCTS, self.budgets.shape[0])),
+                np.atleast_2d(value_per_click).T
+            )
         return estimated_reward
+

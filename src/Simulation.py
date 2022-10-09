@@ -1,3 +1,5 @@
+import random
+
 import numpy as np
 from tqdm import *
 
@@ -32,7 +34,11 @@ def generate_graph_weights():
         adjacency_matrix = np.multiply(adjacency_matrix, graph_mask)
 
     adjacency_matrix = np.round(adjacency_matrix, 2)
-    return adjacency_matrix
+    return np.array([[0., 0.81, 0.15, 0.25, 0.59],
+                     [0.15, 0., 0.12, 0.54, 0.74],
+                     [0.55, 0.95, 0., 0.32, 0.81],
+                     [0.57, 0.87, 0.33, 0., 0.77],
+                     [0.24, 0.47, 0.77, 0.31, 0.]])
 
 
 def generate_observation_probabilities(graph_weights):
@@ -52,11 +58,8 @@ def generate_observation_probabilities(graph_weights):
         ]
 
         if len(available_products) >= 2:
-            idxs = np.random.choice(
-                a=available_products,
-                size=max(2, len(available_products)),
-                replace=False,
-            )
+            idxs = [available_products[0], available_products[
+                1]]  # np.random.choice(a=available_products,size=max(2, len(available_products)),replace=False,)
             obs_prob[product][idxs[0]] = 1
             obs_prob[product][idxs[1]] = LAMBDA
         elif len(available_products) == 1:
@@ -64,7 +67,11 @@ def generate_observation_probabilities(graph_weights):
         else:
             continue
 
-    return obs_prob
+    return [[0., 1., 0.6, 0., 0.],
+            [1., 0., 0.6, 0., 0.],
+            [0., 0, 0., 1., 0.6],
+            [0., 0.6, 0., 0., 1],
+            [1., 0, 0., 0.6, 0.]]
 
 
 def generate_users_parameters(users_reservation_prices):
@@ -77,18 +84,18 @@ def generate_users_parameters(users_reservation_prices):
     '''
 
     users_concentration_parameters = [
-        np.multiply(np.random.beta(a = 8, b = 2, size = NUM_OF_PRODUCTS + 1), 1000),
+        np.multiply(np.random.beta(a=8, b=2, size=NUM_OF_PRODUCTS + 1), 1000),
         # a beta distribution with a = b = 1 is equivalent to a normal distribution over the interval [0,1]
-        np.multiply(np.random.beta(a = 1, b = 1, size = NUM_OF_PRODUCTS + 1), 1000),
-        np.random.random_integers(low = 0, high = 1000, size = NUM_OF_PRODUCTS + 1)
+        np.multiply(np.random.beta(a=1, b=1, size=NUM_OF_PRODUCTS + 1), 1000),
+        np.random.random_integers(low=0, high=1000, size=NUM_OF_PRODUCTS + 1)
     ]
     log("users_concentration_parametersss:\n")
     log(users_concentration_parameters)
     log("\n\n")
 
-
     # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
-    alpha_bars = renormalize(users_concentration_parameters)
+    alpha_bars = np.array([[1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1],[1, 1, 1, 1, 1, 1]])
+    #alpha_bars = renormalize(users_concentration_parameters)
     log("alpha_bars:\n")
     log(alpha_bars)
     log("\n\n")
@@ -96,13 +103,15 @@ def generate_users_parameters(users_reservation_prices):
     max_expected_poisson_realization = 5
 
     users_poisson_parameters = np.array(
-        [np.full(shape=NUM_OF_PRODUCTS, fill_value=max_expected_poisson_realization) * users_reservation_prices[user_class] / 100
+        [np.full(shape=NUM_OF_PRODUCTS, fill_value=max_expected_poisson_realization) * users_reservation_prices[
+            user_class] / 100
          for user_class in range(NUM_OF_USERS_CLASSES)]
     )  # 3x5
     log("users_poisson_parameters:\n")
     log(users_poisson_parameters)
     log("\n\n")
-
+    # print(alpha_bars)
+    # print(users_poisson_parameters)
     return alpha_bars, users_poisson_parameters
 
 
@@ -146,7 +155,6 @@ def generate_new_non_stationary_environment():
     prod_fun_idx = np.arange(NUM_OF_PRODUCTS)
 
     for _ in range(n_phases):
-
         alpha_bars, res_prices, poisson_par = generate_users_parameters()
 
         users_alpha.append(alpha_bars)
@@ -177,16 +185,26 @@ def generate_new_non_stationary_environment():
 
 
 def simulate_step3():
-
     gpts_gains_per_experiment = np.zeros(shape=(n_experiments, T))
-    gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))    
+    gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
     optimal_gain = np.zeros(shape=(n_experiments, T))
 
     for e in range(0, n_experiments):
-        print('Experiment n°:', e+1)
+        print('Experiment n°:', e + 1)
 
         graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-            observations_probabilities, users_poisson_parameters = setup_environment()
+        observations_probabilities, users_poisson_parameters = setup_environment()
+        print('graph')
+        print(graph_weights)
+        #print('alpha')
+        #print(alpha_bars)
+        # print('prices')
+        # print(product_prices)
+        # print('res prices')
+        # print(users_reservation_prices)
+        # print('obs prob')
+        # print(observations_probabilities)
+        # print('user poisson param')
 
         env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
@@ -194,55 +212,72 @@ def simulate_step3():
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
         ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
 
-        for t in tqdm(range(0, T), position = 0, desc="n_iteration", leave=True):
+        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
             # Every day a new montecarlo simulation must be run to sample num of items sold
-            num_sold_items = estimate_nodes_activation_probabilities(
+            num_sold_items = estimate_nodes_activation_probabilities2(
                 env.network.get_adjacency_matrix(),
                 env.users_reservation_prices,
                 users_poisson_parameters,
                 product_prices,
                 observations_probabilities
             )
-            
+            # print('sold items')
+            # print(num_sold_items)
+            for c in range(num_sold_items.shape[0]):
+                for p in range(num_sold_items.shape[1]):
+                    num_sold_items[c][p] = num_sold_items[c][p] #* random.choice([1,2])
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
                 product_prices,
                 budgets
-            )     
+            )
+            # print('clairvoyantt expected reward')
+            # print(expected_reward)
 
-            optimal_allocation , optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
+            optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
+
+            # print('clairvoyantt optimal allocation')
+            # print(optimal_allocation)
 
             log(f'optimal_allocation: {optimal_allocation}, reward : {optimal_gain[e][t]}')
 
             # aggregation is needed since in this step the ecommerce
             # cannot observe the users classes features
-            aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
+            aggregated_num_sold_items = np.sum(num_sold_items, axis=0)
+            # print('agg num sold items')
+            # print(aggregated_num_sold_items)
 
-            # arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
+            arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
             # # the environment returns the users_alpha and the reward for that allocation
-            # alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
-            # ecomm3_gpts.update(arm_idxs, alpha)
+            alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
+            ecomm3_gpts.update(arm_idxs, alpha)
             # log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
             arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
-            alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
+            # print('arm' )
+            # print(arm_idxs)
+
+            alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
             ecomm3_gpucb.update(arm_idxs, alpha)
             log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
             log('-------------------------------------------------')
+        #print('opt - ucb')
+        #print(optimal_gain - gpucb_gains_per_experiment)
+        #print('opt - ts')
+        #print(optimal_gain - gpts_gains_per_experiment)
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 
 
 def simulate_step4():
-
     gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
-    
+
     for e in range(0, n_experiments):
-        print('Experiment n°:', e+1)
+        print('Experiment n°:', e + 1)
 
         env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
-        
+
         ecomm = Ecommerce(B_cap, budgets, product_prices)
         ecomm4_gpts = Ecommerce4_GPTS(B_cap, budgets, product_prices)
         ecomm4_gpucb = Ecommerce4_GPUCB(B_cap, budgets, product_prices)
@@ -255,15 +290,14 @@ def simulate_step4():
             observations_probabilities
         )
 
-        exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
-        _ , optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
+        exp_clicks = env.estimate_num_of_clicks(budgets / B_cap)
+        _, optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
             num_sold_items,
             exp_clicks,
             nodes_activation_probabilities
         )
 
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
-
             arm = ecomm4_gpts.pull_arm()
             reward, estimated_sold_items = env.round_step4(arm, B_cap, num_sold_items)
             ecomm4_gpts.update(arm, reward, estimated_sold_items)
@@ -272,20 +306,18 @@ def simulate_step4():
             arm = ecomm4_gpucb.pull_arm()
             reward, estimated_sold_items = env.round_step4(arm, B_cap, num_sold_items)
             ecomm4_gpucb.update(arm, reward, estimated_sold_items)
-            _, gpucb_gains_per_experiment[e][t] = ecomm4_gpucb.solve_optimization_problem(nodes_activation_probabilities)
-
+            _, gpucb_gains_per_experiment[e][t] = ecomm4_gpucb.solve_optimization_problem(
+                nodes_activation_probabilities)
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
 
 
 def simulate_step5():
-
     gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
-    
 
     for e in range(0, n_experiments):
-        print('Experiment n°:', e+1)
+        print('Experiment n°:', e + 1)
 
         env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
 
@@ -293,37 +325,35 @@ def simulate_step5():
         ecomm5_gpucb = Ecommerce5_GPUCB(B_cap, budgets, product_prices)
 
         nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
-                env.graph_weights,
-                env.users_reservation_prices,
-                users_poisson_parameters,
-                product_prices,
-                observations_probabilities
-            )
-        exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
+            env.graph_weights,
+            env.users_reservation_prices,
+            users_poisson_parameters,
+            product_prices,
+            observations_probabilities
+        )
+        exp_clicks = env.estimate_num_of_clicks(budgets / B_cap)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
 
-        _ , optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
+        _, optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
             num_sold_items,
             exp_clicks,
             nodes_activation_probabilities
         )
 
-
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
-
             arm, arm_idx = ecomm5_gpts.pull_arm()
             reward = env.round_step5(arm, nodes_activation_probabilities)
             ecomm5_gpts.update(arm, arm_idx, reward)
-            
+
             _, gain = ecomm5_gpts.solve_optimization_problem(
                 num_sold_items,
                 exp_clicks
             )
 
             gpts_gains_per_experiment[e][t] = np.minimum(gain, optimal_gain_per_experiment[e])
-            #gpts_gains_per_experiment[e][t] = gain
-            
+            # gpts_gains_per_experiment[e][t] = gain
+
             # ----------------------
 
             arm, arm_idx = ecomm5_gpucb.pull_arm()
@@ -335,15 +365,14 @@ def simulate_step5():
                 exp_clicks
             )
             gpucb_gains_per_experiment[e][t] = np.minimum(gain, optimal_gain_per_experiment[e])
-            #gpucb_gains_per_experiment[e][t] = gain
+            # gpucb_gains_per_experiment[e][t] = gain
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
 
 
 def simulate_step6():
-
     swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
-        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments,T))
+        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T))
 
     tau = np.floor(np.sqrt(T)).astype(int)
 
@@ -352,51 +381,51 @@ def simulate_step6():
     h = 2 * np.log(T)
 
     for e in range(0, n_experiments):
-        print('Experiment n°', e+1)
+        print('Experiment n°', e + 1)
 
         env, observations_probabilities, product_prices = generate_new_non_stationary_environment()
 
         ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
         ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
-        
+
         optimal_phase_gain = 0
 
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
-            
-            exp_clicks = env.estimate_num_of_clicks(budgets/B_cap)
+
+            exp_clicks = env.estimate_num_of_clicks(budgets / B_cap)
             ecomm = Ecommerce(B_cap, budgets, product_prices)
-            
+
             if t % phase_len == 0:
                 _, optimal_phase_gain = ecomm.solve_optimization_problem(
                     env.get_num_sold_items(),
                     exp_clicks,
                     env.get_nodes_activation_probabilities()
                 )
-            
+
             optimal_gain_per_experiment[e][t] = optimal_phase_gain
 
             arm = ecomm6_swucb.pull_arm()
             reward, sold_items = env.round_step6(arm, B_cap)
             ecomm6_swucb.update(arm, reward, sold_items)
-            _, swucb_gains_per_experiment[e][t] = ecomm6_swucb.solve_optimization_problem(env.get_nodes_activation_probabilities())
+            _, swucb_gains_per_experiment[e][t] = ecomm6_swucb.solve_optimization_problem(
+                env.get_nodes_activation_probabilities())
 
             arm = ecomm6_cducb.pull_arm()
             reward, sold_items = env.round_step6(arm, B_cap, True)
             ecomm6_cducb.update(arm, reward, sold_items)
-            _, cducb_gains_per_experiment[e][t] = ecomm6_cducb.solve_optimization_problem(env.get_nodes_activation_probabilities())
+            _, cducb_gains_per_experiment[e][t] = ecomm6_cducb.solve_optimization_problem(
+                env.get_nodes_activation_probabilities())
 
     return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain_per_experiment
 
 
 def simulate_step7():
-
     gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
         shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
-    
 
     for e in range(0, n_experiments):
         print('Experiment n°:', e)
-        
+
         env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
 
         nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
@@ -407,20 +436,19 @@ def simulate_step7():
             observations_probabilities
         )
 
-        exp_num_clicks = env.estimate_disaggregated_num_clicks(budgets/B_cap)
+        exp_num_clicks = env.estimate_disaggregated_num_clicks(budgets / B_cap)
 
         ecomm7_gpts = Ecommerce7(B_cap, budgets, product_prices, features, 'TS')
         ecomm7_gpucb = Ecommerce7(B_cap, budgets, product_prices, features, 'UCB')
 
         _, optimal_gain_per_experiment[e] = ecomm7_gpts.clairvoyant_solve_optimization_problem(num_sold_items,
-                                                                        exp_num_clicks,
-                                                                        nodes_activation_probabilities)
-
+                                                                                               exp_num_clicks,
+                                                                                               nodes_activation_probabilities)
 
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
-        # ------------------- TS --------------------------------------------
-            
+            # ------------------- TS --------------------------------------------
+
             context_learners = ecomm7_gpts.get_context_tree().get_leaves()
             idxs = []
             pulled_arms = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
@@ -429,26 +457,24 @@ def simulate_step7():
                 print('------- Thompson_Sampling splitting evaluation --------')
                 for learner in context_learners:
                     learner.evaluate_splitting_condition(features,
-                                                        ecomm7_gpts.get_pulled_arms(
-                                                        )[-split_time:],
-                                                        ecomm7_gpts.get_collected_rewards(
-                                                        )[-split_time:],
-                                                        ecomm7_gpts.get_collected_sold_items()[-split_time:])
+                                                         ecomm7_gpts.get_pulled_arms(
+                                                         )[-split_time:],
+                                                         ecomm7_gpts.get_collected_rewards(
+                                                         )[-split_time:],
+                                                         ecomm7_gpts.get_collected_sold_items()[-split_time:])
 
                 context_learners = ecomm7_gpts.get_context_tree().get_leaves()
 
-            
             for learner in context_learners:
                 arm, learner_idxs = learner.pull_arm()
 
                 # avoid_class_overlapping
                 for idx in learner_idxs:
-                    if not np.array_equal(pulled_arms[idx, :] , np.zeros(shape = NUM_OF_PRODUCTS)):
+                    if not np.array_equal(pulled_arms[idx, :], np.zeros(shape=NUM_OF_PRODUCTS)):
                         learner_idxs.remove(idx)
-                
+
                 idxs.append(learner_idxs)
                 pulled_arms[learner_idxs, :] = arm
-
 
             reward, estimated_sold_items = env.round_step7(
                 pulled_arms, B_cap, nodes_activation_probabilities, num_sold_items)
@@ -465,8 +491,8 @@ def simulate_step7():
                 _, rew = learner.algorithm.solve_optimization_problem(nodes_activation_probabilities)
                 gpts_gains_per_experiment[e][t] += rew
 
-        # ------------------------------ UCB ----------------------------
-                        
+            # ------------------------------ UCB ----------------------------
+
             context_learners = ecomm7_gpucb.get_context_tree().get_leaves()
             idxs = []
             pulled_arms = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
@@ -475,26 +501,24 @@ def simulate_step7():
                 print('------- UCB splitting evaluation --------')
                 for learner in context_learners:
                     learner.evaluate_splitting_condition(features,
-                                                        ecomm7_gpucb.get_pulled_arms(
-                                                        )[-split_time:],
-                                                        ecomm7_gpucb.get_collected_rewards(
-                                                        )[-split_time:],
-                                                        ecomm7_gpucb.get_collected_sold_items()[-split_time:])
+                                                         ecomm7_gpucb.get_pulled_arms(
+                                                         )[-split_time:],
+                                                         ecomm7_gpucb.get_collected_rewards(
+                                                         )[-split_time:],
+                                                         ecomm7_gpucb.get_collected_sold_items()[-split_time:])
 
                 context_learners = ecomm7_gpucb.get_context_tree().get_leaves()
 
-            
             for learner in context_learners:
                 arm, learner_idxs = learner.pull_arm()
 
                 # avoid_class_overlapping
                 for idx in learner_idxs:
-                    if not np.array_equal(pulled_arms[idx, :] , np.zeros(shape = NUM_OF_PRODUCTS)):
+                    if not np.array_equal(pulled_arms[idx, :], np.zeros(shape=NUM_OF_PRODUCTS)):
                         learner_idxs.remove(idx)
-                
+
                 idxs.append(learner_idxs)
                 pulled_arms[learner_idxs, :] = arm
-
 
             reward, estimated_sold_items = env.round_step7(
                 pulled_arms, B_cap, nodes_activation_probabilities, num_sold_items)
@@ -511,15 +535,14 @@ def simulate_step7():
                 _, rew = learner.algorithm.solve_optimization_problem(nodes_activation_probabilities)
                 gpucb_gains_per_experiment[e][t] += rew
 
-
-    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment 
+    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
 
 
 if __name__ == "__main__":
-
     # -----------STEP 3------------
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, gpts_max_variance_per_experiment, gpucb_max_variance_per_experiment = simulate_step3()
-    plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, gpts_max_variance_per_experiment, gpucb_max_variance_per_experiment, ["GPTS", "GPUCB"])
+    plot_regrets(gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts, gpts_max_variance_per_experiment,
+                 gpucb_max_variance_per_experiment, ["GPTS", "GPUCB"])
 
     # -----------STEP 4------------
     gpts_rewards_per_experiment, gpucb_rewards_per_experiment, opts = simulate_step4()

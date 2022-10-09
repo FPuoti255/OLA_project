@@ -38,7 +38,7 @@ class Scenario:
         # TODO : implements the users_reservation_prices sampling from a normal distribution
         # with loc = product_prices and scale = sqrt(appreciation)
 
-        users_reservation_prices = product_prices + appreciation 
+        users_reservation_prices = product_prices + appreciation
         return users_reservation_prices
 
 
