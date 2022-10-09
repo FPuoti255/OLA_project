@@ -45,8 +45,66 @@ def compute_cumulative_regret_mean_std(opts, rewards_per_experiment):
     cumsum = np.cumsum((opts-rewards_per_experiment), axis = 1)
     return np.mean(cumsum, axis=0), np.std(cumsum, axis=0)
 
-
 def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
+
+    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
+    ticks = np.arange(start=0, stop=T, step=1)
+    opts_color = 'red'
+    alg1_color = 'orange'
+    alg2_color = 'green'
+    alpha = 0.2
+
+    #----------------- ALG 1 -------------------
+    alg1_mean_reward = np.mean(alg1_rewards_per_experiment, axis=0)
+    alg1_reward_std = np.std(alg1_rewards_per_experiment, axis=0)
+
+    alg1_cumulative_regret = np.cumsum(np.mean((opts-alg1_rewards_per_experiment), axis=0))    
+    alg1_regret_std = np.std(alg1_cumulative_regret, axis = 0)
+
+    #----------------- ALG 2 -------------------
+    alg2_mean_reward = np.mean(alg2_rewards_per_experiment, axis=0)
+    alg2_reward_std = np.std(alg2_rewards_per_experiment, axis = 0)
+
+    alg2_cumulative_regret = np.mean(np.cumsum((opts-alg2_rewards_per_experiment), axis = 1), axis=0)
+    alg2_regret_std = np.std(np.cumsum((opts-alg2_rewards_per_experiment), axis = 1), axis=0)
+
+    # ax[0] will plot the cumulative regrets
+    ax[0][0].plot(alg1_cumulative_regret, color=alg1_color, label=legend[0])
+    ax[0][0].fill_between(ticks, alg1_cumulative_regret - alg1_regret_std,alg1_cumulative_regret + alg1_regret_std, color=alg1_color, alpha=alpha)
+
+    ax[0][1].plot(alg2_cumulative_regret, color=alg2_color, label=legend[1])
+    ax[0][1].fill_between(ticks, alg2_cumulative_regret - alg2_regret_std,alg2_cumulative_regret + alg2_regret_std, color=alg2_color, alpha=alpha)
+    
+    ax[0][0].set_title('Cumulative Regrets')
+    ax[0][0].set_xlabel('round')
+    ax[0][0].legend()
+
+    ax[0][1].set_title('Cumulative Regrets')
+    ax[0][1].set_xlabel('round')
+    ax[0][1].legend()
+
+    # ax[1] will plot the rewards
+    ax[1][0].plot(ticks, np.full_like(ticks, np.mean(opts)), color=opts_color, label='Optimal Reward')
+    ax[1][1].plot(ticks, np.full_like(ticks, np.mean(opts)), color=opts_color, label='Optimal Reward')
+    
+    ax[1][0].plot(alg1_mean_reward, color=alg1_color, label=legend[0])
+    ax[1][0].fill_between(ticks, alg1_mean_reward - alg1_reward_std,alg1_mean_reward + alg1_reward_std, color=alg1_color, alpha=alpha)
+
+    ax[1][1].plot(alg2_mean_reward, color=alg2_color, label=legend[1])
+    ax[1][1].fill_between(ticks, alg2_mean_reward - alg2_reward_std, alg2_mean_reward + alg2_reward_std, color=alg2_color, alpha=alpha)
+
+    ax[1][0].set_title('Average Reward')
+    ax[1][0].set_xlabel('round')
+    ax[1][0].legend()
+    
+    ax[1][1].set_title('Average Reward')
+    ax[1][1].set_xlabel('round')
+    ax[1][1].legend()
+    
+    plt.show()
+
+
+def plot_regrets_merged(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
 
     fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(20, 10))
     ticks = np.arange(start=0, stop=T, step=1)
