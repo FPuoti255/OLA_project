@@ -217,11 +217,10 @@ def generate_new_non_stationary_environment():
 
 def observe_learned_functions():
    
-    graph_weights, alpha_bars, product_prices, users_reservation_prices, observations_probabilities, users_poisson_parameters = setup_environment()
+    graph_weights, alpha_bars, product_prices, users_reservation_prices, \
+        observations_probabilities, users_poisson_parameters = setup_environment()
 
     env = Environment(users_reservation_prices, graph_weights, alpha_bars)
-
-    ecomm = Ecommerce(B_cap, budgets, product_prices)
     ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
     ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
 
@@ -235,7 +234,7 @@ def observe_learned_functions():
             observations_probabilities
         )
 
-        expected_reward = env.compute_clairvoyant_reward(
+        _ = env.compute_clairvoyant_reward(
             num_sold_items,
             product_prices,
             budgets
@@ -254,7 +253,7 @@ def observe_learned_functions():
         alpha, _ = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
         ecomm3_gpucb.update(arm_idxs, alpha)
 
-    plot_learned_functions(ecomm3_gpts, ecomm3_gpucb, env)
+    return ecomm3_gpts, ecomm3_gpucb, env
 
 
 def simulate_step3():

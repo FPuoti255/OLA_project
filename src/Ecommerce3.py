@@ -109,7 +109,7 @@ class Ecommerce3_GPTS(Ecommerce3):
 class Ecommerce3_GPUCB(Ecommerce3):
     def __init__(self, B_cap, budgets, product_prices):
         super().__init__(B_cap, budgets, product_prices)
-        self.exploration_probability = 0.02
+        self.exploration_probability = 0.01
         self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf)
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
@@ -135,7 +135,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
             )
         else:            
             estimated_reward = np.multiply(
-                np.random.random(size=(NUM_OF_PRODUCTS, self.budgets.shape[0])),
+                np.random.random(size=(NUM_OF_PRODUCTS, self.budgets.shape[0])) * 0.5,
                 np.atleast_2d(value_per_click).T
             )         
         return estimated_reward

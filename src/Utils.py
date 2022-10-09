@@ -126,7 +126,7 @@ def plot_learned_functions(gpts, gpucb, env):
         ax[prod_id][0].legend()
 
         ax[prod_id][1].plot(budgets, gpucb.means[prod_id], label = 'GPUCB mean estimation', color = 'r')
-        ax[prod_id][1].fill_between(budgets, gpucb.means[prod_id] - gpucb.confidence_bounds[prod_id], gpucb.means[prod_id] + gpucb.confidence_bounds[prod_id], color ='r', alpha = 0.1)
+        ax[prod_id][1].fill_between(budgets, gpucb.means[prod_id] - gpucb.sigmas[prod_id], gpucb.means[prod_id] + gpucb.sigmas[prod_id], color ='r', alpha = 0.1)
         ax[prod_id][1].plot(budgets, users_alpha[prod_id], label = 'environment')
         ax[prod_id][1].set_title(f'product n: {prod_id+1}')
         ax[prod_id][1].set_xlabel('budgets')
