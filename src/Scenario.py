@@ -39,7 +39,14 @@ class Scenario:
         ]
         users_reservation_prices = self.get_product_prices() + appreciation[np.random.randint(len(appreciation))]
         return users_reservation_prices
-     
 
-
-    
+    def recap(self):
+        for res_price in self.get_users_reservation_prices():
+            buy = []
+            for rp,p in zip(res_price,self.get_product_prices()):
+                if p > rp:
+                    buy.append("Not buy")
+                else: 
+                    buy.append("Buy")
+            print(buy)
+        return 
