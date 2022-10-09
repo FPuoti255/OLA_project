@@ -302,11 +302,11 @@ def simulate_step3():
             # aggregation is needed since in this step the ecommerce cannot observe the users classes features
             aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
 
-            #arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
+            arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
             # the environment returns the users_alpha and the reward for that allocation
-            ##alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
-            #ecomm3_gpts.update(arm_idxs, alpha)
-            #log(f'gpts pulled_arm: \t{arm}, \treward : \t{gpts_gains_per_experiment[e][t]}')
+            alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
+            ecomm3_gpts.update(arm_idxs, alpha)
+            log(f'gpts pulled_arm: \t{arm}, \treward : \t{gpts_gains_per_experiment[e][t]}')
 
             arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
             alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
