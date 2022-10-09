@@ -2,6 +2,7 @@ from Utils import *
 from constants import *
 from Environment import *
 from Scenario import *
+from Ecommerce import *
 
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -15,65 +16,72 @@ from scipy.optimize import differential_evolution
 from Simulation import *
 
 
-def generate_data():
-
-    graph_weights, alpha_bars, _, users_reservation_prices, _, _ = setup_environment()
-
-    env = Environment(users_reservation_prices, graph_weights, alpha_bars)
-
-    n_tests = 10
-
-    X = np.array([(prod, int(budget)) for prod in range(NUM_OF_PRODUCTS)
-                 for budget in budgets] * n_tests)
-    y = None
-    for i in range(n_tests):
-        env.compute_users_alpha(budgets)
-        usr_alpha = np.sum(env.expected_users_alpha, axis=0).reshape(
-            (NUM_OF_PRODUCTS * budgets.shape[0]))
-        if y is None:
-            y = usr_alpha
-        else:
-            y = np.append(y, usr_alpha)
-
-    assert (X.shape[0] == y.shape[0])
-    return X, y
-
-
-
 def callback(xk, convergence):
-  print("best_solution so far: alpha, c_const, rbf_ls = ", xk)
-  print("Minimum rmse: %.6f" % (convergence))
+    print('------------------------------------------')
+    print("best_solution so far: alpha, c_const, rbf_ls = ", xk)
+    print("Minimum rmse: %.6f" % (convergence))
+    print('------------------------------------------')
+
+
+def generate_data():
+    '''
+    :return: graph_weights, alpha_bars, product_prices, users_reservation_prices,
+             observations_probabilities, users_poisson_parameters
+    '''
+
+    return setup_environment()
 
 
 
-def gpts_function(hyperparams, X, y):
-    alpha, c_const, rbf_ls = hyperparams
 
+def gpts_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices,
+                    observations_probabilities, users_poisson_parameters):
+
+    n_rounds= 50
+    y_actual, y_predicted = [], []
+
+    alpha_kernel, c_const, rbf_ls = hyperparams
     #kernel = C(constant_value = c_const, constant_value_bounds=(c_const_lb, c_const_ub)) * RBF(length_scale = rbf_ls, length_scale_bounds=(rbf_ls_lb, rbf_length_scale_ub))
     kernel = C(constant_value = c_const) * RBF(length_scale = rbf_ls)
 
-    kf = KFold(n_splits=3, shuffle=True, random_state=2020)
-    y_pred_total = []
-    y_test_total = []
-    # kf-fold cross-validation loop
-    for train_index, test_index in kf.split(X):
-        X_train, X_test = X[train_index], X[test_index]
-        y_train, y_test = y[train_index], y[test_index]
+    env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+    ecomm = Ecommerce(B_cap, budgets, product_prices)
+    ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, alpha = alpha_kernel, kernel = kernel)
 
-        y_pred = GaussianProcessRegressor(
-            kernel=kernel, alpha=alpha, normalize_y=True, n_restarts_optimizer=9
-        ).fit(X_train, y_train).predict(X_test)
 
-        # Append y_pred and y_test values of this k-fold step to list with total values
-        y_pred_total.append(y_pred)
-        y_test_total.append(y_test)
+    for _ in range(0, n_rounds):
 
-    # Flatten lists with test and predicted values
-    y_pred_total = [item for sublist in y_pred_total for item in sublist]
-    y_test_total = [item for sublist in y_test_total for item in sublist]
-    # Calculate error metric of test and predicted values: rmse
-    rmse = np.sqrt(mean_squared_error(y_test_total, y_pred_total))
+        # Every day a new montecarlo simulation must be run to sample num of items sold
+        num_sold_items = estimate_nodes_activation_probabilities(
+            env.network.get_adjacency_matrix(),
+            env.users_reservation_prices,
+            users_poisson_parameters,
+            product_prices,
+            observations_probabilities
+        )
+        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0) #needed for the ecommerce
+        
+        expected_reward_table = env.compute_clairvoyant_reward(
+            num_sold_items,
+            product_prices,
+            budgets
+        )     
+
+        _ , optimal_gain = ecomm.clairvoyant_optimization_problem(expected_reward_table)
+        y_actual.append(optimal_gain)
+
+
+        arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
+
+        alpha, gpts_gain = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
+        y_predicted.append(gpts_gain)
+
+        ecomm3_gpts.update(arm_idxs, alpha)
+
+    rmse = np.sqrt(mean_squared_error(y_actual, y_predicted)) / 1000
+    print(f'rmse = {rmse}, hyperparams: (alpha = {alpha_kernel}, c_const = {c_const}, rbf_ls = {rbf_ls})\n')
     return rmse
+
 
 
 if __name__ == '__main__':
@@ -82,14 +90,15 @@ if __name__ == '__main__':
     c_constant_value = (1.0, 100.0)
     rbf_length_scale = (1.0, 100.0)
 
-
     bounds = [alpha_bounds] + [c_constant_value] + [rbf_length_scale]
 
-    X, y = generate_data()
-    extra_variables = (X, y)
+    graph_weights, alpha_bars, product_prices, users_reservation_prices, \
+        observations_probabilities, users_poisson_parameters = generate_data()
 
-    solver = differential_evolution(gpts_function, bounds, args=extra_variables, strategy='best1bin', updating = 'immediate',
-                                    workers = -1, popsize=15, mutation=0.5, recombination=0.7, tol=0.01, seed=2020, callback=callback)
+    extra_variables = (    graph_weights, alpha_bars, product_prices, users_reservation_prices, observations_probabilities, users_poisson_parameters)
+
+    solver = differential_evolution(gpts_function, bounds, args=extra_variables, strategy='best1bin', updating = 'deferred',
+                                    workers = -1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, seed=12345, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun

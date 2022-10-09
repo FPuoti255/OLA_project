@@ -1,5 +1,6 @@
 import numpy as np
 from Environment import *
+from Utils import log
 
 
 class Ecommerce(object):

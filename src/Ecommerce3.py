@@ -9,7 +9,7 @@ from Utils import *
 
 
 class Ecommerce3(Ecommerce):
-    def __init__(self, B_cap: float, budgets, product_prices):
+    def __init__(self, B_cap: float, budgets, product_prices, alpha = None, kernel = None):
 
         super().__init__(B_cap, budgets, product_prices)
 
@@ -27,18 +27,20 @@ class Ecommerce3(Ecommerce):
         ]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
+        if kernel is None and alpha is None:    
 
-        hyperparameters = json.load(open("hyperparameters.json"))
+            hyperparameters = json.load(open("hyperparameters.json"))
 
-        alpha = hyperparameters["alpha"]
+            alpha = hyperparameters["alpha"]
 
-        kernel = C(
-            constant_value=hyperparameters["constant_value"], 
-            constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
-            length_scale=hyperparameters["length_scale"], 
-            length_scale_bounds=(hyperparameters["length_scale_bounds1"],hyperparameters["length_scale_bounds2"])
-            )
+            kernel = C(
+                constant_value=hyperparameters["constant_value"], 
+                constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
+                length_scale=hyperparameters["length_scale"], 
+                length_scale_bounds=(hyperparameters["length_scale_bounds1"],hyperparameters["length_scale_bounds2"])
+                )
 
+        assert(alpha is not None and kernel is not None)
         # we need one gaussian regressor for each product
         self.gaussian_regressors = [
             GaussianProcessRegressor(
@@ -87,12 +89,19 @@ class Ecommerce3(Ecommerce):
 
 
 class Ecommerce3_GPTS(Ecommerce3):
-    def __init__(self, B_cap, budgets, product_prices):
-        super().__init__(B_cap, budgets, product_prices)
+
+    def __init__(self, B_cap: float, budgets, product_prices, alpha=None, kernel=None):
+        super().__init__(B_cap, budgets, product_prices, alpha, kernel)
 
     def estimate_reward(self, num_sold_items):
         value_per_click = self.compute_value_per_click(num_sold_items)
-        samples = np.random.normal(loc=self.means, scale=self.sigmas)
+
+        samples = np.zeros_like(self.means)
+        for prod in range(NUM_OF_PRODUCTS):
+            _, cov = self.gaussian_regressors[prod].predict(np.atleast_2d(self.budgets).T, return_cov=True)
+            samples[prod] = np.random.multivariate_normal(self.means[prod], cov)
+              
+        #samples = np.random.normal(loc = self.means, scale=self.sigmas)  
         estimated_reward = np.multiply(samples, np.atleast_2d(value_per_click).T)
         return estimated_reward
 
@@ -100,7 +109,7 @@ class Ecommerce3_GPTS(Ecommerce3):
 class Ecommerce3_GPUCB(Ecommerce3):
     def __init__(self, B_cap, budgets, product_prices):
         super().__init__(B_cap, budgets, product_prices)
-        self.exploration_probability = 0.8
+        self.exploration_probability = 0.01
         self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf)
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
@@ -119,15 +128,14 @@ class Ecommerce3_GPUCB(Ecommerce3):
 
         value_per_click = self.compute_value_per_click(num_sold_items)
         
-        if np.random.binomial(n = 1, p = 1 - self.exploration_probability / np.log(self.t+3)**3):
+        if np.random.binomial(n = 1, p = 1 - self.exploration_probability):
             estimated_reward = np.multiply(
                 np.add(self.means, self.confidence_bounds),
                 np.atleast_2d(value_per_click).T
             )
-            estimated_reward[np.isinf(estimated_reward)] = 1e4
         else:            
             estimated_reward = np.multiply(
-                np.random.random(size=(NUM_OF_PRODUCTS, self.budgets.shape[0])),
+                np.random.random(size=(NUM_OF_PRODUCTS, self.budgets.shape[0])) * 0.5,
                 np.atleast_2d(value_per_click).T
             )         
         return estimated_reward

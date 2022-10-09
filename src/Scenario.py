@@ -27,17 +27,10 @@ class Scenario:
         self.users_reservation_prices = self.get_users_reservation_prices()
     
     def get_product_prices(self):       # 1 x 5
-        return np.array([60,55,45,50,65])
-        #return np.array([25,14,30,50,40])
+        return np.array([25,14,30,50,40]) * 2
 
     def get_users_reservation_prices(self):        # 3 x 5
-        #users_reservation_prices = self.get_product_prices() + np.array([[6,10,-12,+15,10],[-20,-13,13,11,-14],[13,16,-21,-24,-15]])
-        appreciation = [
-            np.array([[6,10,12,15,10],[20,13,13,11,14],[-13,16,-21,-24,-15]]),
-            np.array([[6,10,12,15,10],[20,13,13,11,14],[-13,16,-21,-24,-15]]),
-            np.array([[6,10,12,15,10],[20,13,13,11,14],[-13,16,-21,-24,-15]])
-        ]
-        users_reservation_prices = self.get_product_prices() + appreciation[np.random.randint(len(appreciation))]
+        users_reservation_prices = self.get_product_prices() + np.array([[20,13,13,11,14],[6,10,12,15,10],[-13,16,-21,-24,-15]])
         return users_reservation_prices
 
     def recap(self):
