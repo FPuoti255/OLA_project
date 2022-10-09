@@ -75,7 +75,7 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
     ax[0][0].fill_between(ticks, alg1_cumulative_regret - alg1_regret_std,alg1_cumulative_regret + alg1_regret_std, color=alg1_color, alpha=alpha)
 
     ax[0][1].plot(alg2_cumulative_regret, color=alg2_color, label=legend[1])
-    ax[0][1].fill_between(ticks, alg2_cumulative_regret - alg2_regret_std,alg2_cumulative_regret + alg2_regret_std, color=alg2_color, alpha=alpha)
+    ax[0][1].fill_between(ticks, alg2_cumulative_regret - alg2_regret_std, alg2_cumulative_regret + alg2_regret_std, color=alg2_color, alpha=alpha)
     
     ax[0][0].set_title('cumulative regrets')
     ax[0][0].set_xlabel('round')
@@ -126,7 +126,7 @@ def plot_learned_functions(gpts, gpucb, env):
         ax[prod_id][0].legend()
 
         ax[prod_id][1].plot(budgets, gpucb.means[prod_id], label = 'GPUCB mean estimation', color = 'r')
-        ax[prod_id][1].fill_between(budgets, gpucb.means[prod_id] - gpucb.sigmas[prod_id], gpucb.means[prod_id] + gpucb.sigmas[prod_id], color ='r', alpha = 0.1)
+        ax[prod_id][1].fill_between(budgets, gpucb.means[prod_id] - gpucb.confidence_bounds[prod_id], gpucb.means[prod_id] + gpucb.confidence_bounds[prod_id], color ='r', alpha = 0.1)
         ax[prod_id][1].plot(budgets, users_alpha[prod_id], label = 'environment')
         ax[prod_id][1].set_title(f'product n: {prod_id+1}')
         ax[prod_id][1].set_xlabel('budgets')

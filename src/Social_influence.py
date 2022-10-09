@@ -32,7 +32,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
                 num_sold_items[user_class][node] = np.add(num_sold_items[user_class][node], sold_items)
 
 
-    return np.floor(num_sold_items / k).astype(int)
+    return np.ceil(num_sold_items / k).astype(int)
 
 
 
