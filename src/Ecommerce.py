@@ -1,5 +1,6 @@
 import numpy as np
 from Environment import *
+from Utils import log
 
 
 class Ecommerce(object):
@@ -44,6 +45,7 @@ class Ecommerce(object):
         """
         This algorithm solves a generalized knapsack problem using a dynamic_algorithm approach.
         """
+        assert(table.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
         table_opt, max_pointer = self.compute_table(table)
         table_opt[-1] = np.subtract(table_opt[-1], self.budgets)
         return self.choose_best(table_opt, max_pointer)

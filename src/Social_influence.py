@@ -109,6 +109,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     num_clicks = np.zeros(shape=(num_of_user_classes, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
     # number of repetition to have theoretical guarantees on the error of the estimation
+   
     epsilon = 3 * 1e-2
     delta = 1e-2
     k = 10000  # int((1/epsilon**2) * np.log(NUM_OF_PRODUCTS) * np.log(1/delta))
@@ -130,7 +131,6 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     return (num_clicks / k)  # .astype(int)
 
 
-# bought items -> click
 def generate_live_edge_graph(seed,
                              click_probabilities,
                              users_reservation_prices,
@@ -162,9 +162,10 @@ def generate_live_edge_graph(seed,
             # subsequently, in the case of a purchase, the number of units to buy.
             # We model this number of units with a poisson random variable.
             bought_items[
-                primary_product] += 1  # np.random.choice([1,2,3])# np.random.poisson(lam=users_poisson_parameters[primary_product])
+                primary_product] += np.random.choice([1,2])# np.random.poisson(lam=users_poisson_parameters[primary_product])
 
             for idxs in np.argwhere(slots):
+               
                 # the user clicks on a secondary product with a probability depending on the primary product
                 # except when the secondary product has been already displayed as primary in the past
                 if np.random.binomial(n=1, p=slots[idxs[0]]):  # and idxs[0] not in has_been_primary:

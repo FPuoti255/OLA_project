@@ -34,6 +34,7 @@ class Environment:
 
         self.network = Network(adjacency_matrix=graph_weights)
 
+
     def get_users_reservation_prices(self):
         return self.users_reservation_prices
 
@@ -82,18 +83,15 @@ class Environment:
         This function computes the expected reward = expected_users_alpha x value_per_click
         for each couple (product, budget_allocated)
         '''
-
         assert (num_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
         assert (product_prices.shape == (NUM_OF_PRODUCTS,))
 
         value_per_click = np.sum(np.multiply(num_sold_items, product_prices),
                                  axis=2)  # shape = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)
 
-
-        self.compute_users_alpha(budgets)  # (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_BUDGETS)
-
+        self.compute_users_alpha(budgets) # (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_BUDGETS)
         aggregated_value_per_click = np.sum(value_per_click, axis=0)
-        aggregated_users_alpha = np.sum(self.expected_users_alpha, axis=0)
+        aggregated_users_alpha = np.sum(self.expected_users_alpha, axis = 0)
 
         exp_reward = np.multiply(aggregated_users_alpha, np.atleast_2d(aggregated_value_per_click).T)
 
@@ -105,8 +103,7 @@ class Environment:
     def round_step3(self, pulled_arm, pulled_arm_idxs):
 
         assert (pulled_arm_idxs.shape == (NUM_OF_PRODUCTS,))
-        assert (self.expected_reward is not None)
-        assert (self.expected_users_alpha is not None)
+        assert(self.expected_users_alpha is not None)
 
         # pulled_arm is equal to the ecommerce.budgets[pulled_arm_idxs]
 
@@ -129,30 +126,28 @@ class Environment:
     def round_step4(self, pulled_arm, B_cap, num_sold_items):
 
         assert (num_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
-
+        
         tot_alpha_per_product = self.round_step3(pulled_arm, B_cap)
 
         tot_sold_per_product = np.sum(num_sold_items, axis=0)
 
-        estimated_sold_items = np.divide(tot_alpha_per_product,
-                                         np.sum(self.alpha_bars, axis=0)[1:]) * tot_sold_per_product
-
+        
         return tot_alpha_per_product, estimated_sold_items
 
     # -----------------------------------------------
     # --------STEP 5 ENVIRONMENT FUNCTIONS-----------
     def round_step5(self, pulled_arm, nodes_activation_probabilities):
         row, col = pulled_arm
-        return np.random.binomial(n=1, p=nodes_activation_probabilities[row][col])
+        return np.random.binomial(n = 1, p = nodes_activation_probabilities[row][col])
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
     def estimate_disaggregated_num_clicks(self, budgets):
         # TODO
         return self.estimate_num_of_clicks(budgets, aggregated=False)
-
+    
     def round_step7(self, pulled_arm, B_cap, nodes_activation_probabilities, num_sold_items):
-        assert (pulled_arm.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        assert (pulled_arm.shape == (NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
 
         alpha = self.compute_alpha(pulled_arm / B_cap)
         assert (alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
