@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 from tqdm import *
 
@@ -114,8 +112,9 @@ def generate_new_non_stationary_environment():
 
 def observe_learned_functions():
 
+    scenario = Scenario()
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-        observations_probabilities, users_poisson_parameters = setup_environment()
+                observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
     env = Environment(users_reservation_prices, graph_weights, alpha_bars)
     ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
@@ -182,29 +181,18 @@ def simulate_step3():
                 product_prices,
                 observations_probabilities
             )
-            # print('sold items')
-            # print(num_sold_items)
-            # for c in range(num_sold_items.shape[0]):
-            #     for p in range(num_sold_items.shape[1]):
-            #         num_sold_items[c][p] = num_sold_items[c][p] * random.choice([1,2])
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
                 product_prices,
                 budgets
             )
-            # print('clairvoyantt expected reward')
-            # print(expected_reward)
 
             optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
-
-
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
             # aggregation is needed since in this step the ecommerce cannot observe the users classes features
             aggregated_num_sold_items = np.sum(num_sold_items, axis=0)
-            # print('agg num sold items')
-            # print(aggregated_num_sold_items)
 
             arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
             # # the environment returns the users_alpha and the reward for that allocation
@@ -213,7 +201,6 @@ def simulate_step3():
             log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
             arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
-
             alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
             ecomm3_gpucb.update(arm_idxs, alpha)
             log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
@@ -221,10 +208,6 @@ def simulate_step3():
             #   log("OPTIMAL PULLED")
             log('-'*100)
 
-        #print('opt - ucb')
-        #print(optimal_gain - gpucb_gains_per_experiment)
-        #print('opt - ts')
-        #print(optimal_gain - gpts_gains_per_experiment)
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 
 
