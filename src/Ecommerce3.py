@@ -17,9 +17,6 @@ class Ecommerce3(Ecommerce):
         self.n_arms = self.budgets.shape[0]
 
         self.t = 0
-        # I'm generating a distribution of the budgets for each product
-        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 5.0
-        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 5.0
 
         self.pulled_arms = [[] for _ in range(NUM_OF_PRODUCTS)]
         self.rewards_per_arm = [
@@ -41,16 +38,22 @@ class Ecommerce3(Ecommerce):
                 )
 
         assert(alpha is not None and kernel is not None)
-        # we need one gaussian regressor for each product
+
+        # I'm generating a distribution of the budgets for each product
+        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.5
+        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 3.0
+
+        X = np.atleast_2d(self.budgets).T
         self.gaussian_regressors = [
             GaussianProcessRegressor(
                 kernel=kernel,
                 alpha=alpha,
                 normalize_y=True,
                 n_restarts_optimizer=9
-            )
-            for _ in range(NUM_OF_PRODUCTS)
+            ).fit(X, np.random.normal(self.means[i], self.sigmas[i]))
+            for i in range(NUM_OF_PRODUCTS)
         ]
+
 
     def update(self, pulled_arm_idxs, reward):
         '''
@@ -70,22 +73,18 @@ class Ecommerce3(Ecommerce):
 
     def update_observations(self, pulled_arm_idxs, reward):
         for prod_id in range(NUM_OF_PRODUCTS):
-            self.rewards_per_arm[prod_id][pulled_arm_idxs[prod_id]].append(
-                reward[prod_id])
-
-            self.pulled_arms[prod_id].append(
-                self.budgets[pulled_arm_idxs[prod_id]])
+            self.rewards_per_arm[prod_id][pulled_arm_idxs[prod_id]].append(reward[prod_id])
+            self.pulled_arms[prod_id].append(self.budgets[pulled_arm_idxs[prod_id]])
             self.collected_rewards[prod_id].append(reward[prod_id])
 
     def update_model(self):
-        for i in range(NUM_OF_PRODUCTS):
-
-            X = np.atleast_2d(self.pulled_arms[i]).T
+        for prod_id in range(NUM_OF_PRODUCTS):
+            X = np.atleast_2d(self.pulled_arms[prod_id]).T
             X_test = np.atleast_2d(self.budgets).T
-            y = np.array(self.collected_rewards[i])
+            y = np.array(self.collected_rewards[prod_id])
 
-            self.means[i], self.sigmas[i] = self.gaussian_regressors[i].fit(X, y).predict(X=X_test, return_std=True)
-            self.sigmas[i] = np.maximum(self.sigmas[i], 5e-2)
+            self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
+            self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
 
         
     def compute_value_per_click(self, num_sold_items):
@@ -104,12 +103,12 @@ class Ecommerce3_GPTS(Ecommerce3):
     def estimate_reward(self, num_sold_items):
         value_per_click = self.compute_value_per_click(num_sold_items)
 
-        samples = np.zeros_like(self.means)
+        samples = np.empty(shape = (NUM_OF_PRODUCTS, self.n_arms))
+        X = np.atleast_2d(self.budgets).T
         for prod in range(NUM_OF_PRODUCTS):
-            _, cov = self.gaussian_regressors[prod].predict(np.atleast_2d(self.budgets).T, return_cov=True)
+            _, cov = self.gaussian_regressors[prod].predict(X, return_cov=True)
             samples[prod] = np.random.multivariate_normal(self.means[prod], cov)
               
-        #samples = np.random.normal(loc = self.means, scale=self.sigmas)  
         estimated_reward = np.multiply(samples, np.atleast_2d(value_per_click).T)
         return estimated_reward
 
@@ -117,8 +116,8 @@ class Ecommerce3_GPTS(Ecommerce3):
 class Ecommerce3_GPUCB(Ecommerce3):
     def __init__(self, B_cap: float, budgets, product_prices, alpha=None, kernel=None):
         super().__init__(B_cap, budgets, product_prices, alpha, kernel)
-        self.exploration_probability = 0.02
-        self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf)
+        self.exploration_probability = 0.01
+        self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=1e400)
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
 
@@ -130,7 +129,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
             self.N_a[i][pulled_arm_idxs[i]] += 1
 
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
-        self.confidence_bounds[self.N_a == 0] = np.inf
+        self.confidence_bounds[self.N_a == 0] = 1e400
 
     def estimate_reward(self, num_sold_items):
 

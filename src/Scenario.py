@@ -92,15 +92,14 @@ class Scenario:
 
 
     def get_product_prices(self):       
-        return np.array([80,35,20, 150, 350])
+        return np.array([80,35,20, 150, 350]) * 5 
 
 
     def get_users_reservation_prices(self):        # 3 x 5
         users_reservation_prices = np.zeros(shape=(NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
-        product_prices = self.get_product_prices()
-        appreciation = np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]])
 
-        users_reservation_prices = product_prices + appreciation
+        appreciation = np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]]) * 5
+        users_reservation_prices = self.product_prices + appreciation
 
         return users_reservation_prices
     
@@ -114,15 +113,23 @@ class Scenario:
                             for each users class and for each product, the poisson distribution of the bought items in the montecarlo sampling
         '''
 
-        users_concentration_parameters = [
-            np.random.beta(a=8, b=2, size=NUM_OF_PRODUCTS + 1),
+        # users_concentration_parameters = [
+        #     np.random.beta(a=8, b=2, size=NUM_OF_PRODUCTS + 1),
 
-            np.random.beta(a=1, b=1, size=NUM_OF_PRODUCTS + 1),
-            np.random.beta(a=2, b=8, size=NUM_OF_PRODUCTS + 1)
-        ]
+        #     np.random.beta(a=1, b=1, size=NUM_OF_PRODUCTS + 1),
+        #     np.random.beta(a=2, b=8, size=NUM_OF_PRODUCTS + 1)
+        # ]
         
-        # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
-        alpha_bars = renormalize(users_concentration_parameters)
+        # # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
+        # alpha_bars = renormalize(users_concentration_parameters)
+
+        alpha_bars = np.array([
+            [0.03, 0.1, 0.1, 0.03, 0.1, 0.03],
+            [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
+            [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
+        ])
+
+        assert(np.sum(alpha_bars) == 1.0)
 
         log("alpha_bars:\n")
         log(alpha_bars)

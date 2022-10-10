@@ -1,10 +1,4 @@
 import numpy as np
-from matplotlib import pyplot as plt
-from tqdm import tqdm
-
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
-
 from Ecommerce import *
 from Environment import *
 from Utils import *

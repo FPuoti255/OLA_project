@@ -101,6 +101,7 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
     ax[1][1].set_xlabel('round')
     ax[1][1].legend()
     
+    plt.tight_layout()
     plt.show()
 
 
@@ -152,6 +153,7 @@ def plot_regrets_merged(alg1_rewards_per_experiment, alg2_rewards_per_experiment
     ax[1].set_ylabel('reward')
     ax[1].legend()
     
+    plt.tight_layout()
     plt.show()
 
 

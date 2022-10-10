@@ -3,98 +3,98 @@ from constants import *
 from Utils import *
 
 
-def get_secondaries(current_prod):
-    matrix = [[1, 2],
-              [0, 3],
-              [3, 4],
-              [1, 4],
-              [0, 3]
-              ]
-    return matrix[current_prod]
+# def get_secondaries(current_prod):
+#     matrix = [[1, 2],
+#               [0, 3],
+#               [3, 4],
+#               [1, 4],
+#               [0, 3]
+#               ]
+#     return matrix[current_prod]
 
 
-def estimate_nodes_activation_probabilities2(click_probabilities, users_reservation_prices, users_poisson_parameters,
-                                             product_prices, observations_probabilities):
-    matrix = np.zeros((users_reservation_prices.shape[0], len(product_prices), len(product_prices)))
-    for user_class in range(users_reservation_prices.shape[0]):
-        for starting_prod in range(len(product_prices)):
-            for buying_prod in range(len(product_prices)):
+# def estimate_nodes_activation_probabilities2(click_probabilities, users_reservation_prices, users_poisson_parameters,
+#                                              product_prices, observations_probabilities):
+#     matrix = np.zeros((users_reservation_prices.shape[0], len(product_prices), len(product_prices)))
+#     for user_class in range(users_reservation_prices.shape[0]):
+#         for starting_prod in range(len(product_prices)):
+#             for buying_prod in range(len(product_prices)):
 
-                buying_prob = 0
-                not_buying_prob = 1
-                queue = []
-                buy_first_prob = np.random.binomial(n=1,
-                                                    p=min(users_reservation_prices[user_class][starting_prod] /
-                                                          product_prices[starting_prod], 1))
+#                 buying_prob = 0
+#                 not_buying_prob = 1
+#                 queue = []
+#                 buy_first_prob = np.random.binomial(n=1,
+#                                                     p=min(users_reservation_prices[user_class][starting_prod] /
+#                                                           product_prices[starting_prod], 1))
 
-                queue.append([buy_first_prob, [], starting_prod])
-                while queue:
-                    parent_buying_prob, viewed, current_prod = queue.pop()
-                    if current_prod in viewed:
-                        continue
-                    if current_prod == buying_prod:
-                        buying_prob += not_buying_prob * parent_buying_prob
-                        not_buying_prob *= (1 - parent_buying_prob)
-                        continue
-                    viewed.append(current_prod)
-                    first_secondary, second_secondary = get_secondaries(current_prod)
+#                 queue.append([buy_first_prob, [], starting_prod])
+#                 while queue:
+#                     parent_buying_prob, viewed, current_prod = queue.pop()
+#                     if current_prod in viewed:
+#                         continue
+#                     if current_prod == buying_prod:
+#                         buying_prob += not_buying_prob * parent_buying_prob
+#                         not_buying_prob *= (1 - parent_buying_prob)
+#                         continue
+#                     viewed.append(current_prod)
+#                     first_secondary, second_secondary = get_secondaries(current_prod)
 
-                    buy_prob = np.random.binomial(n=1,
-                                                  p=min(users_reservation_prices[user_class][first_secondary] /
-                                                        product_prices[first_secondary], 1))
-                    prob_buy_first = parent_buying_prob * 1 * click_probabilities[starting_prod][buying_prod] * buy_prob
+#                     buy_prob = np.random.binomial(n=1,
+#                                                   p=min(users_reservation_prices[user_class][first_secondary] /
+#                                                         product_prices[first_secondary], 1))
+#                     prob_buy_first = parent_buying_prob * 1 * click_probabilities[starting_prod][buying_prod] * buy_prob
 
-                    buy_prob = np.random.binomial(n=1,
-                                                  p=min(users_reservation_prices[user_class][second_secondary] /
-                                                        product_prices[second_secondary], 1))
-                    prob_buy_sec = parent_buying_prob * 0.6 * click_probabilities[starting_prod][buying_prod] * buy_prob
+#                     buy_prob = np.random.binomial(n=1,
+#                                                   p=min(users_reservation_prices[user_class][second_secondary] /
+#                                                         product_prices[second_secondary], 1))
+#                     prob_buy_sec = parent_buying_prob * 0.6 * click_probabilities[starting_prod][buying_prod] * buy_prob
 
-                    queue.append([prob_buy_first, viewed.copy(), first_secondary])
-                    queue.append([prob_buy_sec, viewed.copy(), second_secondary])
+#                     queue.append([prob_buy_first, viewed.copy(), first_secondary])
+#                     queue.append([prob_buy_sec, viewed.copy(), second_secondary])
 
-                matrix[user_class][starting_prod][buying_prod] = buying_prob
-    return matrix
+#                 matrix[user_class][starting_prod][buying_prod] = buying_prob
+#     return matrix
 
-# questa da problemi
-def estimate_nodes_activation_probabilities3(click_probabilities, users_reservation_prices, users_poisson_parameters,
-                                             product_prices, observations_probabilities):
-    activations = np.zeros((users_reservation_prices.shape[0], len(product_prices)))
-    k = 10000
-    #print('mc')
-    for user_class in range(users_reservation_prices.shape[0]):
+# # questa da problemi
+# def estimate_nodes_activation_probabilities3(click_probabilities, users_reservation_prices, users_poisson_parameters,
+#                                              product_prices, observations_probabilities):
+#     activations = np.zeros((users_reservation_prices.shape[0], len(product_prices)))
+#     k = 10000
+#     #print('mc')
+#     for user_class in range(users_reservation_prices.shape[0]):
 
-        #print(user_class)
-        for starting_prod in range(len(product_prices)):
-            #print(starting_prod)
+#         #print(user_class)
+#         for starting_prod in range(len(product_prices)):
+#             #print(starting_prod)
 
-            for i in range(k):
+#             for i in range(k):
 
-                #print(i)
-                queue = []
-                queue.append(starting_prod)
-                copy_click_probabilities = click_probabilities.copy()
+#                 #print(i)
+#                 queue = []
+#                 queue.append(starting_prod)
+#                 copy_click_probabilities = click_probabilities.copy()
 
-                while len(queue) > 0:
+#                 while len(queue) > 0:
 
-                    #print(queue)
-                    actual_node = queue[0]
-                    if users_reservation_prices[user_class][actual_node] > product_prices[actual_node]:
+#                     #print(queue)
+#                     actual_node = queue[0]
+#                     if users_reservation_prices[user_class][actual_node] > product_prices[actual_node]:
 
-                        copy_click_probabilities[:, actual_node] = 0
-                        activations[user_class][actual_node] += 1
+#                         copy_click_probabilities[:, actual_node] = 0
+#                         activations[user_class][actual_node] += 1
 
-                        first_secondary, second_secondary = get_secondaries(actual_node)
+#                         first_secondary, second_secondary = get_secondaries(actual_node)
 
-                        prob_click_a = copy_click_probabilities[actual_node][first_secondary]
-                        prob_click_b = 0.6 * copy_click_probabilities[actual_node][
-                            second_secondary]
+#                         prob_click_a = copy_click_probabilities[actual_node][first_secondary]
+#                         prob_click_b = 0.6 * copy_click_probabilities[actual_node][
+#                             second_secondary]
 
-                        if np.random.uniform(.0, 1.) < prob_click_a:
-                            queue.append(first_secondary)
-                        if np.random.uniform(.0, 1.) < prob_click_b:
-                            queue.append(second_secondary)
-                    queue = queue[1:]
-    return np.array(activations) / k
+#                         if np.random.uniform(.0, 1.) < prob_click_a:
+#                             queue.append(first_secondary)
+#                         if np.random.uniform(.0, 1.) < prob_click_b:
+#                             queue.append(second_secondary)
+#                     queue = queue[1:]
+#     return np.array(activations) / k
 
 
 def estimate_nodes_activation_probabilities(click_probabilities, users_reservation_prices, users_poisson_parameters,
@@ -117,7 +117,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     for user_class in range(NUM_OF_USERS_CLASSES):  # 3
         for node in range(NUM_OF_PRODUCTS):  # 5
             for _ in range(k):
-                clicks = generate_live_edge_graph(
+                sold = generate_live_edge_graph(
                     seed=node,
                     click_probabilities=click_probabilities,
                     users_reservation_prices=users_reservation_prices[user_class],
@@ -125,7 +125,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
                     product_prices=product_prices,
                     observations_probabilities=observations_probabilities
                 )
-                num_sold_items[user_class][node] = np.add(num_sold_items[user_class][node], clicks)
+                num_sold_items[user_class][node] = np.add(num_sold_items[user_class][node], sold)
 
 
     return (num_sold_items / k)
