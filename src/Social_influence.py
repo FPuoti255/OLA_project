@@ -104,37 +104,37 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     @returns:
         - num_sold_items shape = (num_of_user_classes, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)
     '''
+    assert(users_poisson_parameters.shape == (NUM_OF_USERS_CLASSES,))
 
-    num_of_user_classes = users_reservation_prices.shape[0]
-    num_clicks = np.zeros(shape=(num_of_user_classes, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+    num_sold_items = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
     # number of repetition to have theoretical guarantees on the error of the estimation
    
     epsilon = 3 * 1e-2
     delta = 1e-2
-    k = 10000  # int((1/epsilon**2) * np.log(NUM_OF_PRODUCTS) * np.log(1/delta))
+    k = int( (1/epsilon**2) * np.log(NUM_OF_PRODUCTS) * np.log(1/delta))
 
-    for user_class in range(num_of_user_classes):  # 3
+    for user_class in range(NUM_OF_USERS_CLASSES):  # 3
         for node in range(NUM_OF_PRODUCTS):  # 5
             for _ in range(k):
                 clicks = generate_live_edge_graph(
                     seed=node,
                     click_probabilities=click_probabilities,
                     users_reservation_prices=users_reservation_prices[user_class],
-                    users_poisson_parameters=users_poisson_parameters[user_class],
+                    users_poisson_parameter=users_poisson_parameters[user_class],
                     product_prices=product_prices,
                     observations_probabilities=observations_probabilities
                 )
-                num_clicks[user_class][node] = np.add(num_clicks[user_class][node], clicks)
-    # print('num sold items')
-    # print((num_sold_items / k).astype(int))
-    return (num_clicks / k)  # .astype(int)
+                num_sold_items[user_class][node] = np.add(num_sold_items[user_class][node], clicks)
+
+
+    return (num_sold_items / k)
 
 
 def generate_live_edge_graph(seed,
                              click_probabilities,
                              users_reservation_prices,
-                             users_poisson_parameters,
+                             users_poisson_parameter,
                              product_prices,
                              observations_probabilities):
     secondary_products = np.multiply(
@@ -161,14 +161,13 @@ def generate_live_edge_graph(seed,
             # variable; that is, the user decides first whether to buy or not the products and,
             # subsequently, in the case of a purchase, the number of units to buy.
             # We model this number of units with a poisson random variable.
-            bought_items[
-                primary_product] += np.random.choice([1,2])# np.random.poisson(lam=users_poisson_parameters[primary_product])
+            bought_items[primary_product] += np.random.poisson(lam=users_poisson_parameter)
 
             for idxs in np.argwhere(slots):
                
                 # the user clicks on a secondary product with a probability depending on the primary product
                 # except when the secondary product has been already displayed as primary in the past
-                if np.random.binomial(n=1, p=slots[idxs[0]]):  # and idxs[0] not in has_been_primary:
+                if np.random.binomial(n=1, p=slots[idxs[0]]) and idxs[0] not in has_been_primary:
                     white_nodes.add(idxs[0])
 
         has_been_primary.add(primary_product)

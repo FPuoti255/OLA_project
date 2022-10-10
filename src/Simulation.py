@@ -19,118 +19,6 @@ from Ecommerce6 import *
 from step7.Ecommerce7 import *
 
 
-def generate_graph_weights():
-    '''
-    :return: matrix representing the probability of going from a node to another
-    '''
-
-    adjacency_matrix = np.random.uniform(low=0.1, high=1.00001, size=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-    adjacency_matrix[np.diag_indices(n=NUM_OF_PRODUCTS, ndim=2)] = 0.0
-
-    # set some values to zero is not fully connected, otherwise it's ready
-    if not fully_connected:
-        graph_mask = np.random.randint(
-            low=0, high=2, size=adjacency_matrix.shape)
-        adjacency_matrix = np.multiply(adjacency_matrix, graph_mask)
-
-    adjacency_matrix = np.round(adjacency_matrix, 2)
-    return np.array([[0., 0.81, 0.15, 0.25, 0.59],
-                     [0.15, 0., 0.12, 0.54, 0.74],
-                     [0.55, 0.95, 0., 0.32, 0.81],
-                     [0.57, 0.87, 0.33, 0., 0.77],
-                     [0.24, 0.47, 0.77, 0.31, 0.]])
-
-
-def generate_observation_probabilities(graph_weights):
-    '''
-    :return: a random matrix representing the probability of observing from node i, when is primary, to node j, when it's in the secondaries.
-             Probability is 1 for observing the first slot of the secondary product and LAMBDA for the second slot
-    '''
-
-    obs_prob = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-
-    for product in range(NUM_OF_PRODUCTS):
-
-        available_products = [
-            i
-            for i in range(0, NUM_OF_PRODUCTS)
-            if i != product and graph_weights[product][i] != 0.0
-        ]
-
-        if len(available_products) >= 2:
-            idxs = [available_products[0], available_products[
-                1]]  # np.random.choice(a=available_products,size=max(2, len(available_products)),replace=False,)
-            obs_prob[product][idxs[0]] = 1
-            obs_prob[product][idxs[1]] = LAMBDA
-        elif len(available_products) == 1:
-            obs_prob[product][available_products[0]] = 1
-        else:
-            continue
-
-    return [[0., 1., 0.6, 0., 0.],
-            [1., 0., 0.6, 0., 0.],
-            [0., 0, 0., 1., 0.6],
-            [0., 0.6, 0., 0., 1],
-            [1., 0, 0., 0.6, 0.]]
-
-
-def generate_users_parameters(users_reservation_prices):
-    '''
-    :return: 
-        - alpha_bars represents the MAX percentage of users (for each class) landing on a specific product webpage including the competitor's
-        - users_reservation prices (NUM_OF_USERS_CLASSES x NUM_OF_PRODUCTS)
-        - users_poisson_parameters = NUM_OF_USERS_CLASSES x NUM_OF_PRODUCTS matrix giving, 
-                        for each users class and for each product, the poisson distribution of the bought items in the montecarlo sampling
-    '''
-
-    users_concentration_parameters = [
-        np.multiply(np.random.beta(a=8, b=2, size=NUM_OF_PRODUCTS + 1), 1000),
-        # a beta distribution with a = b = 1 is equivalent to a normal distribution over the interval [0,1]
-        np.multiply(np.random.beta(a=1, b=1, size=NUM_OF_PRODUCTS + 1), 1000),
-        np.random.random_integers(low=0, high=1000, size=NUM_OF_PRODUCTS + 1)
-    ]
-    log("users_concentration_parametersss:\n")
-    log(users_concentration_parameters)
-    log("\n\n")
-
-    # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
-    alpha_bars = np.array([[1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1],[1, 1, 1, 1, 1, 1]])
-    #alpha_bars = renormalize(users_concentration_parameters)
-    log("alpha_bars:\n")
-    log(alpha_bars)
-    log("\n\n")
-
-    max_expected_poisson_realization = 5
-
-    users_poisson_parameters = np.array(
-        [np.full(shape=NUM_OF_PRODUCTS, fill_value=max_expected_poisson_realization) * users_reservation_prices[
-            user_class] / 100
-         for user_class in range(NUM_OF_USERS_CLASSES)]
-    )  # 3x5
-    log("users_poisson_parameters:\n")
-    log(users_poisson_parameters)
-    log("\n\n")
-    # print(alpha_bars)
-    # print(users_poisson_parameters)
-    return alpha_bars, users_poisson_parameters
-
-
-def setup_environment():
-    '''
-    :return: graph_weights, alpha_bars, scenario.product_prices, scenario.users_reservation_prices, observations_probabilities, users_poisson_parameters
-    '''
-
-    graph_weights = generate_graph_weights()
-    # Secondary product set by the business unit
-    observations_probabilities = generate_observation_probabilities(graph_weights)
-
-    scenario = Scenario()
-    alpha_bars, users_poisson_parameters = generate_users_parameters(scenario.users_reservation_prices)
-
-    # Network.print_graph(G=env.network.G)
-    return graph_weights, alpha_bars, scenario.product_prices, scenario.users_reservation_prices, observations_probabilities, users_poisson_parameters
-
-
 def setup_non_stationaty_environment():
 
     nodes_activation_probabilities = []
@@ -273,19 +161,10 @@ def simulate_step3():
     for e in range(0, n_experiments):
         print('Experiment n°:', e + 1)
 
+        scenario = Scenario()
         graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-        observations_probabilities, users_poisson_parameters = setup_environment()
-        print('graph')
-        print(graph_weights)
-        #print('alpha')
-        #print(alpha_bars)
-        # print('prices')
-        # print(product_prices)
-        # print('res prices')
-        # print(users_reservation_prices)
-        # print('obs prob')
-        # print(observations_probabilities)
-        # print('user poisson param')
+                    observations_probabilities, users_poisson_parameters = scenario.setup_environment()
+
 
         env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
@@ -296,7 +175,7 @@ def simulate_step3():
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
             # Every day a new montecarlo simulation must be run to sample num of items sold
-            num_sold_items = estimate_nodes_activation_probabilities2(
+            num_sold_items = estimate_nodes_activation_probabilities(
                 env.network.get_adjacency_matrix(),
                 env.users_reservation_prices,
                 users_poisson_parameters,
@@ -305,9 +184,9 @@ def simulate_step3():
             )
             # print('sold items')
             # print(num_sold_items)
-            for c in range(num_sold_items.shape[0]):
-                for p in range(num_sold_items.shape[1]):
-                    num_sold_items[c][p] = num_sold_items[c][p] * random.choice([1,2])
+            # for c in range(num_sold_items.shape[0]):
+            #     for p in range(num_sold_items.shape[1]):
+            #         num_sold_items[c][p] = num_sold_items[c][p] * random.choice([1,2])
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,

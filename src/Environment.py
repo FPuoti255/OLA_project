@@ -23,15 +23,6 @@ class Environment:
         self.expected_users_alpha = None
         self.expected_reward = None
 
-        # non sono usate
-        self.functions= [
-            lambda x : alpha_bars[:, 1]*(1 - np.exp(-10 * x)),
-            lambda x : alpha_bars[:, 2]*(1 - np.exp(-7 * x)),
-            lambda x : alpha_bars[:, 3]*(1 - np.exp(-15 * x)),
-            lambda x : alpha_bars[:, 4]*(1 - np.exp(-12 * x)),
-            lambda x : alpha_bars[:, 5]*(1 - np.exp(-20 * x)),
-        ]
-
         self.network = Network(adjacency_matrix=graph_weights)
 
 
@@ -59,24 +50,26 @@ class Environment:
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
         :return: the expected alpha for each couple (prod_id, budget_allocated)
         '''
-        budgets = budgets / budgets[-1]
+        bdgts = budgets.copy() / budgets[-1]
         exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
 
-        for prod_id in range(NUM_OF_PRODUCTS):
-            for j in range(1, budgets.shape[0]):
-                # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-                conc_params = self.mapping_function(prod_id, budgets[j])
+        for user_class in range(NUM_OF_USERS_CLASSES):
+            for prod_id in range(NUM_OF_PRODUCTS):
+                for j in range(1, bdgts.shape[0]):
 
-                for user_class in range(NUM_OF_USERS_CLASSES):
+                    conc_params = self.mapping_function(prod_id, bdgts[j])
+
                     exp_user_alpha[user_class, prod_id, j] = min(
                         self.rng.dirichlet(
-                            np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 1000)
+                            np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 100)
                         )[0],
                         self.alpha_bars[user_class, prod_id + 1]
                     )
-        #print('exp users alpha')
-        #print(exp_user_alpha)
+
+                exp_user_alpha[user_class, prod_id] = np.sort(exp_user_alpha[user_class, prod_id])
+
         self.expected_users_alpha = exp_user_alpha
+
 
     def compute_clairvoyant_reward(self, num_sold_items, product_prices, budgets):
         '''
@@ -98,11 +91,13 @@ class Environment:
         self.expected_reward = exp_reward
         return exp_reward
 
+
     # -----------------------------------------------
     # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
     def round_step3(self, pulled_arm, pulled_arm_idxs):
 
         assert (pulled_arm_idxs.shape == (NUM_OF_PRODUCTS,))
+        assert(self.expected_reward is not None)
         assert(self.expected_users_alpha is not None)
 
         # pulled_arm is equal to the ecommerce.budgets[pulled_arm_idxs]
@@ -115,10 +110,7 @@ class Environment:
         for prod_id in range(NUM_OF_PRODUCTS):
             alpha[prod_id] = aggregated_exp_users_alpha[prod_id][pulled_arm_idxs[prod_id]]
             reward += self.expected_reward[prod_id][pulled_arm_idxs[prod_id]] - pulled_arm[prod_id]
-            # print('alpha')
-        # print(alpha)
-        # print('reward')
-        # print(reward)
+
         return alpha, reward
 
     # -----------------------------------------------

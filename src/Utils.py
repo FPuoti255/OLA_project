@@ -22,23 +22,23 @@ def renormalize(arr: np.array):
     return arr.copy() if arr_sum == 0 else arr.copy() / np.sum(arr)
 
 
-def compute_beta_parameters(means, sigmas):
-    # https://stats.stackexchange.com/a/316088
+# def compute_beta_parameters(means, sigmas):
+#     # https://stats.stackexchange.com/a/316088
 
-    precision = np.divide(1, np.square(sigmas))
-    a = np.multiply(means, precision)
-    b = np.multiply(precision, (1 - means))
+#     precision = np.divide(1, np.square(sigmas))
+#     a = np.multiply(means, precision)
+#     b = np.multiply(precision, (1 - means))
 
-    return np.maximum(a, 0.01), np.maximum(b, 0.01)
+#     return np.maximum(a, 0.01), np.maximum(b, 0.01)
 
 
-def compute_beta_means_variance(a, b):
-    means = np.divide(a, np.add(a, b))
-    sigmas_square = np.divide(
-        np.multiply(a, b), np.multiply(
-            np.square(np.add(a, b)), np.add(np.add(a, b), 1))
-    )
-    return means, sigmas_square
+# def compute_beta_means_variance(a, b):
+#     means = np.divide(a, np.add(a, b))
+#     sigmas_square = np.divide(
+#         np.multiply(a, b), np.multiply(
+#             np.square(np.add(a, b)), np.add(np.add(a, b), 1))
+#     )
+#     return means, sigmas_square
 
 
 def compute_cumulative_regret_mean_std(opts, rewards_per_experiment):
