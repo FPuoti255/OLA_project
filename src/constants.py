@@ -18,7 +18,7 @@ users_price_range = 100
 products_price_range = 100
 
 n_experiments = 2
-T = 80
+T = 100
 n_phases = 1
 phase_len = np.ceil(T/n_phases).astype(int)
 

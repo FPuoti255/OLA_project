@@ -174,14 +174,15 @@ def simulate_step3():
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
             # Every day a new montecarlo simulation must be run to sample num of items sold
-            num_sold_items = estimate_nodes_activation_probabilities(
+            num_sold_items = np.random.randint(10,30,size=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))/10
+            """estimate_nodes_activation_probabilities(
                 env.network.get_adjacency_matrix(),
                 env.users_reservation_prices,
                 users_poisson_parameters,
                 product_prices,
                 observations_probabilities
-            )
-
+            )"""
+        
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
                 product_prices,

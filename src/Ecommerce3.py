@@ -38,9 +38,10 @@ class Ecommerce3(Ecommerce):
                 constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
                 length_scale=hyperparameters["length_scale"], 
                 length_scale_bounds=(hyperparameters["length_scale_bounds1"],hyperparameters["length_scale_bounds2"])
-                )
+            )
 
         assert(alpha is not None and kernel is not None)
+
         # we need one gaussian regressor for each product
         self.gaussian_regressors = [
             GaussianProcessRegressor(
