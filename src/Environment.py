@@ -115,16 +115,16 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
-    def round_step4(self, pulled_arm, B_cap, num_sold_items):
+    def round_step4(self, pulled_arm, pulled_arm_idxs, num_sold_items):
 
-        assert (num_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
-        
-        tot_alpha_per_product = self.round_step3(pulled_arm, B_cap)
+        alpha, reward = self.round_step3(pulled_arm, pulled_arm_idxs)
 
-        tot_sold_per_product = np.sum(num_sold_items, axis=0)
+        aggregated_num_sold_items = np.sum(num_sold_items, axis = (0,1))
+        assert(aggregated_num_sold_items.shape == (NUM_OF_PRODUCTS,))
 
-        
-        return tot_alpha_per_product, estimated_sold_items
+        real_sold_items = aggregated_num_sold_items * alpha / np.sum(self.alpha_bars, axis = 0)[1:]
+
+        return alpha, reward, real_sold_items
 
     # -----------------------------------------------
     # --------STEP 5 ENVIRONMENT FUNCTIONS-----------

@@ -122,7 +122,7 @@ def observe_learned_functions():
 
     for t in tqdm(range(0, T), position = 0, desc="n_iteration"):
     # Every day a new montecarlo simulation must be run to sample num of items sold
-        num_sold_items = estimate_nodes_activation_probabilities2(
+        num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
             env.users_reservation_prices,
             users_poisson_parameters,
@@ -130,15 +130,16 @@ def observe_learned_functions():
             observations_probabilities
         )
 
+        # aggregation is needed since in this step the ecommerce
+        # cannot observe the users classes features
+        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
+
         _ = env.compute_clairvoyant_reward(
             num_sold_items,
             product_prices,
             budgets
         )
 
-        # aggregation is needed since in this step the ecommerce
-        # cannot observe the users classes features
-        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
 
         arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
         # the environment returns the users_alpha and the reward for that allocation
@@ -171,6 +172,7 @@ def simulate_step3():
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
         ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
 
+        
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
             # Every day a new montecarlo simulation must be run to sample num of items sold
@@ -182,7 +184,10 @@ def simulate_step3():
                 product_prices,
                 observations_probabilities
             )"""
-        
+            
+            # aggregation is needed since in this step the ecommerce cannot observe the users classes features
+            aggregated_num_sold_items = np.sum(num_sold_items, axis=0)
+
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
                 product_prices,
@@ -192,8 +197,6 @@ def simulate_step3():
             optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
-            # aggregation is needed since in this step the ecommerce cannot observe the users classes features
-            aggregated_num_sold_items = np.sum(num_sold_items, axis=0)
 
             arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
             # # the environment returns the users_alpha and the reward for that allocation
@@ -213,46 +216,59 @@ def simulate_step3():
 
 
 def simulate_step4():
-    gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
-        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments))
+    gpts_gains_per_experiment = np.zeros(shape=(n_experiments, T))
+    gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
+    optimal_gain = np.zeros(shape=(n_experiments, T))
 
     for e in range(0, n_experiments):
         print('Experiment n°:', e + 1)
 
-        env, observations_probabilities, product_prices, users_poisson_parameters = setup_environment()
+        scenario = Scenario()
+        graph_weights, alpha_bars, product_prices, users_reservation_prices, \
+                    observations_probabilities, users_poisson_parameters = scenario.setup_environment()
+
+
+        env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
         ecomm4_gpts = Ecommerce4_GPTS(B_cap, budgets, product_prices)
         ecomm4_gpucb = Ecommerce4_GPUCB(B_cap, budgets, product_prices)
+        
+        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
-        nodes_activation_probabilities, num_sold_items = estimate_nodes_activation_probabilities(
-            env.graph_weights,
-            env.users_reservation_prices,
-            users_poisson_parameters,
-            product_prices,
-            observations_probabilities
-        )
+            num_sold_items = estimate_nodes_activation_probabilities(
+                env.network.get_adjacency_matrix(),
+                env.users_reservation_prices,
+                users_poisson_parameters,
+                product_prices,
+                observations_probabilities
+            )
 
-        exp_clicks = env.estimate_num_of_clicks(budgets / B_cap)
-        _, optimal_gain_per_experiment[e] = ecomm.solve_optimization_problem(
-            num_sold_items,
-            exp_clicks,
-            nodes_activation_probabilities
-        )
+            expected_reward = env.compute_clairvoyant_reward(
+                num_sold_items,
+                product_prices,
+                budgets
+            )
 
-        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
-            arm = ecomm4_gpts.pull_arm()
-            reward, estimated_sold_items = env.round_step4(arm, B_cap, num_sold_items)
-            ecomm4_gpts.update(arm, reward, estimated_sold_items)
-            _, gpts_gains_per_experiment[e][t] = ecomm4_gpts.solve_optimization_problem(nodes_activation_probabilities)
+            optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
+            log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
-            arm = ecomm4_gpucb.pull_arm()
-            reward, estimated_sold_items = env.round_step4(arm, B_cap, num_sold_items)
-            ecomm4_gpucb.update(arm, reward, estimated_sold_items)
-            _, gpucb_gains_per_experiment[e][t] = ecomm4_gpucb.solve_optimization_problem(
-                nodes_activation_probabilities)
 
-    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain_per_experiment
+            arm, arm_idxs = ecomm4_gpts.pull_arm()
+            # # the environment returns the users_alpha and the reward for that allocation
+            alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
+            ecomm4_gpts.update(arm_idxs, alpha, sold_items)
+            log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
+
+            arm, arm_idxs = ecomm4_gpucb.pull_arm()
+            alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
+            ecomm4_gpucb.update(arm_idxs, alpha, sold_items)
+            log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
+            #if optimal_allocation == arm:
+            #   log("OPTIMAL PULLED")
+            log('-'*100)
+
+    return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 
 
 def simulate_step5():

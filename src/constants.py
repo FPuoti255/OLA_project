@@ -19,7 +19,7 @@ products_price_range = 100
 
 n_experiments = 2
 T = 100
-n_phases = 1
+n_phases = 3
 phase_len = np.ceil(T/n_phases).astype(int)
 
 features = {'A' : 1, 'B' : 0, 'C' : 0, 'D' : 2}
