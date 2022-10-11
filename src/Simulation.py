@@ -27,14 +27,16 @@ def setup_non_stationaty_environment():
     users_poisson_parameters = []
     prod_fun_idx = np.arange(NUM_OF_PRODUCTS)
 
-    graph_weights = generate_graph_weights()
-    observations_probabilities = generate_observation_probabilities(graph_weights)
+    scenario = Scenario()
+
+    graph_weights = scenario.generate_graph_weights()
+    observations_probabilities = scenario.generate_observation_probabilities(graph_weights)
     product_prices = np.round(np.random.random(size=NUM_OF_PRODUCTS) * products_price_range, 2)
     scenario = Scenario()
 
     for _ in range(n_phases):
 
-        alpha_bar, single_users_poisson_parameters = generate_users_parameters(scenario.users_reservation_prices)
+        alpha_bar, single_users_poisson_parameters = scenario.generate_users_parameters(scenario.users_reservation_prices)
         users_reservation_prices.append(scenario.users_reservation_prices)
         users_poisson_parameters.append(single_users_poisson_parameters)
         alpha_bars.append(alpha_bar)
@@ -65,8 +67,10 @@ def generate_new_non_stationary_environment():
     :return: env, observations_probabilities, graph_weights, product_prices, num_sold_items, nodes_activation_probabilities
     '''
 
-    graph_weights = generate_graph_weights()
-    observations_probabilities = generate_observation_probabilities(graph_weights)
+    scenario = Scenario()
+
+    graph_weights = scenario.generate_graph_weights()
+    observations_probabilities = scenario.generate_observation_probabilities(graph_weights)
     product_prices = np.round(np.random.random(size=NUM_OF_PRODUCTS) * products_price_range, 2)
 
     users_alpha = []
@@ -77,11 +81,9 @@ def generate_new_non_stationary_environment():
     users_poisson_parameters = []
     prod_fun_idx = np.arange(NUM_OF_PRODUCTS)
 
-    scenario = Scenario()
-
     for _ in range(n_phases):
 
-        alpha_bars, _ = generate_users_parameters(scenario.users_reservation_prices)
+        alpha_bars, _ = scenario.generate_users_parameters(scenario.users_reservation_prices)
 
         users_alpha.append(alpha_bars)
         users_reservation_prices.append(scenario.users_reservation_prices)
@@ -165,14 +167,12 @@ def simulate_step3():
         graph_weights, alpha_bars, product_prices, users_reservation_prices, \
                     observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
-
         env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
         ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
 
-        
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
             # Every day a new montecarlo simulation must be run to sample num of items sold
@@ -184,7 +184,7 @@ def simulate_step3():
                 product_prices,
                 observations_probabilities
             )"""
-            
+
             # aggregation is needed since in this step the ecommerce cannot observe the users classes features
             aggregated_num_sold_items = np.sum(num_sold_items, axis=0)
 

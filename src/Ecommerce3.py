@@ -20,7 +20,7 @@ class Ecommerce3(Ecommerce):
 
         self.pulled_arms = [[] for _ in range(NUM_OF_PRODUCTS)]
         self.rewards_per_arm = [
-            [[] for _ in range(self.n_arms)] for i in range(NUM_OF_PRODUCTS)
+            [[] for _ in range(self.n_arms)] for _ in range(NUM_OF_PRODUCTS)
         ]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
@@ -40,10 +40,15 @@ class Ecommerce3(Ecommerce):
         assert(alpha is not None and kernel is not None)
 
         # I'm generating a distribution of the budgets for each product
-        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.5
-        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 3.0
+        params = [[0.5,3.0], [0.5,5.0],[1.0,3.0],[1.0,5.0],[5.0,10.0]]
+        now = 4
+        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * params[now][0]
+        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * params[now][1]
+
+        print("means:", params[now][0], " and variance:", params[now][1])
 
         X = np.atleast_2d(self.budgets).T
+        
         self.gaussian_regressors = [
             GaussianProcessRegressor(
                 kernel=kernel,
@@ -65,7 +70,6 @@ class Ecommerce3(Ecommerce):
         self.update_model()
 
     def pull_arm(self, num_sold_items):
-
         estimated_reward = self.estimate_reward(num_sold_items)
         budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
         return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
@@ -82,7 +86,6 @@ class Ecommerce3(Ecommerce):
             X = np.atleast_2d(self.pulled_arms[prod_id]).T
             X_test = np.atleast_2d(self.budgets).T
             y = np.array(self.collected_rewards[prod_id])
-
             self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
 
