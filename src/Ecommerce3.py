@@ -27,9 +27,7 @@ class Ecommerce3(Ecommerce):
         if kernel is None and alpha is None:    
 
             hyperparameters = json.load(open("hyperparameters.json"))
-
             alpha = hyperparameters["alpha"]
-
             kernel = C(
                 constant_value=hyperparameters["constant_value"], 
                 constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
@@ -44,8 +42,7 @@ class Ecommerce3(Ecommerce):
         now = 4
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * params[now][0]
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * params[now][1]
-
-        print("means:", params[now][0], " and variance:", params[now][1])
+        #print("means:", params[now][0], " and variance:", params[now][1])
 
         X = np.atleast_2d(self.budgets).T
         
@@ -58,7 +55,6 @@ class Ecommerce3(Ecommerce):
             ).fit(X, np.random.normal(self.means[i], self.sigmas[i]))
             for i in range(NUM_OF_PRODUCTS)
         ]
-
 
     def update(self, pulled_arm_idxs, reward):
         '''
@@ -74,7 +70,6 @@ class Ecommerce3(Ecommerce):
         budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
         return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
         
-
     def update_observations(self, pulled_arm_idxs, reward):
         for prod_id in range(NUM_OF_PRODUCTS):
             self.rewards_per_arm[prod_id][pulled_arm_idxs[prod_id]].append(reward[prod_id])
@@ -89,7 +84,6 @@ class Ecommerce3(Ecommerce):
             self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
 
-        
     def compute_value_per_click(self, num_sold_items):
         '''
         :returns: value per click for each product. Shape = (NUM_OF_PRODUCTS,)
@@ -131,7 +125,8 @@ class Ecommerce3_GPUCB(Ecommerce3):
         for i in range(NUM_OF_PRODUCTS):
             self.N_a[i][pulled_arm_idxs[i]] += 1
 
-        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / self.N_a)
+        # bayesian UCB
+        self.confidence_bounds = 0.2 * self.sigmas #= np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = 1e400
 
     def estimate_reward(self, num_sold_items):
