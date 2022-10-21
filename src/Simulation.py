@@ -14,7 +14,7 @@ from Ecommerce3 import *
 from Ecommerce4 import *
 from Ecommerce5 import *
 from Ecommerce6 import *
-from step7.Ecommerce7 import *
+#from step7.Ecommerce7 import *
 
 
 def setup_non_stationaty_environment():
@@ -177,7 +177,10 @@ def simulate_step3():
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
             # Every day a new montecarlo simulation must be run to sample num of items sold
-            num_sold_items = np.random.randint(10,30,size=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))/10
+            num_sold_items = np.maximum(
+                np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+                0
+            )
             """estimate_nodes_activation_probabilities(
                 env.network.get_adjacency_matrix(),
                 env.users_reservation_prices,
@@ -207,8 +210,7 @@ def simulate_step3():
             # alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
             # ecomm3_gpucb.update(arm_idxs, alpha)
             # log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
-            # #if optimal_allocation == arm:
-            # #   log("OPTIMAL PULLED")
+
             # log('-'*100)
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
@@ -230,12 +232,15 @@ def simulate_step4():
         env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm4_gpts = Ecommerce4_GPTS(B_cap, budgets, product_prices)
-        ecomm4_gpucb = Ecommerce4_GPUCB(B_cap, budgets, product_prices)
+        ecomm4_gpts = Ecommerce4('TS',B_cap, budgets, product_prices)
+        ecomm4_gpucb = Ecommerce4('UCB', B_cap, budgets, product_prices)
         
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
-
-            num_sold_items = np.random.normal(loc = 5, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+            
+            num_sold_items = np.maximum(
+                np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+                0
+            )
             """estimate_nodes_activation_probabilities(
                 env.network.get_adjacency_matrix(),
                 env.users_reservation_prices,
@@ -264,8 +269,7 @@ def simulate_step4():
             alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
             ecomm4_gpucb.update(arm_idxs, alpha, sold_items)
             log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
-            #if optimal_allocation == arm:
-            #   log("OPTIMAL PULLED")
+
             log('-'*100)
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain

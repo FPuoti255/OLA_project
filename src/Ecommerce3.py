@@ -32,24 +32,19 @@ class Ecommerce3(Ecommerce):
 
     def gp_init(self, alpha = None, kernel = None):
 
-        if kernel is None and alpha is None:    
-            hyperparameters = json.load(open("hyperparameters.json"))
+        hyperparameters = json.load(open("hyperparameters.json"))['step3']
+        if kernel is None and alpha is None:
             alpha = hyperparameters["alpha"]
-            kernel = C(
-                constant_value=hyperparameters["constant_value"], 
-                constant_value_bounds=(hyperparameters["constant_value_bounds1"],hyperparameters["constant_value_bounds2"])) * RBF(
-                length_scale=hyperparameters["length_scale"], 
-                length_scale_bounds=(hyperparameters["length_scale_bounds1"],hyperparameters["length_scale_bounds2"])
-            )
 
+            kernel = hyperparameters["constant_value"] * RBF(
+                length_scale=hyperparameters["length_scale"], 
+                length_scale_bounds=(hyperparameters["length_scale_lb"],hyperparameters["length_scale_ub"])
+            )
 
         assert(alpha is not None and kernel is not None)
 
-        # I'm generating a prior distribution over the budgets
-        params = [[5.0,10.0],[0.0, 10.0]]
-        now = 1 # [5.0, 10.0] best so far
-        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * params[now][0]
-        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * params[now][1]
+        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * hyperparameters['prior_mean']
+        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * hyperparameters['prior_std']
         #print("means:", params[now][0], " and variance:", params[now][1])
 
         X = np.atleast_2d(self.budgets).T

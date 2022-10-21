@@ -18,7 +18,7 @@ from Simulation import *
 
 def callback(xk, convergence):
     print('------------------------------------------')
-    print("best_solution so far: alpha, c_const, rbf_ls = ", xk)
+    print("best_solution so far: ", xk)
     print("Minimum rmse: %.6f" % (convergence))
     print('------------------------------------------')
 
@@ -29,20 +29,18 @@ def generate_data():
              observations_probabilities, users_poisson_parameters
     '''
 
-    return setup_environment()
+    scenario = Scenario()
+    return scenario.setup_environment()
 
 
 
+def gpts_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices):
 
-def gpts_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices,
-                    observations_probabilities, users_poisson_parameters):
-
-    n_rounds= 50
+    n_rounds= 70
     y_actual, y_predicted = [], []
 
-    alpha_kernel, c_const, rbf_ls = hyperparams
-    #kernel = C(constant_value = c_const, constant_value_bounds=(c_const_lb, c_const_ub)) * RBF(length_scale = rbf_ls, length_scale_bounds=(rbf_ls_lb, rbf_length_scale_ub))
-    kernel = C(constant_value = c_const) * RBF(length_scale = rbf_ls)
+    alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
+    kernel = c_const * RBF(length_scale = rbf_ls, length_scale_bounds=(min(rbf_ls_lb, rbf_ls_ub), max(rbf_ls_lb, rbf_ls_ub)))
 
     env = Environment(users_reservation_prices, graph_weights, alpha_bars)
     ecomm = Ecommerce(B_cap, budgets, product_prices)
@@ -51,15 +49,11 @@ def gpts_function(hyperparams, graph_weights, alpha_bars, product_prices, users_
 
     for _ in range(0, n_rounds):
 
-        # Every day a new montecarlo simulation must be run to sample num of items sold
-        num_sold_items = estimate_nodes_activation_probabilities(
-            env.network.get_adjacency_matrix(),
-            env.users_reservation_prices,
-            users_poisson_parameters,
-            product_prices,
-            observations_probabilities
-        )
-        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0) #needed for the ecommerce
+        num_sold_items = np.maximum(
+                np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+                0
+            )
+        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
         
         expected_reward_table = env.compute_clairvoyant_reward(
             num_sold_items,
@@ -72,36 +66,35 @@ def gpts_function(hyperparams, graph_weights, alpha_bars, product_prices, users_
 
 
         arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
-
         alpha, gpts_gain = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
+        
         y_predicted.append(gpts_gain)
 
         ecomm3_gpts.update(arm_idxs, alpha)
 
-    rmse = np.sqrt(mean_squared_error(y_actual, y_predicted)) / 1000
-    print(f'rmse = {rmse}, hyperparams: (alpha = {alpha_kernel}, c_const = {c_const}, rbf_ls = {rbf_ls})\n')
-    return rmse
+
+    return np.sqrt(mean_squared_error(y_actual, y_predicted))
 
 
 
 if __name__ == '__main__':
 
     alpha_bounds = (0.01, 5.0)
-    c_constant_value = (1.0, 100.0)
-    rbf_length_scale = (1.0, 100.0)
+    c_constant_value = (1e-1, 1e2)
+    rbf_length_scale = (1e-1, 1e2)
+    rbf_length_scale_lower_bound = (1e-3, 1e3)
+    rbf_length_scale_upper_bound = (1e-3, 1e3)
 
-    bounds = [alpha_bounds] + [c_constant_value] + [rbf_length_scale]
+    bounds = [alpha_bounds] + [c_constant_value] + [rbf_length_scale] + [rbf_length_scale_lower_bound] + [rbf_length_scale_upper_bound]
 
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-        observations_probabilities, users_poisson_parameters = generate_data()
+        _, _ = generate_data()
 
-    extra_variables = (    graph_weights, alpha_bars, product_prices, users_reservation_prices, observations_probabilities, users_poisson_parameters)
+    extra_variables = (graph_weights, alpha_bars, product_prices, users_reservation_prices)
 
     solver = differential_evolution(gpts_function, bounds, args=extra_variables, strategy='best1bin', updating = 'deferred',
-                                    workers = -1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, seed=12345, callback=callback)
+                                    workers = -1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, seed=12345, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
-    # Print final results
-    print("Converged hyperparameters: alpha, c_const, rbf_ls = ", best_hyperparams)
-    print("Minimum rmse: %.6f" % (best_rmse))
+    callback(best_hyperparams, best_rmse)
