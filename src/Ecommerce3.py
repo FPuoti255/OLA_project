@@ -2,7 +2,7 @@ from itertools import combinations_with_replacement, permutations
 import json
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C, Matern
+from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel
 
 from Ecommerce import *
 from constants import *
@@ -36,16 +36,16 @@ class Ecommerce3(Ecommerce):
         if kernel is None and alpha is None:
             alpha = hyperparameters["alpha"]
 
-            kernel = hyperparameters["constant_value"] * RBF(
+            kernel = ConstantKernel(hyperparameters["constant_value"]) *  RBF(
                 length_scale=hyperparameters["length_scale"], 
                 length_scale_bounds=(hyperparameters["length_scale_lb"],hyperparameters["length_scale_ub"])
-            )
+                ) + WhiteKernel(noise_level=5e-03)
 
         assert(alpha is not None and kernel is not None)
 
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * hyperparameters['prior_mean']
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * hyperparameters['prior_std']
-        #print("means:", params[now][0], " and variance:", params[now][1])
+
 
         X = np.atleast_2d(self.budgets).T
         
