@@ -128,8 +128,8 @@ class Scenario:
             [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
             [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
         ])
-
         assert(np.sum(alpha_bars) == 1.0)
+
 
         log("alpha_bars:\n")
         log(alpha_bars)
