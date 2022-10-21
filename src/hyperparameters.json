@@ -8,7 +8,7 @@
         "length_scale_lb": 1.18108350e+01,
         "length_scale_ub": 8.83883445e+02,
     
-        "prior_mean" : 5.0,
+        "prior_mean" : 0.0,
         "prior_std" : 10.0
     }
 }
