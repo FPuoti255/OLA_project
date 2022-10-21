@@ -206,11 +206,12 @@ def simulate_step3():
             ecomm3_gpts.update(arm_idxs, alpha)
             log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
-            # arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
-            # alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
-            # ecomm3_gpucb.update(arm_idxs, alpha)
-            # log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
-
+            arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
+            alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
+            ecomm3_gpucb.update(arm_idxs, alpha)
+            log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
+            # if optimal_allocation == arm:
+            # #   log("OPTIMAL PULLED")
             # log('-'*100)
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
@@ -241,7 +242,7 @@ def simulate_step4():
                 np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
                 0
             )
-            """estimate_nodes_activation_probabilities(
+            """num_sold_items = estimate_nodes_activation_probabilities(
                 env.network.get_adjacency_matrix(),
                 env.users_reservation_prices,
                 users_poisson_parameters,
@@ -258,9 +259,8 @@ def simulate_step4():
             optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
-
             arm, arm_idxs = ecomm4_gpts.pull_arm()
-            # # the environment returns the users_alpha and the reward for that allocation
+            # the environment returns the users_alpha and the reward for that allocation
             alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
             ecomm4_gpts.update(arm_idxs, alpha, sold_items)
             log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
