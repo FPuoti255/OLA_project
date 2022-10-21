@@ -57,10 +57,10 @@ class Ecommerce3(Ecommerce):
         gaussian_regressors = [
             GaussianProcessRegressor(
                 kernel=kernel,
-                alpha=alpha ** 2,
+                alpha=alpha,
                 normalize_y=True,
                 n_restarts_optimizer=9
-            )#.fit(X, np.random.normal(self.means[i], self.sigmas[i]))
+            ).fit(X, np.random.normal(self.means[i], self.sigmas[i]))
             for i in range(NUM_OF_PRODUCTS)
         ]
 
