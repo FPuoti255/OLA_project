@@ -34,18 +34,31 @@ def generate_data():
 
 
 
-def gpts_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices):
+def gpts_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices):
 
     n_rounds= 70
     y_actual, y_predicted = [], []
 
-    alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
-    kernel = c_const * RBF(length_scale = rbf_ls, length_scale_bounds=(min(rbf_ls_lb, rbf_ls_ub), max(rbf_ls_lb, rbf_ls_ub)))
+    alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub, noise_level = hyperparams
+    
+    gp_config = {
+        "gp_alpha": alpha_kernel,
+        
+        "constant_value": c_const,
+    
+        "length_scale": rbf_ls, 
+        "length_scale_lb": min(rbf_ls_lb, rbf_ls_ub),
+        "length_scale_ub": max(rbf_ls_lb, rbf_ls_ub),
+
+        "noise_level" : noise_level,
+    
+        "prior_mean" : 0.0,
+        "prior_std" : 10.0
+    }
 
     env = Environment(users_reservation_prices, graph_weights, alpha_bars)
     ecomm = Ecommerce(B_cap, budgets, product_prices)
-    ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, alpha = alpha_kernel, kernel = kernel)
-
+    ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_config)
 
     for _ in range(0, n_rounds):
 
@@ -79,20 +92,21 @@ def gpts_function(hyperparams, graph_weights, alpha_bars, product_prices, users_
 
 if __name__ == '__main__':
 
-    alpha_bounds = (0.01, 5.0)
-    c_constant_value = (1e-1, 1e2)
-    rbf_length_scale = (1e-1, 1e2)
+    alpha_bounds = (1e-6, 1e1)
+    c_constant_value = (1e-2, 1e2)
+    rbf_length_scale = (1e-2, 1e2)
     rbf_length_scale_lower_bound = (1e-3, 1e3)
     rbf_length_scale_upper_bound = (1e-3, 1e3)
+    noise_level_bounds = (1e-7, 1e1)
 
-    bounds = [alpha_bounds] + [c_constant_value] + [rbf_length_scale] + [rbf_length_scale_lower_bound] + [rbf_length_scale_upper_bound]
+    bounds = [alpha_bounds] + [c_constant_value] + [rbf_length_scale] + [rbf_length_scale_lower_bound] + [rbf_length_scale_upper_bound] + [noise_level_bounds]
 
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
         _, _ = generate_data()
 
     extra_variables = (graph_weights, alpha_bars, product_prices, users_reservation_prices)
 
-    solver = differential_evolution(gpts_function, bounds, args=extra_variables, strategy='best1bin', updating = 'deferred',
+    solver = differential_evolution(gpts_fitness_function, bounds, args=extra_variables, strategy='best1bin', updating = 'deferred',
                                     workers = -1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, seed=12345, callback=callback)
 
     best_hyperparams = solver.x

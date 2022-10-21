@@ -10,7 +10,7 @@ from Utils import *
 
 
 class Ecommerce3(Ecommerce):
-    def __init__(self, B_cap: float, budgets, product_prices, alpha = None, kernel = None):
+    def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict):
 
         super().__init__(B_cap, budgets, product_prices)
 
@@ -27,32 +27,32 @@ class Ecommerce3(Ecommerce):
         ]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
-        self.gaussian_regressors = self.gp_init(alpha, kernel)
+        self.gp_config =  gp_config
+        self.gaussian_regressors = self.gp_init()
 
 
-    def gp_init(self, alpha = None, kernel = None):
+    def gp_init(self):
 
-        hyperparameters = json.load(open("hyperparameters.json"))['step3']
-        if kernel is None and alpha is None:
-            alpha = hyperparameters["alpha"]
+        constant_value = self.gp_config['constant_value']
 
-            kernel = ConstantKernel(hyperparameters["constant_value"]) *  RBF(
-                length_scale=hyperparameters["length_scale"], 
-                length_scale_bounds=(hyperparameters["length_scale_lb"],hyperparameters["length_scale_ub"])
-                ) + WhiteKernel(noise_level=5e-03)
+        rbf_length_scale = self.gp_config['length_scale']
+        rbf_length_scale_lb = self.gp_config['length_scale_lb']
+        rbf_length_scale_ub = self.gp_config['length_scale_ub']
 
-        assert(alpha is not None and kernel is not None)
+        noise_level = self.gp_config['noise_level']
 
-        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * hyperparameters['prior_mean']
-        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * hyperparameters['prior_std']
+        kernel = ConstantKernel(constant_value=constant_value) \
+            *  RBF(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub)) \
+            + WhiteKernel(noise_level = noise_level)
 
+        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_mean']
+        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_std']
 
-        X = np.atleast_2d(self.budgets).T
-        
+        X = np.atleast_2d(self.budgets).T        
         gaussian_regressors = [
             GaussianProcessRegressor(
+                alpha=self.gp_config['gp_alpha'],
                 kernel=kernel,
-                alpha=alpha,
                 normalize_y=True,
                 n_restarts_optimizer=9
             ).fit(X, np.random.normal(self.means[i], self.sigmas[i]))
@@ -123,8 +123,8 @@ class Ecommerce3(Ecommerce):
 
 class Ecommerce3_GPTS(Ecommerce3):
 
-    def __init__(self, B_cap: float, budgets, product_prices, alpha=None, kernel=None):
-        super().__init__(B_cap, budgets, product_prices, alpha, kernel)
+    def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict):
+        super().__init__(B_cap, budgets, product_prices, gp_config)
         self.exploration_probability = 0     
 
     def get_samples(self):
@@ -136,8 +136,8 @@ class Ecommerce3_GPTS(Ecommerce3):
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
-    def __init__(self, B_cap: float, budgets, product_prices, alpha=None, kernel=None):
-        super().__init__(B_cap, budgets, product_prices, alpha, kernel)
+    def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict):
+        super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=1e400)
         # Number of times the arm has been pulled

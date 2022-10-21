@@ -1,12 +1,14 @@
 {
     "step3" : {
-        "alpha": 2.54838950e-01,
+        "gp_alpha": 2.54838950e-05,
         
         "constant_value": 8.83402056e+01,
     
         "length_scale": 5.33700256e+01, 
         "length_scale_lb": 1.18108350e+01,
         "length_scale_ub": 8.83883445e+02,
+
+        "noise_level" : 1e-2,
     
         "prior_mean" : 0.0,
         "prior_std" : 10.0

@@ -161,6 +161,8 @@ def simulate_step3():
     gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
     optimal_gain = np.zeros(shape=(n_experiments, T))
 
+    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
+
     for e in range(0, n_experiments):
         print('Experiment n°:', e + 1)
 
@@ -171,8 +173,8 @@ def simulate_step3():
         env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
-        ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
+        ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
+        ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_hyperparameters)
 
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
@@ -206,10 +208,12 @@ def simulate_step3():
             ecomm3_gpts.update(arm_idxs, alpha)
             log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
-            arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
-            alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
-            ecomm3_gpucb.update(arm_idxs, alpha)
-            log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
+            # arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
+            # alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
+            # ecomm3_gpucb.update(arm_idxs, alpha)
+            # log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
+
+
             # if optimal_allocation == arm:
             # #   log("OPTIMAL PULLED")
             # log('-'*100)
@@ -222,6 +226,8 @@ def simulate_step4():
     gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
     optimal_gain = np.zeros(shape=(n_experiments, T))
 
+    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
+
     for e in range(0, n_experiments):
         print('Experiment n°:', e + 1)
 
@@ -233,8 +239,8 @@ def simulate_step4():
         env = Environment(users_reservation_prices, graph_weights, alpha_bars)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm4_gpts = Ecommerce4('TS',B_cap, budgets, product_prices)
-        ecomm4_gpucb = Ecommerce4('UCB', B_cap, budgets, product_prices)
+        ecomm4_gpts = Ecommerce4('TS',B_cap, budgets, product_prices, gp_hyperparameters)
+        ecomm4_gpucb = Ecommerce4('UCB', B_cap, budgets, product_prices, gp_hyperparameters)
         
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
             
