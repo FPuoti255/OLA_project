@@ -27,6 +27,11 @@ class Ecommerce3(Ecommerce):
         ]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
+        self.gaussian_regressors = self.gp_init(alpha, kernel)
+
+
+    def gp_init(self, alpha = None, kernel = None):
+
         if kernel is None and alpha is None:    
             hyperparameters = json.load(open("hyperparameters.json"))
             alpha = hyperparameters["alpha"]
@@ -41,23 +46,26 @@ class Ecommerce3(Ecommerce):
         assert(alpha is not None and kernel is not None)
 
         # I'm generating a prior distribution over the budgets
-        params = [[0.5,3.0], [0.5,5.0],[1.0,3.0],[1.0,5.0],[5.0,10.0], [5.0, 5.0], [10.0, 20.0]]
-        now = 5 # [5.0, 10.0] best so far
+        params = [[5.0,10.0],[0.0, 10.0]]
+        now = 1 # [5.0, 10.0] best so far
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * params[now][0]
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * params[now][1]
         #print("means:", params[now][0], " and variance:", params[now][1])
 
         X = np.atleast_2d(self.budgets).T
         
-        self.gaussian_regressors = [
+        gaussian_regressors = [
             GaussianProcessRegressor(
                 kernel=kernel,
-                alpha=alpha,
+                alpha=alpha ** 2,
                 normalize_y=True,
                 n_restarts_optimizer=9
-            ).fit(X, np.random.normal(self.means[i], self.sigmas[i]))
+            )#.fit(X, np.random.normal(self.means[i], self.sigmas[i]))
             for i in range(NUM_OF_PRODUCTS)
         ]
+
+        return gaussian_regressors
+
 
     def update(self, pulled_arm_idxs, reward):
         '''
@@ -140,10 +148,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
 
-    def update_observations(self, pulled_arm_idxs, reward):
-
-        super().update_observations(pulled_arm_idxs, reward)
-
+    def update_bounds(self, pulled_arm_idxs):
         for i in range(NUM_OF_PRODUCTS):
             self.N_a[i][pulled_arm_idxs[i]] += 1
 
@@ -151,5 +156,11 @@ class Ecommerce3_GPUCB(Ecommerce3):
         self.confidence_bounds = 0.2 * np.sqrt((2 * np.log(self.t) / self.N_a)) * self.sigmas #0.2 * self.sigmas #= np.sqrt(2 * np.log(self.t) / self.N_a)
         self.confidence_bounds[self.N_a == 0] = 1e400
 
+
+    def update_observations(self, pulled_arm_idxs, reward):
+        super().update_observations(pulled_arm_idxs, reward)
+        self.update_bounds(pulled_arm_idxs)
+
+        
     def get_samples(self):        
         return np.add(self.means, self.confidence_bounds)

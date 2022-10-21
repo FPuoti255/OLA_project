@@ -58,15 +58,13 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
     alg1_mean_reward = np.mean(alg1_rewards_per_experiment, axis=0)
     alg1_reward_std = np.std(alg1_rewards_per_experiment, axis=0)
 
-    alg1_cumulative_regret = np.cumsum(np.mean((opts-alg1_rewards_per_experiment), axis=0))    
-    alg1_regret_std = np.std(alg1_cumulative_regret, axis = 0)
+    alg1_cumulative_regret, alg1_regret_std = compute_cumulative_regret_mean_std(opts, alg1_rewards_per_experiment)
 
     #----------------- ALG 2 -------------------
     alg2_mean_reward = np.mean(alg2_rewards_per_experiment, axis=0)
     alg2_reward_std = np.std(alg2_rewards_per_experiment, axis = 0)
 
-    alg2_cumulative_regret = np.mean(np.cumsum((opts-alg2_rewards_per_experiment), axis = 1), axis=0)
-    alg2_regret_std = np.std(np.cumsum((opts-alg2_rewards_per_experiment), axis = 1), axis=0)
+    alg2_cumulative_regret, alg2_regret_std = compute_cumulative_regret_mean_std(opts, alg2_rewards_per_experiment)
 
     # ax[0] will plot the cumulative regrets
     ax[0][0].plot(alg1_cumulative_regret, color=alg1_color, label=legend[0])
@@ -103,6 +101,34 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
     
     plt.tight_layout()
     plt.show()
+
+
+def plot_rewards_for_each_experiment(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
+
+    n_exp = opts.shape[0]
+
+    fig, ax = plt.subplots(nrows=n_exp, ncols=2, figsize=(20, 10))
+    ticks = np.arange(start=0, stop=n_exp, step=1)
+
+    for exp in range(n_exp):
+        ax[exp][0].plot(opts[exp], label='Optimal Reward')
+        ax[exp][0].plot(alg1_rewards_per_experiment[exp], label=legend[0])
+
+        ax[exp][1].plot(opts[exp], label='Optimal Reward')
+        ax[exp][1].plot(alg2_rewards_per_experiment[exp], label=legend[1])
+
+        ax[exp][0].set_title('Average Reward')
+        ax[exp][0].set_xlabel('round')
+        ax[exp][0].legend()
+        
+        ax[exp][1].set_title('Average Reward')
+        ax[exp][1].set_xlabel('round')
+        ax[exp][1].legend()
+    
+    
+    plt.tight_layout()
+    plt.show()
+
 
 
 def plot_regrets_merged(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
