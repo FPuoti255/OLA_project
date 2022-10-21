@@ -55,7 +55,7 @@ class Ecommerce4_GPTS(Ecommerce4):
         return samples
 
 
-class Ecommerce4_GPUCB(Ecommerce4, Ecommerce3_GPUCB):
+class Ecommerce4_GPUCB(Ecommerce4):
 
     def __init__(self, B_cap: float, budgets, product_prices, alpha=None, kernel=None):
         super().__init__(B_cap, budgets, product_prices, alpha, kernel)
