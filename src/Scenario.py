@@ -135,7 +135,7 @@ class Scenario:
         log(alpha_bars)
         log("\n")
 
-        users_poisson_parameters = np.array([2 ,3 ,1]) #one for each user class
+        users_poisson_parameters = np.array([[2,5,1,0.5,2], [1, 5, 2, 1, 2], [0.5, 2, 3, 2, 1]]) #one for each (user class, product)
 
         return alpha_bars, users_poisson_parameters
 

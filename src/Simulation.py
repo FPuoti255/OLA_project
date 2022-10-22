@@ -244,18 +244,18 @@ def simulate_step4():
         
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
             
-            num_sold_items = np.maximum(
-                np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
-                0
-            )
-            """num_sold_items = estimate_nodes_activation_probabilities(
+            num_sold_items = estimate_nodes_activation_probabilities(
                 env.network.get_adjacency_matrix(),
                 env.users_reservation_prices,
                 users_poisson_parameters,
                 product_prices,
                 observations_probabilities
-            )"""
+            )
 
+            # num_sold_items = np.maximum(
+            #     np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+            #     0
+            # )
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
                 product_prices,
