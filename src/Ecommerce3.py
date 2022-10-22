@@ -1,5 +1,4 @@
 from itertools import combinations_with_replacement, permutations
-import json
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel

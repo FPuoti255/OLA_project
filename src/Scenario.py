@@ -94,7 +94,6 @@ class Scenario:
     def get_product_prices(self):       
         return np.array([80,35,20, 150, 350]) * 5 
 
-
     def get_users_reservation_prices(self):        # 3 x 5
         users_reservation_prices = np.zeros(shape=(NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
 
@@ -146,4 +145,188 @@ class Scenario:
         '''
         
         return self.graph_weights,self.alpha_bars, self.product_prices, self.users_reservation_prices, self.observations_probabilities, self.users_poisson_parameters
+
+
+class NonStationaryScenario(Scenario):
+    def __init__(self):
+        super().__init__()
+        self.n_phases = 3
+        self.phase_len = np.ceil( T / self.n_phases).astype(int)
+
+    def get_n_phases(self):
+        return self.n_phases
+    
+    def get_phase_len(self):
+        return self.phase_len
+
+    def generate_graph_weights(self):
+        '''
+        :return: matrix representing the probability of going from a node to another
+        '''
+        adjacency_matrices = np.array(
+            [
+                np.array(
+                    [[0., 0.81, 0.15, 0.25, 0.59],
+                    [0.15, 0., 0.12, 0.54, 0.74],
+                    [0.55, 0.95, 0., 0.32, 0.81],
+                    [0.57, 0.87, 0.33, 0., 0.77],
+                    [0.24, 0.47, 0.77, 0.31, 0.]]
+                ),
+
+                np.array(
+                    [[0.  , 0.24, 0.81, 0.32, 0.72],
+                    [0.4 , 0.  , 0.05, 0.44, 0.42],
+                    [0.06, 0.64, 0.  , 0.19, 0.85],
+                    [0.03, 0.81, 0.88, 0.  , 0.31],
+                    [0.48, 0.64, 0.25, 0.36, 0.  ]]
+                ),
+
+                np.array(
+                    [[0.  , 0.95, 0.53, 0.86, 0.27],
+                    [0.24, 0.  , 0.87, 0.38, 0.5 ],
+                    [0.06, 0.58, 0.  , 0.02, 0.62],
+                    [0.25, 0.83, 0.99, 0.  , 0.09],
+                    [0.55, 0.55, 0.53, 0.29, 0.  ]]
+                )
+            ]
+        )
+
+        # set some values to zero is not fully connected, otherwise it's ready
+        if not fully_connected:
+            for matrix in adjacency_matrices:
+                graph_mask = np.random.randint(
+                    low=0, high=2, size=matrix.shape)
+                matrix = np.multiply(matrix, graph_mask)
+
+        return adjacency_matrices
+    
+    def generate_observation_probabilities(self):
+
+        obs_probs = np.zeros_like(self.graph_weights)
+
+
+        if fully_connected:
+            obs_probs = np.array(
+            [
+                np.array(
+                    [[0., 1., LAMBDA, 0., 0.],
+                    [1., 0., LAMBDA, 0., 0.],
+                    [0., 0, 0., 1., LAMBDA],
+                    [0., LAMBDA, 0., 0., 1],
+                    [1., 0, 0., LAMBDA, 0.]]
+                ),
+
+                np.array(
+                    [[0., 0., LAMBDA, 0., 1.],
+                    [1., 0., LAMBDA, 0., 0.],
+                    [1., 0, 0., LAMBDA, 0.],
+                    [0., LAMBDA, 1., 0., 0.],
+                    [0., LAMBDA, 0., 1., 0.]]
+                ),
+
+                np.array(
+                    [[0., 1., LAMBDA, 0., 0.],
+                    [1., 0., LAMBDA, 0., 0.],
+                    [0., 0, 0., 1., LAMBDA],
+                    [0., LAMBDA, 0., 0., 1],
+                    [0., LAMBDA, 0., 1., 0.]]
+                )
+            ]
+        )
+
+        else : 
+            i = 0
+            for matrix in self.graph_weights:
+                for product in range(NUM_OF_PRODUCTS):
+                    available_products = [
+                        ap
+                        for ap in range(0, NUM_OF_PRODUCTS)
+                        if ap != product and matrix[product][ap] != 0.0
+                    ]
+
+                    if len(available_products) >= 2:
+                        idxs = [available_products[0], available_products[1]]
+                        obs_probs[i][product][idxs[0]] = 1
+                        obs_probs[i][product][idxs[1]] = LAMBDA
+                    elif len(available_products) == 1:
+                        obs_probs[i][product][available_products[0]] = 1
+                    else:
+                        continue
+                i+=1
+
+        return obs_probs
+
+    def get_product_prices(self):
+        # they will remain the same for the Ecommerce
+        return super().get_product_prices()
+
+    def get_users_reservation_prices(self):        # n_phases x 3 x 5
+        users_reservation_prices = np.zeros(shape=( self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+
+        appreciations = np.array(
+            [
+                np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]]) * 2,
+                np.array([[ -70,   10,  -10,   50,  -50],[  30,   10,   13, -100,   80],[  20,   20,   20,   50, -250]]) * 3,
+                np.array([[  20,   10,   13,   50, -250],[  30,   20,   20,   50,  -50],[ -70,   10,  -10, -100,   80]]) * 5
+            ]
+        )
+        for i in range(self.n_phases):
+            users_reservation_prices[i] = self.product_prices + appreciations[i]
+
+
+        return users_reservation_prices
+
+    def generate_users_parameters(self):
+
+        alpha_bars = np.array(
+            [
+                [0.03, 0.1, 0.1, 0.03, 0.1, 0.03],
+                [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
+                [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
+            ],
+
+            [
+                [0.05, 0.03, 0.01, 0.03, 0.03, 0.08],
+                [0.04, 0.15, 0.03, 0.1 , 0.1 , 0.03],
+                [0.06, 0.1 , 0.04, 0.05, 0.02, 0.05]
+            ],
+
+            [
+                [0.01, 0.1 , 0.05, 0.05, 0.03, 0.03],
+                [0.02, 0.03, 0.06, 0.08, 0.03, 0.15],
+                [0.1 , 0.04, 0.1 , 0.03, 0.05, 0.04]
+            ]
+        )
+        assert(np.sum(alpha_bars) == 1.0*self.n_phases)
+
+
+        log("alpha_bars:\n")
+        log(alpha_bars)
+        log("\n")
+
+        users_poisson_parameters = np.array(
+            [
+                [2,5,1,0.5,2],
+                [1, 5, 2, 1, 2],
+                [0.5, 2, 3, 2, 1]
+            ],
+
+            [
+                [2. , 1. , 5. , 0.5, 2. ],
+                [1. , 1. , 0.5, 2. , 2. ],
+                [1. , 2. , 5. , 2. , 3. ]
+            ],
+
+            [
+                [5. , 0.5, 1. , 1. , 2. ],
+                [2. , 2. , 1. , 2. , 3. ],
+                [0.5, 2. , 5. , 1. , 2. ]
+            ]
+        
+        )
+
+        return alpha_bars, users_poisson_parameters
+
+    def setup_environment(self):
+        return super().setup_environment()
 

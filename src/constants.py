@@ -18,9 +18,7 @@ users_price_range = 100
 products_price_range = 100
 
 n_experiments = 2
-T = 200
-n_phases = 3
-phase_len = np.ceil(T/n_phases).astype(int)
+T = 100
 
 features = {'A' : 1, 'B' : 0, 'C' : 0, 'D' : 2}
 split_time = 14    # two weeks

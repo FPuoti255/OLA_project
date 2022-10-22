@@ -17,101 +17,6 @@ from Ecommerce6 import *
 #from step7.Ecommerce7 import *
 
 
-def setup_non_stationaty_environment():
-
-    nodes_activation_probabilities = []
-    num_sold_items = []
-    users_reservation_prices = []
-    product_functions_idxs = []   
-    alpha_bars = [] 
-    users_poisson_parameters = []
-    prod_fun_idx = np.arange(NUM_OF_PRODUCTS)
-
-    scenario = Scenario()
-
-    graph_weights = scenario.generate_graph_weights()
-    observations_probabilities = scenario.generate_observation_probabilities(graph_weights)
-    product_prices = np.round(np.random.random(size=NUM_OF_PRODUCTS) * products_price_range, 2)
-    scenario = Scenario()
-
-    for _ in range(n_phases):
-
-        alpha_bar, single_users_poisson_parameters = scenario.generate_users_parameters(scenario.users_reservation_prices)
-        users_reservation_prices.append(scenario.users_reservation_prices)
-        users_poisson_parameters.append(single_users_poisson_parameters)
-        alpha_bars.append(alpha_bar)
-
-        estimation = estimate_nodes_activation_probabilities(
-            graph_weights,
-            scenario.users_reservation_prices,
-            users_poisson_parameters,
-            product_prices,
-            observations_probabilities
-        )
-        nodes_activation_probabilities.append(estimation[0])
-        num_sold_items.append(estimation[1])
-
-        np.random.shuffle(prod_fun_idx)  # In place shuffling
-        product_functions_idxs.append(prod_fun_idx.copy())
-
-    env = Non_Stationary_Environment(
-        users_reservation_prices, product_functions_idxs, graph_weights,
-        alpha_bars, num_sold_items, nodes_activation_probabilities, users_poisson_parameters, T
-    )
-
-    return graph_weights, nodes_activation_probabilities, alpha_bars, product_prices, num_sold_items, product_functions_idxs, scenario.users_reservation_prices, users_poisson_parameters
-
-
-def generate_new_non_stationary_environment():
-    '''
-    :return: env, observations_probabilities, graph_weights, product_prices, num_sold_items, nodes_activation_probabilities
-    '''
-
-    scenario = Scenario()
-
-    graph_weights = scenario.generate_graph_weights()
-    observations_probabilities = scenario.generate_observation_probabilities(graph_weights)
-    product_prices = np.round(np.random.random(size=NUM_OF_PRODUCTS) * products_price_range, 2)
-
-    users_alpha = []
-    users_reservation_prices = []
-    nodes_activation_probabilities = []
-    num_sold_items = []
-    product_functions_idxs = []
-    users_poisson_parameters = []
-    prod_fun_idx = np.arange(NUM_OF_PRODUCTS)
-
-    for _ in range(n_phases):
-
-        alpha_bars, _ = scenario.generate_users_parameters(scenario.users_reservation_prices)
-
-        users_alpha.append(alpha_bars)
-        users_reservation_prices.append(scenario.users_reservation_prices)
-        users_poisson_parameters.append(users_poisson_parameters)
-
-        estimation = estimate_nodes_activation_probabilities(
-            graph_weights,
-            scenario.users_reservation_prices,
-            users_poisson_parameters,
-            product_prices,
-            observations_probabilities
-        )
-        nodes_activation_probabilities.append(estimation[0])
-        num_sold_items.append(estimation[1])
-
-        np.random.shuffle(prod_fun_idx)  # In place shuffling
-        product_functions_idxs.append(prod_fun_idx.copy())
-
-    env = Non_Stationary_Environment(
-        users_reservation_prices, product_functions_idxs, graph_weights,
-        users_alpha, num_sold_items, nodes_activation_probabilities, users_poisson_parameters, T
-    )
-
-    # Network.print_graph(G=env.network.G)
-
-    return env, observations_probabilities, product_prices
-
-
 def observe_learned_functions():
 
     scenario = Scenario()
@@ -119,8 +24,10 @@ def observe_learned_functions():
                 observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
     env = Environment(users_reservation_prices, graph_weights, alpha_bars)
-    ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices)
-    ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices)
+    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
+    ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
+    ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_hyperparameters)
+
 
     for t in tqdm(range(0, T), position = 0, desc="n_iteration"):
     # Every day a new montecarlo simulation must be run to sample num of items sold
@@ -183,13 +90,13 @@ def simulate_step3():
                 np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
                 0
             )
-            """estimate_nodes_activation_probabilities(
-                env.network.get_adjacency_matrix(),
-                env.users_reservation_prices,
-                users_poisson_parameters,
-                product_prices,
-                observations_probabilities
-            )"""
+            # num_sold_items = estimate_nodes_activation_probabilities(
+            #     env.network.get_adjacency_matrix(),
+            #     env.users_reservation_prices,
+            #     users_poisson_parameters,
+            #     product_prices,
+            #     observations_probabilities
+            # )
 
             # aggregation is needed since in this step the ecommerce cannot observe the users classes features
             aggregated_num_sold_items = np.sum(num_sold_items, axis=0)
