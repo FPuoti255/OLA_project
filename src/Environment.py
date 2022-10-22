@@ -128,9 +128,17 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 5 ENVIRONMENT FUNCTIONS-----------
-    def round_step5(self, pulled_arm, nodes_activation_probabilities):
-        row, col = pulled_arm
-        return np.random.binomial(n = 1, p = nodes_activation_probabilities[row][col])
+    def round_step5(self, pulled_arm, pulled_arm_idxs):
+
+
+        reward_per_arm = np.zeros(shape=(NUM_OF_PRODUCTS,))
+        total_net_reward = 0
+
+        for prod_id in range(NUM_OF_PRODUCTS):
+            reward_per_arm[prod_id] = self.expected_reward[prod_id][pulled_arm_idxs[prod_id]]
+            total_net_reward += self.expected_reward[prod_id][pulled_arm_idxs[prod_id]] - pulled_arm[prod_id]
+
+        return reward_per_arm, total_net_reward
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
