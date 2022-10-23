@@ -15,17 +15,17 @@
     },
 
     "step5" : {
-        "gp_alpha": 2.53951511e-03,
+        "gp_alpha": 1.71557959e-01,
         
-        "constant_value": 1.61631558e+01,
+        "constant_value": 9.53745013e+01,
     
-        "length_scale": 5.55689144e+01, 
-        "length_scale_lb": 1.18814472e+00,
-        "length_scale_ub": 5.72270395e+02,
+        "length_scale": 2.16967430e+01, 
+        "length_scale_lb": 2.07081249e+02,
+        "length_scale_ub": 5.31085897e+02,
 
-        "noise_level" : 8.46273461e+00,
+        "noise_level" : 1,
     
-        "prior_mean" : 20.0,
-        "prior_std" : 20.0
+        "prior_mean" : 0.0,
+        "prior_std" : 10.0
     }
 }

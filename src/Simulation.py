@@ -252,57 +252,76 @@ def simulate_step5():
 
 
 def simulate_step6():
-    swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain_per_experiment = np.zeros(
-        shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T)), np.zeros(shape=(n_experiments, T))
+    
+    swucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
+    cducb_gains_per_experiment = np.zeros(shape=(n_experiments, T))    
+    optimal_gain = np.zeros(shape=(n_experiments, T))
+    
 
     tau = np.floor(np.sqrt(T)).astype(int)
-
     M = np.ceil(0.033 * T)
     eps = 0.1
     h = 2 * np.log(T)
 
     for e in range(0, n_experiments):
         print('Experiment n°', e + 1)
+        
+        non_stationary_scenario = NonStationaryScenario()
 
-        graph_weights, nodes_activation_probabilities, alpha_bars, product_prices, num_sold_items, product_functions_idxs, users_reservation_prices, users_poisson_parameters = setup_non_stationaty_environment()
+        graph_weights, alpha_bars, product_prices, users_reservation_prices, \
+             observations_probabilities, users_poisson_parameters = non_stationary_scenario.setup_environment()
 
+        
         env = Non_Stationary_Environment(
-            users_reservation_prices, product_functions_idxs, graph_weights,
-            alpha_bars, num_sold_items, nodes_activation_probabilities, users_poisson_parameters, T
+            users_reservation_prices, 
+            graph_weights, 
+            alpha_bars,
+            users_poisson_parameters,
+            non_stationary_scenario.get_n_phases(),
+            non_stationary_scenario.get_phase_len()
         )
 
+        ecomm = Ecommerce(B_cap, budgets, product_prices)
         ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
         ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
 
-        optimal_phase_gain = 0
 
-        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=False):
+        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
 
-            exp_clicks = env.estimate_num_of_clicks(budgets / B_cap)
-            ecomm = Ecommerce(B_cap, budgets, product_prices)
+            # num_sold_items = estimate_nodes_activation_probabilities(
+            #     env.get_network().get_adjacency_matrix(),
+            #     env.get_users_reservation_prices(),
+            #     env.get_users_poisson_parameters(),
+            #     product_prices,
+            #     observations_probabilities[env.get_current_phase()]
+            # )
 
-            if t % phase_len == 0:
-                _, optimal_phase_gain = ecomm.solve_optimization_problem(
-                    env.get_num_sold_items(),
-                    exp_clicks,
-                    env.get_nodes_activation_probabilities()
-                )
+            num_sold_items = np.maximum(
+                np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+                0
+            )
 
-            optimal_gain_per_experiment[e][t] = optimal_phase_gain
+            expected_reward = env.compute_clairvoyant_reward(
+                num_sold_items,
+                product_prices,
+                budgets
+            )
 
-            arm = ecomm6_swucb.pull_arm()
-            reward, sold_items = env.round_step6(arm, B_cap)
-            ecomm6_swucb.update(arm, reward, sold_items)
-            _, swucb_gains_per_experiment[e][t] = ecomm6_swucb.solve_optimization_problem(
-                env.get_nodes_activation_probabilities())
+            optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
+            log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
-            arm = ecomm6_cducb.pull_arm()
-            reward, sold_items = env.round_step6(arm, B_cap, True)
-            ecomm6_cducb.update(arm, reward, sold_items)
-            _, cducb_gains_per_experiment[e][t] = ecomm6_cducb.solve_optimization_problem(
-                env.get_nodes_activation_probabilities())
+            arm, arm_idxs = ecomm6_swucb.pull_arm()
+            alpha,swucb_gains_per_experiment[e][t] , sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
+                                                                                    num_sold_items = num_sold_items)
+            ecomm6_swucb.update(arm_idxs, alpha, sold_items)
 
-    return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain_per_experiment
+            arm, arm_idxs = ecomm6_cducb.pull_arm()
+            alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
+                                                                                    num_sold_items = num_sold_items, end_phase = True)
+            ecomm6_cducb.update(arm_idxs, alpha, sold_items)
+
+
+    return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain, non_stationary_scenario.get_n_phases(), non_stationary_scenario.get_phase_len()
 
 
 def simulate_step7():
@@ -447,6 +466,6 @@ def simulate_step7():
 
 
 if __name__ == "__main__":
-    main()
+    simulate_step6()
 
     
