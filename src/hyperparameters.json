@@ -25,7 +25,7 @@
 
         "noise_level" : 8.46273461e+00,
     
-        "prior_mean" : 0.0,
-        "prior_std" : 10.0
+        "prior_mean" : 20.0,
+        "prior_std" : 20.0
     }
 }
