@@ -18,7 +18,10 @@ users_price_range = 100
 products_price_range = 100
 
 n_experiments = 2
-T = 150
+T = 100
+
+n_experiments_step6 = 2
+T_step6 = 120
 
 features = {'A' : 1, 'B' : 0, 'C' : 0, 'D' : 2}
 split_time = 14    # two weeks

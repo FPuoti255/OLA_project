@@ -150,7 +150,7 @@ class Scenario:
 class NonStationaryScenario(Scenario):
     def __init__(self):
         self.n_phases = 3
-        self.phase_len = np.ceil( T / self.n_phases).astype(int)
+        self.phase_len = np.ceil( T_step6 / self.n_phases).astype(int)
         super().__init__()
 
     def get_n_phases(self):
@@ -166,14 +166,6 @@ class NonStationaryScenario(Scenario):
         adjacency_matrices = np.array(
             [
                 np.array(
-                    [[0.  , 0.24, 0.81, 0.32, 0.72],
-                    [0.4 , 0.  , 0.05, 0.44, 0.42],
-                    [0.06, 0.64, 0.  , 0.19, 0.85],
-                    [0.03, 0.81, 0.88, 0.  , 0.31],
-                    [0.48, 0.64, 0.25, 0.36, 0.  ]]
-                ),
-
-                np.array(
                     [[0., 0.81, 0.15, 0.25, 0.59],
                     [0.15, 0., 0.12, 0.54, 0.74],
                     [0.55, 0.95, 0., 0.32, 0.81],
@@ -181,6 +173,13 @@ class NonStationaryScenario(Scenario):
                     [0.24, 0.47, 0.77, 0.31, 0.]]
                 ),
 
+                np.array(
+                    [[0.  , 0.24, 0.81, 0.32, 0.72],
+                    [0.4 , 0.  , 0.05, 0.44, 0.42],
+                    [0.06, 0.64, 0.  , 0.19, 0.85],
+                    [0.03, 0.81, 0.88, 0.  , 0.31],
+                    [0.48, 0.64, 0.25, 0.36, 0.  ]]
+                ),
 
                 np.array(
                     [[0.  , 0.95, 0.53, 0.86, 0.27],
@@ -210,19 +209,20 @@ class NonStationaryScenario(Scenario):
             obs_probs = np.array(
             [
                 np.array(
-                    [[0., 0., LAMBDA, 0., 1.],
-                    [1., 0., LAMBDA, 0., 0.],
-                    [1., 0, 0., LAMBDA, 0.],
-                    [0., LAMBDA, 1., 0., 0.],
-                    [0., LAMBDA, 0., 1., 0.]]
-                ),
-
-                np.array(
                     [[0., 1., LAMBDA, 0., 0.],
                     [1., 0., LAMBDA, 0., 0.],
                     [0., 0, 0., 1., LAMBDA],
                     [0., LAMBDA, 0., 0., 1],
                     [1., 0, 0., LAMBDA, 0.]]
+                ),
+
+
+                np.array(
+                    [[0., 0., LAMBDA, 0., 1.],
+                    [1., 0., LAMBDA, 0., 0.],
+                    [1., 0, 0., LAMBDA, 0.],
+                    [0., LAMBDA, 1., 0., 0.],
+                    [0., LAMBDA, 0., 1., 0.]]
                 ),
 
 
@@ -260,16 +260,16 @@ class NonStationaryScenario(Scenario):
 
     def get_product_prices(self):
         # they will remain the same for the Ecommerce
-        return super().get_product_prices()
+        return np.array([80,35,20, 150, 350]) * 6
 
     def get_users_reservation_prices(self):        # n_phases x 3 x 5
         users_reservation_prices = np.zeros(shape=( self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
 
         appreciations = np.array(
             [
-                np.array([[ -70,   10,  -10,   50,  -50],[  30,   10,   13, -100,   80],[  20,   20,   20,   50, -250]]) * 3,
-                np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]]) * 2,
-                np.array([[  20,   10,   13,   50, -250],[  30,   20,   20,   50,  -50],[ -70,   10,  -10, -100,   80]]) * 5
+                np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]]) * 3,
+                np.array([[ -70,   10,  -10,   50,  -50],[  30,   10,   13, -100,   80],[  20,   20,   20,   50, -250]]) * 4.5,
+                np.array([[  20,   10,   13,   50, -250],[  30,   20,   20,   50,  -50],[ -70,   10,  -10, -100,   80]]) * 6
             ]
         )
         for i in range(self.n_phases):
@@ -282,17 +282,19 @@ class NonStationaryScenario(Scenario):
 
         alpha_bars = np.array(
             [
-                [
-                    [0.05, 0.03, 0.01, 0.03, 0.03, 0.08],
-                    [0.04, 0.15, 0.03, 0.1 , 0.1 , 0.03],
-                    [0.06, 0.1 , 0.04, 0.05, 0.02, 0.05]
-                ],
 
                 [
                     [0.03, 0.1, 0.1, 0.03, 0.1, 0.03],
                     [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
                     [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
                 ],
+
+                [
+                    [0.05, 0.03, 0.01, 0.03, 0.03, 0.08],
+                    [0.04, 0.15, 0.03, 0.1 , 0.1 , 0.03],
+                    [0.06, 0.1 , 0.04, 0.05, 0.02, 0.05]
+                ],
+
 
                 [
                     [0.01, 0.1 , 0.05, 0.05, 0.03, 0.03],
@@ -311,15 +313,16 @@ class NonStationaryScenario(Scenario):
         users_poisson_parameters = np.array(
             [
                 [
-                    [2. , 1. , 5. , 0.5, 2. ],
-                    [1. , 1. , 0.5, 2. , 2. ],
-                    [1. , 2. , 5. , 2. , 3. ]
-                ],
-                
-                [
                     [2, 5, 1, 0.5, 2],
                     [1, 5, 2, 1, 2],
                     [0.5, 2, 3, 2, 1]
+                ],
+
+
+                [
+                    [2. , 1. , 5. , 0.5, 2. ],
+                    [1. , 1. , 0.5, 2. , 2. ],
+                    [1. , 2. , 5. , 2. , 3. ]
                 ],
 
 

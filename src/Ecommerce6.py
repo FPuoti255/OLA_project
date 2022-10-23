@@ -24,12 +24,9 @@ class Ecommerce6(Ecommerce):
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.0
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 10.0
 
-        self.sold_items_means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 5.0
+        self.sold_items_means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 10.0
 
         self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=1e400)
-
-
-
 
     def random_sampling(self):
         if self.perms is None:
@@ -181,7 +178,7 @@ class Ecommerce6_CDUCB(Ecommerce6):
             arm_idx=pulled_arm_idxs[prod_id]
 
             if self.change_detection[prod_id][arm_idx].update(reward[prod_id]):
-                print('t =', self.t, ' CUSUM change detected')
+                log(f't = {self.t} CUSUM change detected')
                 self.rewards_per_arm[prod_id][arm_idx]=[]
                 self.change_detection[prod_id][arm_idx].reset()
 

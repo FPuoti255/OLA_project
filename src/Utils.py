@@ -105,7 +105,7 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
 
 def plot_regrets_step6(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend, n_phases, phase_len):
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
-    ticks = np.arange(start=0, stop=T, step=1)
+    ticks = np.arange(start=0, stop=T_step6, step=1)
     opts_color = 'red'
     alg1_color = 'orange'
     alg2_color = 'green'
@@ -124,7 +124,7 @@ def plot_regrets_step6(alg1_rewards_per_experiment, alg2_rewards_per_experiment,
 
 
     opts_per_phase = np.zeros_like(ticks)
-    average_on_exp_opts = np.sum(opts, axis = 0)
+    average_on_exp_opts = np.mean(opts, axis = 0)
     for phase in range(n_phases):
         start_phase_index = phase_len * phase
         stop_phase_index = phase_len * (phase + 1)

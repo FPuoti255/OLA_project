@@ -253,17 +253,18 @@ def simulate_step5():
 
 def simulate_step6():
     
-    swucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
-    cducb_gains_per_experiment = np.zeros(shape=(n_experiments, T))    
-    optimal_gain = np.zeros(shape=(n_experiments, T))
+    swucb_gains_per_experiment = np.zeros(shape=(n_experiments_step6, T_step6))
+    cducb_gains_per_experiment = np.zeros(shape=(n_experiments_step6, T_step6))    
+    optimal_gain = np.zeros(shape=(n_experiments_step6, T_step6))
     
 
-    tau = np.floor(np.sqrt(T)).astype(int)
-    M = np.ceil(0.033 * T)
-    eps = 0.1
-    h = 2 * np.log(T)
+    tau = np.ceil( 10 * np.sqrt(T_step6)).astype(int)
 
-    for e in range(0, n_experiments):
+    M = T_step6 / 8
+    eps = 0.07
+    h = 2
+
+    for e in range(0, n_experiments_step6):
         print('Experiment n°', e + 1)
         
         non_stationary_scenario = NonStationaryScenario()
@@ -286,20 +287,20 @@ def simulate_step6():
         ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
 
 
-        for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
+        for t in tqdm(range(0, T_step6), position=0, desc="n_iteration", leave=True):
 
-            # num_sold_items = estimate_nodes_activation_probabilities(
-            #     env.get_network().get_adjacency_matrix(),
-            #     env.get_users_reservation_prices(),
-            #     env.get_users_poisson_parameters(),
-            #     product_prices,
-            #     observations_probabilities[env.get_current_phase()]
-            # )
-
-            num_sold_items = np.maximum(
-                np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
-                0
+            num_sold_items = estimate_nodes_activation_probabilities(
+                env.get_network().get_adjacency_matrix(),
+                env.get_users_reservation_prices(),
+                env.get_users_poisson_parameters(),
+                product_prices,
+                observations_probabilities[env.get_current_phase()]
             )
+
+            # num_sold_items = np.maximum(
+            #     np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+            #     0
+            # )
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
