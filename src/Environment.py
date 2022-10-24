@@ -119,10 +119,18 @@ class Environment:
 
         alpha, reward = self.round_step3(pulled_arm, pulled_arm_idxs)
 
-        aggregated_num_sold_items = np.sum(num_sold_items, axis = (0,1))
-        assert(aggregated_num_sold_items.shape == (NUM_OF_PRODUCTS,))
+        percentage_for_each_product = np.divide(
+            alpha ,
+            np.sum(self.alpha_bars, axis = 0)[1:]
+        )
+        percentage_for_each_product = np.repeat(percentage_for_each_product, repeats=NUM_OF_PRODUCTS).reshape((NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
-        real_sold_items = aggregated_num_sold_items * alpha / np.sum(self.alpha_bars, axis = 0)[1:]
+        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
+
+        real_sold_items = np.multiply(
+            aggregated_num_sold_items,
+            percentage_for_each_product
+        )
 
         return alpha, reward, real_sold_items
 

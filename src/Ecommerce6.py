@@ -55,8 +55,6 @@ class Ecommerce6(Ecommerce):
             return self.random_sampling()
 
 
-
-
 class Ecommerce6_SWUCB(Ecommerce6):
     def __init__(self, B_cap: float, budgets, product_prices, tau : int):
         super().__init__(B_cap, budgets, product_prices)

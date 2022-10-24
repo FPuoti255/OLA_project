@@ -17,6 +17,12 @@ def callback(xk, convergence):
     print("Minimum rmse: %.6f" % (convergence))
     print('------------------------------------------')
 
+def print_final_result(xk, convergence):
+    print('------------------------------------------')
+    print("Best Found: ", xk)
+    print("RMSE: %.6f" % (convergence))
+    print('------------------------------------------')
+
 
 def generate_data():
     '''
@@ -39,6 +45,8 @@ def generate_non_stationary_data():
 
     return graph_weights, alpha_bars, product_prices, users_reservation_prices,\
              observations_probabilities, users_poisson_parameters, non_stationary_scenario.get_n_phases(), non_stationary_scenario.get_phase_len()
+
+
 
 def get_gpts_bounds():
 
@@ -104,6 +112,61 @@ def gpts_step3_fitness_function(hyperparams, graph_weights, alpha_bars, product_
         # for the GP to reach the steady state. If we start to compute the RMSE
         # from the beginning, we will have parameters prone to overfitting
         if t >= n_rounds / 2 :
+            y_actual.append(optimal_gain)
+            y_predicted.append(gpts_gain)
+
+    return np.sqrt(mean_squared_error(y_actual, y_predicted))
+
+def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices):
+    n_rounds= 70
+    y_actual, y_predicted = [], []
+
+    alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
+    
+    gp_config = {
+        "gp_alpha": alpha_kernel,
+        
+        "constant_value": c_const,
+    
+        "length_scale": rbf_ls, 
+        "length_scale_lb": min(rbf_ls_lb, rbf_ls_ub),
+        "length_scale_ub": max(rbf_ls_lb, rbf_ls_ub),
+
+        "noise_level" : 1.0,
+    
+        "prior_mean" : 0.0,
+        "prior_std" : 10.0
+    }
+
+    env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+    ecomm = Ecommerce(B_cap, budgets, product_prices)
+    ecomm4_gpts = Ecommerce4('TS', B_cap, budgets, product_prices, gp_config)
+
+    for t in range(0, n_rounds):
+
+        num_sold_items = np.maximum(
+                np.random.normal(loc = 5, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+                0
+            )
+        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
+        
+        expected_reward_table = env.compute_clairvoyant_reward(
+            num_sold_items,
+            product_prices,
+            budgets
+        )     
+
+        _ , optimal_gain = ecomm.clairvoyant_optimization_problem(expected_reward_table)
+
+
+        arm, arm_idxs = ecomm4_gpts.pull_arm()
+        alpha, gpts_gain, sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
+        ecomm4_gpts.update(arm_idxs, alpha, sold_items)
+        
+        # I want to compute the RMSE only just a number of samples sufficient
+        # for the GP to reach the steady state. If we start to compute the RMSE
+        # from the beginning, we will have parameters prone to overfitting
+        if t >= n_rounds / 4 :
             y_actual.append(optimal_gain)
             y_predicted.append(gpts_gain)
 
@@ -210,7 +273,6 @@ def CDUCB_fitness_function(hyperparams, graph_weights, alpha_bars, product_price
     return np.sqrt(mean_squared_error(y_actual, y_predicted))
 
 
-
 def SWUCB_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices, users_poisson_parameters, n_phases, phase_len):
     y_actual, y_predicted = [], []
 
@@ -254,7 +316,6 @@ def SWUCB_fitness_function(hyperparams, graph_weights, alpha_bars, product_price
 
     return np.sqrt(mean_squared_error(y_actual, y_predicted))
 
-
 def optimize_GP_step3():
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
         _, _ = generate_data()
@@ -268,6 +329,18 @@ def optimize_GP_step3():
     best_rmse = solver.fun
     callback(best_hyperparams, best_rmse)
 
+def optimize_GP_step4():
+    graph_weights, alpha_bars, product_prices, users_reservation_prices, \
+        _, _ = generate_data()
+
+    extra_variables = (graph_weights, alpha_bars, product_prices, users_reservation_prices)
+
+    solver = differential_evolution(gpts_step4_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating = 'deferred',
+                                     workers = -1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
+
+    best_hyperparams = solver.x
+    best_rmse = solver.fun
+    callback(best_hyperparams, best_rmse)
 
 def optimize_GP_step5():   
 
@@ -282,7 +355,6 @@ def optimize_GP_step5():
     best_hyperparams = solver.x
     best_rmse = solver.fun
     callback(best_hyperparams, best_rmse)
-
 
 def optimize_CD_step6():
 
@@ -323,4 +395,4 @@ def optimize_SW_step6():
 
 
 if __name__ == '__main__':
-    optimize_SW_step6()
+    optimize_GP_step4()

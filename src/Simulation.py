@@ -152,18 +152,19 @@ def simulate_step4():
         
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
             
-            num_sold_items = estimate_nodes_activation_probabilities(
-                env.network.get_adjacency_matrix(),
-                env.users_reservation_prices,
-                users_poisson_parameters,
-                product_prices,
-                observations_probabilities
+            # num_sold_items = estimate_nodes_activation_probabilities(
+            #     env.network.get_adjacency_matrix(),
+            #     env.users_reservation_prices,
+            #     users_poisson_parameters,
+            #     product_prices,
+            #     observations_probabilities
+            # )
+
+            num_sold_items = np.maximum(
+                np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+                0
             )
 
-            # num_sold_items = np.maximum(
-            #     np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
-            #     0
-            # )
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
                 product_prices,
@@ -179,10 +180,10 @@ def simulate_step4():
             ecomm4_gpts.update(arm_idxs, alpha, sold_items)
             log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
-            arm, arm_idxs = ecomm4_gpucb.pull_arm()
-            alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
-            ecomm4_gpucb.update(arm_idxs, alpha, sold_items)
-            log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
+            # arm, arm_idxs = ecomm4_gpucb.pull_arm()
+            # alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
+            # ecomm4_gpucb.update(arm_idxs, alpha, sold_items)
+            # log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
 
             log('-'*100)
 
@@ -258,7 +259,7 @@ def simulate_step6():
     optimal_gain = np.zeros(shape=(n_experiments_step6, T_step6))
     
 
-    tau = np.ceil( 10 * np.sqrt(T_step6)).astype(int)
+    tau = np.ceil( 2 * np.sqrt(T_step6)).astype(int)
 
     M = T_step6 / 8
     eps = 0.07
