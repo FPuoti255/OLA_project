@@ -24,7 +24,7 @@ def observe_learned_functions():
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
                 observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
-    env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+    env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
     gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
     ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
     ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_hyperparameters)
@@ -36,7 +36,7 @@ def observe_learned_functions():
         """estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
             env.users_reservation_prices,
-            users_poisson_parameters,
+            env.users_poisson_parameters,
             product_prices,
             observations_probabilities
         )"""
@@ -78,7 +78,7 @@ def simulate_step3():
         graph_weights, alpha_bars, product_prices, users_reservation_prices, \
                     observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
-        env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+        env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
@@ -94,7 +94,7 @@ def simulate_step3():
             # num_sold_items = estimate_nodes_activation_probabilities(
             #     env.network.get_adjacency_matrix(),
             #     env.users_reservation_prices,
-            #     users_poisson_parameters,
+            #     env.users_poisson_parameters,
             #     product_prices,
             #     observations_probabilities
             # )
@@ -108,18 +108,18 @@ def simulate_step3():
                 budgets
             )
 
-            optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
+            optimal_allocation, _ , optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
             
-            arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
-            alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
-            ecomm3_gpts.update(arm_idxs, alpha)
-            log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
+            # arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
+            # alpha, gpts_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
+            # ecomm3_gpts.update(arm_idxs, alpha)
+            # log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
-            # arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
-            # alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
-            # ecomm3_gpucb.update(arm_idxs, alpha)
-            # log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
+            arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
+            alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
+            ecomm3_gpucb.update(arm_idxs, alpha)
+            log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
 
 
             # if optimal_allocation == arm:
@@ -144,7 +144,7 @@ def simulate_step4():
                     observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
 
-        env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+        env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
         ecomm4_gpts = Ecommerce4('TS',B_cap, budgets, product_prices, gp_hyperparameters)
@@ -152,18 +152,18 @@ def simulate_step4():
         
         for t in tqdm(range(0, T), position=0, desc="n_iteration", leave=True):
             
-            # num_sold_items = estimate_nodes_activation_probabilities(
-            #     env.network.get_adjacency_matrix(),
-            #     env.users_reservation_prices,
-            #     users_poisson_parameters,
-            #     product_prices,
-            #     observations_probabilities
-            # )
-
-            num_sold_items = np.maximum(
-                np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
-                0
+            num_sold_items = estimate_nodes_activation_probabilities(
+                env.network.get_adjacency_matrix(),
+                env.users_reservation_prices,
+                env.users_poisson_parameters,
+                product_prices,
+                observations_probabilities
             )
+
+            # num_sold_items = np.maximum(
+            #     np.random.normal(loc = 5, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+            #     0
+            # )
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
@@ -171,19 +171,19 @@ def simulate_step4():
                 budgets
             )
 
-            optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
+            optimal_allocation, optimal_allocation_idxs, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
-            arm, arm_idxs = ecomm4_gpts.pull_arm()
-            # the environment returns the users_alpha and the reward for that allocation
-            alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
-            ecomm4_gpts.update(arm_idxs, alpha, sold_items)
-            log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
+            # arm, arm_idxs = ecomm4_gpts.pull_arm()
+            # # the environment returns the users_alpha and the reward for that allocation
+            # alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items, optimal_arm=optimal_allocation_idxs)
+            # ecomm4_gpts.update(arm_idxs, alpha, sold_items)
+            # log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
-            # arm, arm_idxs = ecomm4_gpucb.pull_arm()
-            # alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
-            # ecomm4_gpucb.update(arm_idxs, alpha, sold_items)
-            # log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
+            arm, arm_idxs = ecomm4_gpucb.pull_arm()
+            alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items, optimal_arm=optimal_allocation_idxs)
+            ecomm4_gpucb.update(arm_idxs, alpha, sold_items)
+            log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
 
             log('-'*100)
 
@@ -204,7 +204,7 @@ def simulate_step5():
         graph_weights, alpha_bars, product_prices, users_reservation_prices, \
                     observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
-        env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+        env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
         ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
@@ -220,7 +220,7 @@ def simulate_step5():
             # num_sold_items = estimate_nodes_activation_probabilities(
             #     env.network.get_adjacency_matrix(),
             #     env.users_reservation_prices,
-            #     users_poisson_parameters,
+            #     env.users_poisson_parameters,
             #     product_prices,
             #     observations_probabilities
             # )
@@ -231,7 +231,7 @@ def simulate_step5():
                 budgets
             )
 
-            optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
+            optimal_allocation, _, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
             
             # arm, arm_idxs = ecomm5_gpts.pull_arm()
@@ -259,11 +259,12 @@ def simulate_step6():
     optimal_gain = np.zeros(shape=(n_experiments_step6, T_step6))
     
 
-    tau = np.ceil( 2 * np.sqrt(T_step6)).astype(int)
+    tau = np.ceil(np.sqrt(T_step6)).astype(int)
 
     M = T_step6 / 8
-    eps = 0.07
-    h = 2
+    eps = 0.01
+    h = 0.5
+    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
 
     for e in range(0, n_experiments_step6):
         print('Experiment n°', e + 1)
@@ -284,24 +285,24 @@ def simulate_step6():
         )
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, tau)
-        ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
+        ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, gp_hyperparameters, tau)
+        #ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h, gp_hyperparameters)
 
 
         for t in tqdm(range(0, T_step6), position=0, desc="n_iteration", leave=True):
 
-            num_sold_items = estimate_nodes_activation_probabilities(
-                env.get_network().get_adjacency_matrix(),
-                env.get_users_reservation_prices(),
-                env.get_users_poisson_parameters(),
-                product_prices,
-                observations_probabilities[env.get_current_phase()]
-            )
-
-            # num_sold_items = np.maximum(
-            #     np.random.normal(loc = 4, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
-            #     0
+            # num_sold_items = estimate_nodes_activation_probabilities(
+            #     env.get_network().get_adjacency_matrix(),
+            #     env.get_users_reservation_prices(),
+            #     env.get_users_poisson_parameters(),
+            #     product_prices,
+            #     observations_probabilities
             # )
+
+            num_sold_items = np.maximum(
+                np.random.normal(loc = 5, scale = 2, size = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
+                0
+            )
 
             expected_reward = env.compute_clairvoyant_reward(
                 num_sold_items,
@@ -309,18 +310,18 @@ def simulate_step6():
                 budgets
             )
 
-            optimal_allocation, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
+            optimal_allocation, optimal_allocation_idxs, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
             arm, arm_idxs = ecomm6_swucb.pull_arm()
             alpha,swucb_gains_per_experiment[e][t] , sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
-                                                                                    num_sold_items = num_sold_items)
+                                                                                    num_sold_items = num_sold_items, optimal_arm = optimal_allocation_idxs)
             ecomm6_swucb.update(arm_idxs, alpha, sold_items)
 
-            arm, arm_idxs = ecomm6_cducb.pull_arm()
-            alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
-                                                                                    num_sold_items = num_sold_items, end_phase = True)
-            ecomm6_cducb.update(arm_idxs, alpha, sold_items)
+            # arm, arm_idxs = ecomm6_cducb.pull_arm()
+            # alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
+            #                                                                         num_sold_items = num_sold_items, optimal_arm = optimal_allocation_idxs, end_phase = True)
+            # ecomm6_cducb.update(arm_idxs, alpha, sold_items)
 
 
     return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain, non_stationary_scenario.get_n_phases(), non_stationary_scenario.get_phase_len()

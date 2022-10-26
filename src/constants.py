@@ -11,7 +11,7 @@ LAMBDA = 0.6
 
 fully_connected = True
 
-B_cap = 100
+B_cap = 10
 budgets = np.arange(start = 0, stop = B_cap + 1, step = B_cap/10)
 
 users_price_range = 100

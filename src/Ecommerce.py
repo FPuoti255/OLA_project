@@ -61,6 +61,6 @@ class Ecommerce(object):
         )
         optimal_allocation = self.budgets[budgets_indexes]
 
-        return optimal_allocation, optimal_reward
+        return optimal_allocation, budgets_indexes, optimal_reward
     
     

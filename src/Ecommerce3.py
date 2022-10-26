@@ -1,4 +1,5 @@
 from itertools import combinations_with_replacement, permutations
+from multiprocessing.sharedctypes import Value
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel
@@ -17,12 +18,8 @@ class Ecommerce3(Ecommerce):
         self.n_arms = self.budgets.shape[0]
 
         self.t = 0
-        self.perms = None
 
         self.pulled_arms = [[] for _ in range(NUM_OF_PRODUCTS)]
-        self.rewards_per_arm = [
-            [[] for _ in range(self.n_arms)] for _ in range(NUM_OF_PRODUCTS)
-        ]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
         self.gp_config =  gp_config
@@ -69,19 +66,16 @@ class Ecommerce3(Ecommerce):
         self.update_observations(pulled_arm_idxs, reward)
         self.update_model()
 
-    def pull_arm(self, num_sold_items):
-        pass
-        
+
     def update_observations(self, pulled_arm_idxs, reward):
         for prod_id in range(NUM_OF_PRODUCTS):
-            self.rewards_per_arm[prod_id][pulled_arm_idxs[prod_id]].append(reward[prod_id])
             self.pulled_arms[prod_id].append(self.budgets[pulled_arm_idxs[prod_id]])
             self.collected_rewards[prod_id].append(reward[prod_id])
 
     def update_model(self):
+        X_test = np.atleast_2d(self.budgets).T
         for prod_id in range(NUM_OF_PRODUCTS):
             X = np.atleast_2d(self.pulled_arms[prod_id]).T
-            X_test = np.atleast_2d(self.budgets).T
             y = np.array(self.collected_rewards[prod_id])
             self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
@@ -90,24 +84,16 @@ class Ecommerce3(Ecommerce):
         '''
         :returns: value per click for each product. Shape = (NUM_OF_PRODUCTS,)
         '''
-        assert (num_sold_items.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-        return np.sum(np.multiply(num_sold_items, self.product_prices), axis=1)
+        if num_sold_items.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS) :
+            # the value per click of a product is the how much the users have spent
+            # both on the product itself and all the other products visited starting from it
+            return np.sum(np.multiply( num_sold_items, self.product_prices), axis = 1)
+            
+        elif num_sold_items.shape == (NUM_OF_PRODUCTS,):
+            return np.multiply(num_sold_items, self.product_prices)
+        else :
+            raise ValueError('Wrong num_sold_items')
 
-    def random_sampling(self):
-        if self.perms is None:
-            combinations = np.array([comb for comb in combinations_with_replacement(self.budgets, 5) if np.sum(comb) == self.B_cap], dtype=float)
-            perms = []
-            for comb in combinations:
-                [perms.append(perm) for perm in permutations(comb)]
-            self.perms = np.array(list(set(perms))) #set() to remove duplicates
-
-        choice = self.perms[np.random.choice(self.perms.shape[0], size=1, replace=False), :].reshape((NUM_OF_PRODUCTS,))
-        choice_idxs = np.zeros_like(choice)
-
-        for prod in range(NUM_OF_PRODUCTS):
-            choice_idxs[prod] = np.where(self.budgets==choice[prod])[0][0]
-        
-        return choice, choice_idxs.astype(int)
 
 
 class Ecommerce3_GPTS(Ecommerce3):
@@ -130,7 +116,7 @@ class Ecommerce3_GPTS(Ecommerce3):
         X = np.atleast_2d(self.budgets).T
         for prod in range(NUM_OF_PRODUCTS):
             samples[prod] = self.gaussian_regressors[prod].sample_y(X).T                
-        return samples
+        return np.clip(samples, 0, 1)
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
@@ -138,17 +124,18 @@ class Ecommerce3_GPUCB(Ecommerce3):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.exploration_probability = 0.05
-        self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=1e400)
+        self.perms = None
+
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
+        self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf)
 
     def update_bounds(self, pulled_arm_idxs):
         for i in range(NUM_OF_PRODUCTS):
             self.N_a[i][pulled_arm_idxs[i]] += 1
 
         # bayesian UCB
-        self.confidence_bounds = 0.2 * np.sqrt((2 * np.log(self.t) / self.N_a)) * self.sigmas #0.2 * self.sigmas #= np.sqrt(2 * np.log(self.t) / self.N_a)
-        self.confidence_bounds[self.N_a == 0] = 1e400
+        self.confidence_bounds = np.sqrt(2 * np.log((self.t) / (self.N_a + 0.000001))) * self.sigmas
 
 
     def update_observations(self, pulled_arm_idxs, reward):
@@ -168,3 +155,18 @@ class Ecommerce3_GPUCB(Ecommerce3):
         else:
             return self.random_sampling()
 
+    def random_sampling(self):
+        if self.perms is None:
+            combinations = np.array([comb for comb in combinations_with_replacement(self.budgets, 5) if np.sum(comb) == self.B_cap], dtype=float)
+            perms = []
+            for comb in combinations:
+                [perms.append(perm) for perm in permutations(comb)]
+            self.perms = np.array(list(set(perms))) #set() to remove duplicates
+
+        choice = self.perms[np.random.choice(self.perms.shape[0], size=1, replace=False), :].reshape((NUM_OF_PRODUCTS,))
+        choice_idxs = np.zeros_like(choice)
+
+        for prod in range(NUM_OF_PRODUCTS):
+            choice_idxs[prod] = np.where(self.budgets==choice[prod])[0][0]
+        
+        return choice, choice_idxs.astype(int)

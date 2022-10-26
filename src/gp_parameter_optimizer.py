@@ -230,7 +230,7 @@ def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_
     return np.sqrt(mean_squared_error(y_actual, y_predicted))
 
 
-def CDUCB_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices, users_poisson_parameters, n_phases, phase_len):
+def CUSUM_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices, users_poisson_parameters, n_phases, phase_len):
     y_actual, y_predicted = [], []
 
     M, eps, h = hyperparams
@@ -369,7 +369,7 @@ def optimize_CD_step6():
 
     bounds = [M_bounds] + [eps_bounds] + [h_bounds]
 
-    solver = differential_evolution(CDUCB_fitness_function, bounds, args=extra_variables, strategy='best1bin', updating = 'deferred',
+    solver = differential_evolution(CUSUM_fitness_function, bounds, args=extra_variables, strategy='best1bin', updating = 'deferred',
                                      workers = -1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
 
     best_hyperparams = solver.x

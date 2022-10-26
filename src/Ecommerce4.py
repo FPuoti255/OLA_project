@@ -16,26 +16,19 @@ class Ecommerce4:
             raise ValueError('Please choose one between TS or UCB')
 
         self.t = 0
-        self.sold_items = [[[15] for _ in range(NUM_OF_PRODUCTS)] for _ in range(NUM_OF_PRODUCTS)]
+        self.sold_items_means = np.ones(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)) * 20.0
+        self.sold_items = [self.sold_items_means.copy()]
         
 
-    def pull_arm(self):
-
-        estimated_items_means = np.mean(np.array(self.sold_items), axis = 2)
-        estimated_items_sigmas = np.std(np.array(self.sold_items), axis = 2)
-        assert(estimated_items_means.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-        assert(estimated_items_sigmas.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-        sampled_sold_items = np.random.normal(estimated_items_means, estimated_items_sigmas)
-        
-        return self.algorithm.pull_arm(sampled_sold_items)
+    def pull_arm(self):   
+        return self.algorithm.pull_arm(self.sold_items_means)
     
     def update(self, pulled_arm_idxs, reward, num_items_sold):
-        assert(num_items_sold.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
         self.t += 1
         self.algorithm.update(pulled_arm_idxs, reward)
-        for row in range(NUM_OF_PRODUCTS):
-            for col in range(NUM_OF_PRODUCTS):
-                self.sold_items[row][col].append(num_items_sold[row][col])
+
+        self.sold_items.append(num_items_sold)
+        self.sold_items_means = np.mean(self.sold_items, axis = 0)
 
 
 
