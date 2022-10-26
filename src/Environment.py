@@ -75,28 +75,6 @@ class Environment:
 
         self.expected_users_alpha = exp_user_alpha
 
-    # def compute_users_alpha(self, budgets: np.ndarray):
-    #     '''
-    #     :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
-    #     :return: the expected alpha for each couple (prod_id, budget_allocated)
-    #     '''
-    #     bdgts = budgets.copy() / budgets[-1]
-    #     exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
-
-    #     for prod_id in range(NUM_OF_PRODUCTS):
-    #         for j in range(1, bdgts.shape[0]):
-
-    #             map = self.mapping_function(prod_id, bdgts[j])
-    #             conc_params = np.multiply([map, 1-map], 10).flatten()
-
-    #             exp_user_alpha[:, prod_id, j] = np.minimum(
-    #                 self.rng.dirichlet(conc_params).reshape(NUM_OF_USERS_CLASSES, 2)[:, 0],
-    #                 self.alpha_bars[ : , prod_id + 1]
-    #             )
-            
-
-    #     self.expected_users_alpha = np.sort(exp_user_alpha, axis = 2)
-
 
     def compute_clairvoyant_reward(self, num_sold_items, product_prices, budgets):
         '''
@@ -145,26 +123,6 @@ class Environment:
     def round_step4(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm):
 
         alpha, reward = self.round_step3(pulled_arm, pulled_arm_idxs)
-
-
-        # # The num_sold_items for the pulled arm will be proportional to the ratio
-        # # between the alpha for the current arm and the optimal_arm alpha
-        # aggregated_exp_users_alpha = np.sum(self.expected_users_alpha, axis=0)
-        # optimal_alpha = np.zeros(shape=(NUM_OF_PRODUCTS,))
-        # for prod_id in range(NUM_OF_PRODUCTS):
-        #     optimal_alpha[prod_id] = aggregated_exp_users_alpha[prod_id][optimal_arm[prod_id]]
-
-        # percentage_for_each_product = np.minimum(np.divide(alpha ,optimal_alpha), 1)
-        # percentage_for_each_product = np.repeat(percentage_for_each_product, repeats=NUM_OF_PRODUCTS).reshape((NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-
-
-        # aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
-
-        # real_sold_items = np.multiply(
-        #     aggregated_num_sold_items,
-        #     percentage_for_each_product
-        # )
-
 
         percentage_for_each_product = np.divide(
             alpha ,
