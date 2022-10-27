@@ -127,6 +127,7 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
         self.pulled_arms = [[] for _ in range(NUM_OF_PRODUCTS)]
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
+        self.t = 0
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
         self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf)
 
@@ -147,6 +148,7 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
     def update(self, pulled_arm_idxs, reward, sold_items):
 
         if self.change_detected(reward):
+            print(f'Change detected at time t = {self.t}')
             self.reset()
 
         super().update(pulled_arm_idxs, reward)
