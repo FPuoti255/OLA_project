@@ -24,12 +24,12 @@ class Non_Stationary_Environment(Environment):
         self.phase_len = phase_len
 
         assert(users_reservation_prices.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
-        assert(graph_weights.shape == (NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+        assert(graph_weights.shape == (self.n_phases, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
         assert(alpha_bars.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS + 1) )
         assert(users_poisson_parameters.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
 
         self.environments = [ 
-            Environment(users_reservation_prices[i], graph_weights.copy(), alpha_bars[i], users_poisson_parameters[i])    
+            Environment(users_reservation_prices[i], graph_weights[i], alpha_bars[i], users_poisson_parameters[i])    
             for i in range(self.n_phases)]
         
 
@@ -61,5 +61,21 @@ class Non_Stationary_Environment(Environment):
             self.current_phase = int(np.floor(self.t / self.phase_len))
 
         return alpha, reward, real_sold_items
+
+    # def round_step6(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm, end_phase = False):
+
+    #     alpha, reward = self.environments[self.current_phase].round_step3(pulled_arm, pulled_arm_idxs)
+        
+    #     aggregated_num_sold_items = np.sum(num_sold_items, axis = (0,1))
+    #     assert(aggregated_num_sold_items.shape == (NUM_OF_PRODUCTS,))
+
+    #     alpha_bars = self.environments[self.current_phase].get_alpha_bars()
+    #     real_sold_items = aggregated_num_sold_items * alpha / np.sum(alpha_bars, axis = 0)[1:]
+
+    #     if end_phase : #in this way also the second learner to pull will have the same phase parameters
+    #         self.t += 1
+    #         self.current_phase = int(np.floor(self.t / self.phase_len))
+
+    #     return alpha, reward, real_sold_items
 
 
