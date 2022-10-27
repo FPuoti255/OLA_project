@@ -1,0 +1,4 @@
+1. nell'environment step4 devo mettere che il numero di sold items dato come reward sia proporzionale
+    non più agli alpha bars, ma agli alpha ottenuti dall'optimal arm.
+
+2. sistemare step7

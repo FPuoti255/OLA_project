@@ -3,6 +3,8 @@ import numpy as np
 from Ecommerce3 import *
 from constants import *
 from Utils import *
+from SoldItemsEstimator import SoldItemsEstimator
+
 
 
 class Ecommerce4:
@@ -15,20 +17,16 @@ class Ecommerce4:
         else:
             raise ValueError('Please choose one between TS or UCB')
 
-        self.t = 0
-        self.sold_items_means = np.ones(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)) * 20.0
-        self.sold_items = [self.sold_items_means.copy()]
+        self.items_estimator = SoldItemsEstimator()
         
 
     def pull_arm(self):   
-        return self.algorithm.pull_arm(self.sold_items_means)
+        return self.algorithm.pull_arm(self.items_estimator.get_estimation())
     
     def update(self, pulled_arm_idxs, reward, num_items_sold):
         self.t += 1
         self.algorithm.update(pulled_arm_idxs, reward)
-
-        self.sold_items.append(num_items_sold)
-        self.sold_items_means = np.mean(self.sold_items, axis = 0)
+        self.items_estimator.update(num_items_sold)
 
 
 

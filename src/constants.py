@@ -14,14 +14,12 @@ fully_connected = True
 B_cap = 10
 budgets = np.arange(start = 0, stop = B_cap + 1, step = B_cap/10)
 
-users_price_range = 100
-products_price_range = 100
 
 n_experiments = 2
 T = 100
 
 n_experiments_step6 = 2
-T_step6 = 120
+T_step6 = 360
 
 features = {'A' : 1, 'B' : 0, 'C' : 0, 'D' : 2}
 split_time = 14    # two weeks

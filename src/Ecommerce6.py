@@ -1,74 +1,30 @@
-from enum import unique
 from itertools import combinations_with_replacement, permutations
+from math import prod
 import numpy as np
 
 from Ecommerce import *
+from Ecommerce3 import Ecommerce3_GPUCB
 from constants import *
 from Utils import *
+from SoldItemsEstimator import *
 
 
-class Ecommerce6(Ecommerce):
 
-    def __init__(self, B_cap: float, budgets, product_prices):
+class Ecommerce6_SWUCB(Ecommerce3_GPUCB):
+    def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict, tau : int):
+        super().__init__(B_cap, budgets, product_prices, gp_config)
 
-        super().__init__(B_cap, budgets, product_prices)
-
-        # The budgets are our arms!
-        self.n_arms = self.budgets.shape[0]
-
-        self.t = 0
-        self.perms = None
-        self.exploration_probability = 0.05
-
-        # I'm generating a distribution of the budgets for each product
-        self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 0.0
-        self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 10.0
-
-        self.sold_items_means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * 10.0
-
-        self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=1e400)
-
-    def random_sampling(self):
-        if self.perms is None:
-            combinations = np.array([comb for comb in combinations_with_replacement(self.budgets, 5) if np.sum(comb) == self.B_cap], dtype=float)
-            perms = []
-            for comb in combinations:
-                [perms.append(perm) for perm in permutations(comb)]
-            self.perms = np.array(list(set(perms))) #set() to remove duplicates
-
-        choice = self.perms[np.random.choice(self.perms.shape[0], size=1, replace=False), :].reshape((NUM_OF_PRODUCTS,))
-        choice_idxs = np.zeros_like(choice)
-
-        for prod in range(NUM_OF_PRODUCTS):
-            choice_idxs[prod] = np.where(self.budgets==choice[prod])[0][0]
-        
-        return choice, choice_idxs.astype(int)
-
-    def pull_arm(self):
-        if np.random.binomial(n = 1, p = 1 - self.exploration_probability):
-            value_per_click = np.multiply(self.sold_items_means, np.atleast_2d(self.product_prices).T )
-            estimated_reward = np.multiply(self.means, value_per_click) + self.confidence_bounds
-
-            budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
-            return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
-        else:
-            return self.random_sampling()
-
-
-class Ecommerce6_SWUCB(Ecommerce6):
-    def __init__(self, B_cap: float, budgets, product_prices, tau : int):
-        super().__init__(B_cap, budgets, product_prices)
-
-        self.tau=tau
-
+        # Ecommerce3_GPUCB attributes that need to be overridden
+        # -----------------------------------------------------
         self.pulled_arms=np.full(shape=(NUM_OF_PRODUCTS, tau), fill_value=np.nan)
-        self.rewards_per_arm=np.full(shape=(NUM_OF_PRODUCTS, self.n_arms, tau), fill_value=np.nan)
+        self.collected_rewards = np.full(shape=(NUM_OF_PRODUCTS, tau), fill_value=np.nan)
         # Number of times the arm has been pulled represented with a binary vector
         self.N_a=np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms, tau))
+        
+        # New attributes to be added
+        self.tau=tau
+        self.sold_items_estimator = SW_SoldItemsEstimator(self.tau)
 
-
-        self.reward_sold_items=np.full(
-            shape=(NUM_OF_PRODUCTS, self.n_arms, self.tau), fill_value=np.nan)
 
 
     def update(self, pulled_arm_idxs, reward, sold_items):
@@ -90,27 +46,34 @@ class Ecommerce6_SWUCB(Ecommerce6):
             non_pulled_arm_idxs= np.setdiff1d(np.arange(0, self.n_arms), arm_idx, assume_unique=True)
 
             self.N_a[prod_id][arm_idx][slot_idx] = 1
-            self.rewards_per_arm[prod_id][arm_idx][slot_idx] = reward[prod_id]
+
             self.pulled_arms[prod_id][slot_idx] = self.budgets[arm_idx]
-            self.reward_sold_items[prod_id][arm_idx][slot_idx] = sold_items[prod_id]
+            self.collected_rewards[prod_id][slot_idx] = reward[prod_id]
             
             for idx in non_pulled_arm_idxs:
                 self.N_a[prod_id][idx][slot_idx] = 0
-                self.rewards_per_arm[prod_id][idx][slot_idx] = np.nan
-                self.reward_sold_items[prod_id][idx][slot_idx] = np.nan
-            
+        
+        self.sold_items_estimator.update(sold_items)
+       
 
     def update_model(self):
-        for i in range(0, NUM_OF_PRODUCTS):
-            for j in range(0, self.n_arms):
-                self.means[i][j]=np.nanmean(self.rewards_per_arm[i][j])
-                self.sigmas[i][j]=np.nanstd(self.rewards_per_arm[i][j])
-                self.sold_items_means[i][j]=np.nanmean(self.reward_sold_items[i][j])
+        X_test = np.atleast_2d(self.budgets).T
+        for prod_id in range(NUM_OF_PRODUCTS):
+            
+            pulled_arms_removed_nan = self.pulled_arms[prod_id][ ~ np.isnan(self.pulled_arms[prod_id]) ]
+            X = np.atleast_2d(pulled_arms_removed_nan).T
 
-        self.sigmas=np.maximum(self.sigmas, 5e-3)
+            collected_rewards_removed_nan = self.collected_rewards[prod_id][ ~ np.isnan(self.collected_rewards[prod_id])]
+            y = np.array(collected_rewards_removed_nan)
 
-        self.confidence_bounds= 0.2 * np.sqrt(2 * np.log(self.t) / np.sum(self.N_a, axis=2)) * self.sigmas
-        self.confidence_bounds[np.sum(self.N_a, axis=2) == 0] = 1e400
+            self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
+            self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
+
+        self.confidence_bounds =  np.sqrt(2 * np.log((self.t) / (np.sum(self.N_a, axis=2) + 0.000001))) * self.sigmas
+
+    def pull_arm(self):
+        num_sold_items = self.sold_items_estimator.get_estimation()
+        return super().pull_arm(num_sold_items)
 
 
 
@@ -151,69 +114,45 @@ class CUSUM:
         self.g_plus=0
 
 
-class Ecommerce6_CDUCB(Ecommerce6):
-    def __init__(self, B_cap: float, budgets, product_prices, M, eps, h):
-        super().__init__(B_cap, budgets, product_prices)
+class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
+    def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict, M, eps, h):
+        super().__init__(B_cap, budgets, product_prices, gp_config)
 
-        self.change_detection=[[CUSUM(M, eps, h) for i in range(
-            self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
+        self.change_detection_algorithms = [CUSUM(M, eps, h) for _ in range(NUM_OF_PRODUCTS)]
 
-        self.change_detection_sold_items=[[CUSUM(M, eps, h) for i in range(
-            self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
+        self.sold_items_estimator = SoldItemsEstimator()
 
 
-        self.pulled_arms=[[] for i in range(NUM_OF_PRODUCTS)]
-        self.rewards_per_arm=[
-            [[] for i in range(self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
+    def reset(self):
+        self.pulled_arms = [[] for _ in range(NUM_OF_PRODUCTS)]
+        self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
-        self.rewards_sold_items=[
-            [[] for i in range(self.n_arms)] for j in range(NUM_OF_PRODUCTS)]
+        self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
+        self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf)
+
+        self.sold_items_estimator = SoldItemsEstimator()
+
+        for cd_alg in self.change_detection:
+            cd_alg.reset()
 
 
-    def update(self, pulled_arm_idxs, reward, sold_items):
-        self.t += 1
+    def change_detected(self, reward):
         for prod_id in range(NUM_OF_PRODUCTS):
-            arm_idx=pulled_arm_idxs[prod_id]
+            if self.change_detection_algorithms[prod_id].update(reward[prod_id]):
+                return True
+        
+        return False
 
-            if self.change_detection[prod_id][arm_idx].update(reward[prod_id]):
-                log(f't = {self.t} CUSUM change detected')
-                self.rewards_per_arm[prod_id][arm_idx]=[]
-                self.change_detection[prod_id][arm_idx].reset()
+    
+    def update(self, pulled_arm_idxs, reward, sold_items):
 
-            if self.change_detection_sold_items[prod_id][arm_idx].update(sold_items[prod_id]):
-                self.rewards_sold_items[prod_id][arm_idx]=[]
-                self.change_detection_sold_items[prod_id][arm_idx].reset()
+        if self.change_detected(reward):
+            self.reset()
 
-            self.update_observations(prod_id, arm_idx, reward[prod_id], sold_items[prod_id])
+        super().update(pulled_arm_idxs, reward)
+        self.sold_items_estimator.update(sold_items)
+        
 
-        self.update_model()
-
-
-    def update_observations(self, prod_id, arm_idx, arm_reward, prod_sold_items):
-        self.rewards_per_arm[prod_id][arm_idx].append(arm_reward)
-        self.pulled_arms[prod_id].append(self.budgets[arm_idx])
-
-        self.rewards_sold_items[prod_id][arm_idx].append(prod_sold_items)
-
-
-    def update_model(self):
-        # equivalent to n_t in the paper
-        total_valid_rewards=np.zeros(shape=NUM_OF_PRODUCTS)
-        for prod_id in range(0, NUM_OF_PRODUCTS):
-            total_valid_rewards[prod_id]=np.sum(
-                [len(x) for x in self.rewards_per_arm[prod_id]])
-
-            for arm_idx in range(0, self.n_arms):
-                self.means[prod_id][arm_idx]=np.mean(
-                    self.rewards_per_arm[prod_id][arm_idx])
-                self.sigmas[prod_id][arm_idx]=np.std(
-                    self.rewards_per_arm[prod_id][arm_idx])
-
-                n_reward=len(self.rewards_per_arm[prod_id][arm_idx])
-                self.confidence_bounds[prod_id][arm_idx]= 0.2 * np.sqrt(
-                    2 * np.log(total_valid_rewards[prod_id]) / n_reward) * self.sigmas[prod_id][arm_idx] if n_reward > 0 else 1e400
-
-                self.sold_items_means[prod_id][arm_idx]=np.mean(
-                    self.rewards_sold_items[prod_id][arm_idx])
-
-        self.sigmas=np.maximum(self.sigmas, 5e-3)
+    def pull_arm(self):
+        num_sold_items = self.sold_items_estimator.get_estimation()
+        return super().pull_arm(num_sold_items)

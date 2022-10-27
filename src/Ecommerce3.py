@@ -80,6 +80,7 @@ class Ecommerce3(Ecommerce):
             self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
 
+
     def compute_value_per_click(self, num_sold_items):
         '''
         :returns: value per click for each product. Shape = (NUM_OF_PRODUCTS,)
@@ -92,7 +93,7 @@ class Ecommerce3(Ecommerce):
         elif num_sold_items.shape == (NUM_OF_PRODUCTS,):
             return np.multiply(num_sold_items, self.product_prices)
         else :
-            raise ValueError('Wrong num_sold_items')
+            raise ValueError('Wrong num_sold_items shape')
 
 
 
@@ -130,17 +131,18 @@ class Ecommerce3_GPUCB(Ecommerce3):
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
         self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf)
 
-    def update_bounds(self, pulled_arm_idxs):
-        for i in range(NUM_OF_PRODUCTS):
-            self.N_a[i][pulled_arm_idxs[i]] += 1
-
-        # bayesian UCB
-        self.confidence_bounds = np.sqrt(2 * np.log((self.t) / (self.N_a + 0.000001))) * self.sigmas
-
+       
 
     def update_observations(self, pulled_arm_idxs, reward):
         super().update_observations(pulled_arm_idxs, reward)
-        self.update_bounds(pulled_arm_idxs)
+        for i in range(NUM_OF_PRODUCTS):
+            self.N_a[i][pulled_arm_idxs[i]] += 1
+
+    
+    def update_model(self):
+        super().update_model()
+        # bayesian UCB
+        self.confidence_bounds = np.sqrt(2 * np.log((self.t) / (self.N_a + 0.000001))) * self.sigmas
 
 
     def pull_arm(self, num_sold_items):
