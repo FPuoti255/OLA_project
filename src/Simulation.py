@@ -253,9 +253,9 @@ def simulate_step6():
 
     tau = np.ceil(3.0 * np.sqrt(T_step6)).astype(int)
 
-    M = T_step6 / 8
+    M = T_step6 / 5
     eps = 0.01
-    h = 0.5
+    h = 2*np.log(T)
     gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
 
     for e in range(0, n_experiments_step6):

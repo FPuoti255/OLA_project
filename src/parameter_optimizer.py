@@ -303,7 +303,7 @@ def CUSUM_fitness_function(hyperparams, graph_weights, alpha_bars, product_price
         y_predicted.append(cducb_gain)
 
         
-    detected_phases = [0] + ecomm6_cducb.get_detections()
+    detected_phases = ecomm6_cducb.get_detections()
 
     phase_error_count = 0
     for i in range(min(len(actual_phases), len(detected_phases))):

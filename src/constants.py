@@ -16,10 +16,10 @@ budgets = np.arange(start = 0, stop = B_cap + 1, step = B_cap/10)
 
 
 n_experiments = 2
-T = 100
+T = 120
 
 n_experiments_step6 = 2
-T_step6 = 120
+T_step6 = 210
 
 features = {'A' : 1, 'B' : 0, 'C' : 0, 'D' : 2}
 split_time = 14    # two weeks

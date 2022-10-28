@@ -124,7 +124,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
     def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
-        self.exploration_probability = 0.05
+        self.exploration_probability = 0.02
         self.perms = None
 
         # Number of times the arm has been pulled

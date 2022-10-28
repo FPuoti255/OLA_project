@@ -1,5 +1,4 @@
 from itertools import combinations_with_replacement, permutations
-from math import prod
 import numpy as np
 
 from Ecommerce import *
@@ -119,7 +118,7 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.change_detection_algorithms = [CUSUM(M, eps, h) for _ in range(NUM_OF_PRODUCTS)]
-        self.time_of_detections = []
+        self.time_of_detections = [0]
 
         self.sold_items_estimator = SoldItemsEstimator()
 
@@ -149,7 +148,7 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
     def update(self, pulled_arm_idxs, reward, sold_items):
 
         if self.change_detected(reward):
-            print(f'Change detected at time t = {self.t}')
+            print(f'Change detected at time t = {self.time_of_detections[-1] + self.t}')
             self.time_of_detections.append(self.t)
             self.reset()
 
