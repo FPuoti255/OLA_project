@@ -119,6 +119,7 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.change_detection_algorithms = [CUSUM(M, eps, h) for _ in range(NUM_OF_PRODUCTS)]
+        self.time_of_detections = []
 
         self.sold_items_estimator = SoldItemsEstimator()
 
@@ -133,7 +134,7 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
 
         self.sold_items_estimator = SoldItemsEstimator()
 
-        for cd_alg in self.change_detection:
+        for cd_alg in self.change_detection_algorithms:
             cd_alg.reset()
 
 
@@ -149,6 +150,7 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
 
         if self.change_detected(reward):
             print(f'Change detected at time t = {self.t}')
+            self.time_of_detections.append(self.t)
             self.reset()
 
         super().update(pulled_arm_idxs, reward)
@@ -158,3 +160,6 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
     def pull_arm(self):
         num_sold_items = self.sold_items_estimator.get_estimation()
         return super().pull_arm(num_sold_items)
+
+    def get_detections(self):
+        return self.time_of_detections

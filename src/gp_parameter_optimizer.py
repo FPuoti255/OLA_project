@@ -186,7 +186,7 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars, product_
     return np.sqrt(mean_squared_error(y_actual, y_predicted))
 
 
-def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices):
+def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices, observations_probabilities, users_poisson_parameters):
 
     n_rounds = 70
     y_actual, y_predicted = [], []
@@ -212,13 +212,15 @@ def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_
     ecomm = Ecommerce(B_cap, budgets, product_prices)
     ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices, gp_config)
 
-    for t in range(0, n_rounds):
+    num_sold_items = estimate_nodes_activation_probabilities(
+        env.network.get_adjacency_matrix(),
+        env.users_reservation_prices,
+        env.users_poisson_parameters,
+        product_prices,
+        observations_probabilities
+    )
 
-        num_sold_items = np.maximum(
-            np.random.normal(loc=4, scale=2, size=(
-                NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
-            0
-        )
+    for t in range(0, n_rounds):
 
         expected_reward_table = env.compute_clairvoyant_reward(
             num_sold_items,
@@ -244,10 +246,14 @@ def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_
     return np.sqrt(mean_squared_error(y_actual, y_predicted))
 
 
-def CUSUM_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices, users_poisson_parameters, n_phases, phase_len):
+def CUSUM_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices, observations_probabilities, users_poisson_parameters, n_phases, phase_len):
+    
+    
     y_actual, y_predicted = [], []
+    actual_phases = []
 
-    M, eps, h = hyperparams
+    eps, h = hyperparams
+    M = T_step6 / 6
 
     env = Non_Stationary_Environment(
         users_reservation_prices,
@@ -257,17 +263,27 @@ def CUSUM_fitness_function(hyperparams, graph_weights, alpha_bars, product_price
         n_phases,
         phase_len
     )
-
+    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
     ecomm = Ecommerce(B_cap, budgets, product_prices)
-    ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, M, eps, h)
+    ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, gp_hyperparameters, M, eps, h)
 
-    for t in range(0, T_step6):
+    current_phase = -1
 
-        num_sold_items = np.maximum(
-            np.random.normal(loc=5, scale=2, size=(
-                NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)),
-            0
-        )
+    for t in range(T_step6):
+
+        new_phase = env.get_current_phase()
+        if new_phase != current_phase :
+            current_phase = new_phase
+            actual_phases.append(new_phase)
+
+            num_sold_items = estimate_nodes_activation_probabilities(
+                env.get_network().get_adjacency_matrix(),
+                env.get_users_reservation_prices(),
+                env.get_users_poisson_parameters(),
+                product_prices,
+                observations_probabilities
+            )
+
 
         expected_reward = env.compute_clairvoyant_reward(
             num_sold_items,
@@ -275,17 +291,28 @@ def CUSUM_fitness_function(hyperparams, graph_weights, alpha_bars, product_price
             budgets
         )
 
-        _, optimal_gain = ecomm.clairvoyant_optimization_problem(
+        optimal_arm, optimal_arm_idxs, optimal_gain = ecomm.clairvoyant_optimization_problem(
             expected_reward)
-        y_actual.append(optimal_gain)
 
         arm, arm_idxs = ecomm6_cducb.pull_arm()
         alpha, cducb_gain, sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs,
-                                                        num_sold_items=num_sold_items, end_phase=True)
+                                                        num_sold_items=num_sold_items, optimal_arm = optimal_arm_idxs, end_phase=True)
         ecomm6_cducb.update(arm_idxs, alpha, sold_items)
+        
+        y_actual.append(optimal_gain)
         y_predicted.append(cducb_gain)
 
-    return np.sqrt(mean_squared_error(y_actual, y_predicted))
+        
+    detected_phases = [0] + ecomm6_cducb.get_detections()
+
+    phase_error_count = 0
+    for i in range(min(len(actual_phases), len(detected_phases))):
+        phase_error_count += 1 if detected_phases[i] != actual_phases[i] else 0
+
+    phase_error_count += max(len(actual_phases), len(detected_phases)) - min(len(actual_phases), len(detected_phases))
+
+
+    return np.sqrt(mean_squared_error(y_actual, y_predicted)) + phase_error_count
 
 
 def SWUCB_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices, users_poisson_parameters, n_phases, phase_len):
@@ -342,64 +369,48 @@ def optimize_GP_step3():
                         users_reservation_prices, users_poisson_parameters)
 
     solver = differential_evolution(gpts_step3_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating='deferred',
-                                    workers=-1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
-
-    best_hyperparams = solver.x
-    best_rmse = solver.fun
-    callback(best_hyperparams, best_rmse)
-
-
-def optimize_GP_step4():
-    graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-        _, _ = generate_data()
-
-    extra_variables = (graph_weights, alpha_bars,
-                       product_prices, users_reservation_prices)
-
-    solver = differential_evolution(gpts_step4_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating='deferred',
                                     workers=-1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
-    callback(best_hyperparams, best_rmse)
+    print_final_result(best_hyperparams, best_rmse)
 
 
 def optimize_GP_step5():
 
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-        _, _ = generate_data()
+        observations_probabilities, users_poisson_parameters = generate_data()
 
-    extra_variables = (graph_weights, alpha_bars,
-                       product_prices, users_reservation_prices)
+    extra_variables = (graph_weights, alpha_bars, product_prices, users_reservation_prices,
+                                observations_probabilities, users_poisson_parameters)
 
     solver = differential_evolution(gpts_step5_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating='deferred',
                                     workers=-1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
-    callback(best_hyperparams, best_rmse)
+    print_final_result(best_hyperparams, best_rmse)
 
 
 def optimize_CD_step6():
 
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-        _, users_poisson_parameters, n_phases, phase_len = generate_non_stationary_data()
+        observations_probabilities, users_poisson_parameters, n_phases, phase_len = generate_non_stationary_data()
 
     extra_variables = (graph_weights, alpha_bars, product_prices,
-                       users_reservation_prices, users_poisson_parameters, n_phases, phase_len)
+                       users_reservation_prices, observations_probabilities, users_poisson_parameters, n_phases, phase_len)
 
-    M_bounds = (30, 60)
     eps_bounds = (1e-2, 1)
-    h_bounds = (1e-1, 2*np.log(T_step6))
+    h_bounds = (1e-2, 3)
 
-    bounds = [M_bounds] + [eps_bounds] + [h_bounds]
+    bounds = [eps_bounds] + [h_bounds]
 
     solver = differential_evolution(CUSUM_fitness_function, bounds, args=extra_variables, strategy='best1bin', updating='deferred',
                                     workers=-1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
-    callback(best_hyperparams, best_rmse)
+    print_final_result(best_hyperparams, best_rmse)
 
 
 def optimize_SW_step6():
@@ -409,7 +420,7 @@ def optimize_SW_step6():
     extra_variables = (graph_weights, alpha_bars, product_prices,
                        users_reservation_prices, users_poisson_parameters, n_phases, phase_len)
 
-    multiplier_bounds = (5, 15)
+    multiplier_bounds = (1, 5)
 
     bounds = [multiplier_bounds]
 
@@ -422,4 +433,4 @@ def optimize_SW_step6():
 
 
 if __name__ == '__main__':
-    optimize_GP_step3()
+    optimize_CD_step6()

@@ -24,7 +24,6 @@ class Ecommerce4:
         return self.algorithm.pull_arm(self.items_estimator.get_estimation())
     
     def update(self, pulled_arm_idxs, reward, num_items_sold):
-        self.t += 1
         self.algorithm.update(pulled_arm_idxs, reward)
         self.items_estimator.update(num_items_sold)
 
