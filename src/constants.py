@@ -16,7 +16,7 @@ budgets = np.arange(start = 0, stop = B_cap + 1, step = B_cap/10)
 
 
 n_experiments = 2
-T = 120
+T = 80
 
 n_experiments_step6 = 2
 T_step6 = 210

@@ -249,15 +249,17 @@ def simulate_step6():
     swucb_gains_per_experiment = np.zeros(shape=(n_experiments_step6, T_step6))
     cducb_gains_per_experiment = np.zeros(shape=(n_experiments_step6, T_step6))    
     optimal_gain = np.zeros(shape=(n_experiments_step6, T_step6))
-    
+ 
+    hyperparams = json.load(open("hyperparameters.json"))
+    gp_hyperparameters = hyperparams['step3']
 
     tau = np.ceil(3.0 * np.sqrt(T_step6)).astype(int)
 
-    M = T_step6 / 5
-    eps = 0.01
-    h = 2*np.log(T)
-    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
+    M = hyperparams["step6"]["M"]
+    eps = hyperparams["step6"]["eps"]
+    h = hyperparams["step6"]["h"]
 
+    print(f'tau : {tau}\nM, h, eps: {M}, {h}, {eps};\n')
     for e in range(0, n_experiments_step6):
         print('Experiment n°', e + 1)
         
@@ -283,7 +285,7 @@ def simulate_step6():
         
         current_phase = -1
 
-        for t in tqdm(range(0, T_step6), position=0, desc="n_iteration", leave=True):
+        for t in tqdm(range(0, T_step6), position=0, desc="n_iteration", leave=False):
 
             new_phase = env.get_current_phase()
             if new_phase != current_phase :
@@ -307,15 +309,16 @@ def simulate_step6():
             optimal_allocation, optimal_allocation_idxs, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
-            arm, arm_idxs = ecomm6_swucb.pull_arm()
-            alpha,swucb_gains_per_experiment[e][t] , sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
-                                                                                    num_sold_items = num_sold_items, optimal_arm = optimal_allocation_idxs)
-            ecomm6_swucb.update(arm_idxs, alpha, sold_items)
+            # arm, arm_idxs = ecomm6_swucb.pull_arm()
+            # alpha,swucb_gains_per_experiment[e][t] , sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
+            #                                                                         num_sold_items = num_sold_items, optimal_arm = optimal_allocation_idxs)
+            # ecomm6_swucb.update(arm_idxs, alpha, sold_items)
 
             arm, arm_idxs = ecomm6_cducb.pull_arm()
             alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
                                                                                     num_sold_items = num_sold_items, optimal_arm = optimal_allocation_idxs, end_phase = True)
             ecomm6_cducb.update(arm_idxs, alpha, sold_items)
+            print(arm)
 
 
     return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain, non_stationary_scenario.get_n_phases(), non_stationary_scenario.get_phase_len()

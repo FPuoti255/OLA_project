@@ -68,7 +68,7 @@ class Ecommerce6_SWUCB(Ecommerce3_GPUCB):
             self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
 
-        self.confidence_bounds =  np.sqrt(2 * np.log((self.t) / (np.sum(self.N_a, axis=2) + 0.000001))) * self.sigmas
+        self.confidence_bounds =  np.sqrt(2 * np.log((self.t) / (np.sum(self.N_a, axis=2) + 0.000001)) * self.sigmas)
 
     def pull_arm(self):
         num_sold_items = self.sold_items_estimator.get_estimation()
@@ -117,7 +117,7 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
     def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict, M, eps, h):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
-        self.change_detection_algorithms = [CUSUM(M, eps, h) for _ in range(NUM_OF_PRODUCTS)]
+        self.change_detection_algorithms = [[CUSUM(M, eps, h) for _ in range(self.n_arms)] for _ in range(NUM_OF_PRODUCTS)]        
         self.time_of_detections = [0]
 
         self.sold_items_estimator = SoldItemsEstimator()
@@ -133,21 +133,22 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
 
         self.sold_items_estimator = SoldItemsEstimator()
 
-        for cd_alg in self.change_detection_algorithms:
-            cd_alg.reset()
+        for prod in range(NUM_OF_PRODUCTS):
+            for arm in range(self.n_arms):
+                self.change_detection_algorithms[prod][arm].reset()
 
 
-    def change_detected(self, reward):
+    def change_detected(self, pulled_arm_idxs, reward):
         for prod_id in range(NUM_OF_PRODUCTS):
-            if self.change_detection_algorithms[prod_id].update(reward[prod_id]):
+            if self.change_detection_algorithms[prod_id][pulled_arm_idxs[prod_id]].update(reward[prod_id]):
                 return True
-        
+
         return False
 
     
     def update(self, pulled_arm_idxs, reward, sold_items):
 
-        if self.change_detected(reward):
+        if self.change_detected(pulled_arm_idxs, reward):
             print(f'Change detected at time t = {self.time_of_detections[-1] + self.t}')
             self.time_of_detections.append(self.t)
             self.reset()
