@@ -7,125 +7,75 @@ from Environment import *
 
 
 class Non_Stationary_Environment(Environment):
-    def __init__(self, users_reservation_prices, product_functions_idxs, click_probabilities, users_alpha, num_sold_items, nodes_activation_probabilities, users_poisson_parameters, horizon):
 
-        super().__init__(users_reservation_prices, click_probabilities, users_alpha)
-        self.user_poisson_parameters = users_poisson_parameters
+    def __init__(self, users_reservation_prices, 
+                        graph_weights, 
+                        alpha_bars, 
+                        users_poisson_parameters,
+                        n_phases, 
+                        phase_len):
         
-        self.t = 0
-        n_phases = len(users_alpha)
-        self.phase_size = horizon / n_phases
+        self.rng = np.random.default_rng(12345)
 
-        # Instead of defining a lot of different functions_dicts, we use always the same
-        # but at each phase the products will exchange among themselves the functions
-        self.product_functions_idxs = product_functions_idxs
-        self.num_sold_items = num_sold_items
-        self.nodes_activation_probabilities = nodes_activation_probabilities
+        self.t = 0
 
         self.current_phase = 0
+        self.n_phases = n_phases
+        self.phase_len = phase_len
 
+        assert(users_reservation_prices.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        assert(graph_weights.shape == (self.n_phases, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+        assert(alpha_bars.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS + 1) )
+        assert(users_poisson_parameters.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
 
-    def get_users_alpha(self):
-        return self.users_alpha[self.current_phase]
-
-    def get_num_sold_items(self):
-        return self.num_sold_items[self.current_phase]
-
-    def get_nodes_activation_probabilities(self):
-        return self.nodes_activation_probabilities[self.current_phase]
-
-    def get_users_poisson_parameters(self):
-        return self.user_poisson_parameters[self.current_phase]
-
-    def estimate_num_of_clicks(self, budgets: np.ndarray):
-        '''
-        :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap is expected
-        :return: the expected alpha for each couple (prod_id, budget_allocated)
-        '''
-
-        if not sum(budgets) == 1:
-            budgets /= B_cap
-
-        exp_user_alpha = np.zeros(shape=(NUM_OF_PRODUCTS, budgets.shape[0]))
-
-        prd_function_idx = self.product_functions_idxs[self.current_phase]
-
-        for prod_id in range(NUM_OF_PRODUCTS):
-            for j in range(budgets.shape[0]):
-                
-                conc_param = self.functions_dict[prd_function_idx[prod_id]](budgets[j])
-
-                samples = self.rng.dirichlet(
-                    alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
-                ) / NUM_OF_USERS_CLASSES
-
-                prod_samples = np.minimum(samples[:, 0], self.users_alpha[self.current_phase][:, (prod_id +1)])
-
-                assert(prod_samples.shape == (NUM_OF_USERS_CLASSES,))
-                exp_user_alpha[prod_id][j] = np.sum(prod_samples)
+        self.environments = [ 
+            Environment(users_reservation_prices[i], graph_weights[i], alpha_bars[i], users_poisson_parameters[i])    
+            for i in range(self.n_phases)]
         
-        exp_user_alpha[:, 0] = 0 # set to zero the expected alpha when the budget allocated is zero
 
-        return exp_user_alpha
+    def get_current_phase(self):
+        return self.current_phase
+
+    def get_alpha_bars(self):
+        return self.environments[self.current_phase].get_alpha_bars()
+    
+    def get_users_reservation_prices(self):
+        return self.environments[self.current_phase].get_users_reservation_prices()
+    
+    def get_users_poisson_parameters(self):
+        return self.environments[self.current_phase].get_users_poisson_parameters()
+
+    def get_network(self):
+        return self.environments[self.current_phase].get_network()
+
+    def compute_clairvoyant_reward(self, num_sold_items, product_prices, budgets):
+        return self.environments[self.current_phase].compute_clairvoyant_reward(num_sold_items, product_prices, budgets)
     
 
-    def compute_alpha(self, allocation):
-        '''
-        This function is the same as the estimate_num_of_clicks but instead of computing the alpha for each couple (product, budget)
-        it computes tha alpha just for the budgets of the allocation
+    def round_step6(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm, end_phase = False):
 
-        @returns:
-            - exp_user_alpha -> shape= (NUM_OF_USERS_CLASSES, allocation.shape[0]) 3x5
-        '''
-
-        # if the allocation is composed all of zero, return zero !
-        if not np.any(allocation):
-            return np.zeros(shape=(NUM_OF_USERS_CLASSES, allocation.shape[0]))
-
-        prd_function_idx = self.product_functions_idxs[self.current_phase]
-
-
-        exp_user_alpha = np.zeros(shape= (NUM_OF_USERS_CLASSES, allocation.shape[0]))
-
-        for prod_id in range(NUM_OF_PRODUCTS):
-            if allocation[prod_id] != 0:
-                # maps (budget, prod_id) -> concentration_parameters to give to the dirichlet
-                conc_param = self.functions_dict[prd_function_idx[prod_id]](allocation[prod_id])
-                
-                # we multiplied by dirichlet_variance_keeper to reduce the variance in the estimation
-                samples = self.rng.dirichlet(
-                    alpha=np.multiply([conc_param, 1 - conc_param], self.dirichlet_variance_keeper), size=NUM_OF_USERS_CLASSES
-                ) / NUM_OF_USERS_CLASSES
-
-                prod_samples = np.minimum(samples[:, 0], self.users_alpha[self.current_phase][:, (prod_id +1)])
-
-                # min because for each campaign we expect a maximum alpha, which is alpha_bar
-                exp_user_alpha[:, prod_id] = prod_samples
-
-        return exp_user_alpha
-
-
-    def round_step6(self, pulled_arm, B_cap, end_phase = False):
-
-        self.current_phase = int(np.floor(self.t / self.phase_size))
-
-        assert (pulled_arm.shape[0] == NUM_OF_PRODUCTS)
-
-        alpha = self.compute_alpha(pulled_arm / B_cap)
-        assert (alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
-        assert(np.greater_equal(self.users_alpha[self.current_phase][:, 1:], alpha).all())
-
-        tot_alpha_per_product = np.sum(alpha, axis=0)         
-
-        tot_sold_per_product = np.sum(self.num_sold_items[self.current_phase], axis=0)
-
-        estimated_sold_items = np.divide(
-            tot_alpha_per_product, 
-            np.sum(self.users_alpha[self.current_phase], axis = 0)[1:]
-        )* tot_sold_per_product
-
-            
+        alpha, reward, real_sold_items = self.environments[self.current_phase].round_step4(pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm)
+        
         if end_phase : #in this way also the second learner to pull will have the same phase parameters
             self.t += 1
+            self.current_phase = int(np.floor(self.t / self.phase_len))
 
-        return tot_alpha_per_product, estimated_sold_items
+        return alpha, reward, real_sold_items
+
+    # def round_step6(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm, end_phase = False):
+
+    #     alpha, reward = self.environments[self.current_phase].round_step3(pulled_arm, pulled_arm_idxs)
+        
+    #     aggregated_num_sold_items = np.sum(num_sold_items, axis = (0,1))
+    #     assert(aggregated_num_sold_items.shape == (NUM_OF_PRODUCTS,))
+
+    #     alpha_bars = self.environments[self.current_phase].get_alpha_bars()
+    #     real_sold_items = aggregated_num_sold_items * alpha / np.sum(alpha_bars, axis = 0)[1:]
+
+    #     if end_phase : #in this way also the second learner to pull will have the same phase parameters
+    #         self.t += 1
+    #         self.current_phase = int(np.floor(self.t / self.phase_len))
+
+    #     return alpha, reward, real_sold_items
+
+

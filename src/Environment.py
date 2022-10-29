@@ -12,12 +12,14 @@ class Environment:
             self,
             users_reservation_prices,
             graph_weights,
-            alpha_bars
+            alpha_bars,
+            users_poisson_parameters
     ):
 
         self.rng = np.random.default_rng(12345)
 
         self.users_reservation_prices = users_reservation_prices
+        self.users_poisson_parameters = users_poisson_parameters
         self.alpha_bars = alpha_bars
 
         self.expected_users_alpha = None
@@ -28,6 +30,9 @@ class Environment:
 
     def get_users_reservation_prices(self):
         return self.users_reservation_prices
+
+    def get_users_poisson_parameters(self):
+        return self.users_poisson_parameters
 
     def get_alpha_bars(self):
         return self.alpha_bars
@@ -115,22 +120,38 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
-    def round_step4(self, pulled_arm, pulled_arm_idxs, num_sold_items):
+    def round_step4(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm):
 
         alpha, reward = self.round_step3(pulled_arm, pulled_arm_idxs)
 
-        aggregated_num_sold_items = np.sum(num_sold_items, axis = (0,1))
-        assert(aggregated_num_sold_items.shape == (NUM_OF_PRODUCTS,))
+        percentage_for_each_product = np.divide(
+            alpha ,
+            np.sum(self.alpha_bars, axis = 0)[1:]
+        )
+        percentage_for_each_product = np.repeat(percentage_for_each_product, repeats=NUM_OF_PRODUCTS).reshape((NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
-        real_sold_items = aggregated_num_sold_items * alpha / np.sum(self.alpha_bars, axis = 0)[1:]
+        aggregated_num_sold_items = np.sum(num_sold_items, axis = 0)
+
+        real_sold_items = np.multiply(
+            aggregated_num_sold_items,
+            percentage_for_each_product
+        )
 
         return alpha, reward, real_sold_items
 
     # -----------------------------------------------
     # --------STEP 5 ENVIRONMENT FUNCTIONS-----------
-    def round_step5(self, pulled_arm, nodes_activation_probabilities):
-        row, col = pulled_arm
-        return np.random.binomial(n = 1, p = nodes_activation_probabilities[row][col])
+    def round_step5(self, pulled_arm, pulled_arm_idxs):
+
+
+        reward_per_arm = np.zeros(shape=(NUM_OF_PRODUCTS,))
+        total_net_reward = 0
+
+        for prod_id in range(NUM_OF_PRODUCTS):
+            reward_per_arm[prod_id] = self.expected_reward[prod_id][pulled_arm_idxs[prod_id]]
+            total_net_reward += self.expected_reward[prod_id][pulled_arm_idxs[prod_id]] - pulled_arm[prod_id]
+
+        return reward_per_arm, total_net_reward
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 

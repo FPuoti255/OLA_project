@@ -3,28 +3,30 @@ import numpy as np
 from Ecommerce3 import *
 from constants import *
 from Utils import *
+from SoldItemsEstimator import SoldItemsEstimator
+
 
 
 class Ecommerce4:
-    def __init__(self, algorithm : str, B_cap: float, budgets, product_prices, alpha = None, kernel = None):
+    def __init__(self, algorithm : str, B_cap: float, budgets, product_prices, gp_config : dict):
         
         if algorithm == 'TS':
-            self.algorithm = Ecommerce3_GPTS(B_cap, budgets, product_prices, alpha, kernel)
+            self.algorithm = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_config)
         elif algorithm == 'UCB':
-            self.algorithm = Ecommerce3_GPUCB(B_cap, budgets, product_prices, alpha, kernel)
+            self.algorithm = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_config)
         else:
-            raise ValueError()
+            raise ValueError('Please choose one between TS or UCB')
 
-        self.t = 0
-        self.estimated_num_items_sold = np.ones(shape = (NUM_OF_PRODUCTS,NUM_OF_PRODUCTS))
+        self.items_estimator = SoldItemsEstimator()
+        
 
-    def pull_arm(self):
-        return self.algorithm.pull_arm(self.estimated_num_items_sold)
+    def pull_arm(self):   
+        return self.algorithm.pull_arm(self.items_estimator.get_estimation())
     
     def update(self, pulled_arm_idxs, reward, num_items_sold):
-        self.t += 1
         self.algorithm.update(pulled_arm_idxs, reward)
-        self.estimated_num_items_sold = ( (self.estimated_num_items_sold * self.t) + num_items_sold ) / (self.t + 1)
+        self.items_estimator.update(num_items_sold)
+
 
 
 

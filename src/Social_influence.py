@@ -11,7 +11,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     @returns:
         - num_sold_items shape = (num_of_user_classes, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)
     '''
-    assert(users_poisson_parameters.shape == (NUM_OF_USERS_CLASSES,))
+    assert(users_poisson_parameters.shape == (NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
 
     num_sold_items = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
@@ -68,7 +68,8 @@ def generate_live_edge_graph(seed,
             # variable; that is, the user decides first whether to buy or not the products and,
             # subsequently, in the case of a purchase, the number of units to buy.
             # We model this number of units with a poisson random variable.
-            bought_items[primary_product] += np.random.poisson(lam=users_poisson_parameter)
+            # max(1, poisson) is needed because if we enter the if, at least one product is bought
+            bought_items[primary_product] += max(1, np.random.poisson(lam=users_poisson_parameter[primary_product]))
 
             for idxs in np.argwhere(slots):
                
