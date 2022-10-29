@@ -145,13 +145,10 @@ class Ecommerce3_GPUCB(Ecommerce3):
 
 
     def pull_arm(self, num_sold_items):
-        print(self.t)
         exploration_probability = 1.0 / np.sqrt(self.t + 2)
         exploitation_probability = 1.0 - exploration_probability
 
-        print(exploration_probability)
         if np.random.binomial(n = 1, p = exploitation_probability):
-            print('I\'m exploiting')
             value_per_click = self.compute_value_per_click(num_sold_items)
             estimated_reward = np.add(
                 np.multiply(self.means, np.atleast_2d(value_per_click).T),
@@ -160,7 +157,6 @@ class Ecommerce3_GPUCB(Ecommerce3):
             budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
             return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
         else:
-            print('I\'m exploring')
             return self.random_sampling()
 
     def random_sampling(self):

@@ -318,7 +318,6 @@ def simulate_step6():
             alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
                                                                                     num_sold_items = num_sold_items, optimal_arm = optimal_allocation_idxs, end_phase = True)
             ecomm6_cducb.update(arm_idxs, alpha, sold_items)
-            print(arm)
 
 
     return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain, non_stationary_scenario.get_n_phases(), non_stationary_scenario.get_phase_len()

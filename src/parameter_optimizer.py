@@ -269,4 +269,4 @@ def optimize_GP_step5():
 
 
 if __name__ == '__main__':
-    optimize_CD_step3()
+    optimize_GP_step3()

@@ -3,7 +3,7 @@ from Ecommerce4 import *
 
 confidence = 0.01
 
-class TS(Ecommerce4_GPTS):
+class TS():
     def __init__(self, B_cap, budgets, product_prices):
         super().__init__(B_cap, budgets, product_prices)
 
@@ -16,7 +16,7 @@ class TS(Ecommerce4_GPTS):
             self.update(pulled_arms[i], rewards[i], sold_items[i])
     
     def get_best_bound_arm(self):
-        a, b = compute_beta_parameters(self.means, self.sigmas)
+        a, b = self.compute_beta_parameters(self.means, self.sigmas)
         samples = np.random.beta(a=a, b=b)
         estimate_sold_product = np.random.normal(self.sold_items_means, self.sold_items_sigmas)
         exp_rew = np.multiply(samples, estimate_sold_product)
@@ -24,7 +24,7 @@ class TS(Ecommerce4_GPTS):
         return max(0.01, mu - np.sqrt( - np.log(confidence) / (2 * self.t)))
 
 
-class UCB(Ecommerce4_GPUCB):
+class UCB():
     def __init__(self, B_cap, budgets, product_prices):
         super().__init__(B_cap, budgets, product_prices)
 
