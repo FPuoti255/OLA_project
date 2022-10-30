@@ -26,7 +26,6 @@ def compute_cumulative_regret_mean_std(opts, rewards_per_experiment):
     cumsum = np.cumsum((opts-rewards_per_experiment), axis = 1)
     return np.mean(cumsum, axis=0), np.std(cumsum, axis=0)
 
-
 def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
