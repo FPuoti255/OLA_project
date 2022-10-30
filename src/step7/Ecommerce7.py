@@ -4,15 +4,13 @@ import numpy as np
 from Ecommerce import *
 
 class Ecommerce7(Ecommerce):
-    def __init__(self, B_cap: float, budgets, product_prices, features:dict, algorithm_type = 'TS'):
+    def __init__(self, algorithm: str, B_cap: float, budgets, product_prices, gp_config: dict, features:dict):
         super().__init__(B_cap, budgets, product_prices)
         self.features = features
 
 
-        if algorithm_type == 'TS' :
-            algorithm = Algorithms.TS(B_cap, budgets, product_prices)
-        elif algorithm_type == 'UCB' :
-            algorithm = Algorithms.UCB(B_cap, budgets, product_prices)
+        if algorithm == 'TS' or self.algorithm == 'UCB' :
+            algorithm = Algorithms.Algorithm(algorithm, B_cap, budgets, product_prices, gp_config)
         else :
             raise ValueError ('Algorithm type can be TS or UCB')
 
@@ -41,7 +39,7 @@ class Ecommerce7(Ecommerce):
     def get_context_tree(self):
         return self.contexts_tree
     
-    def clairvoyant_solve_optimization_problem(self, num_sold_items, exp_num_clicks, nodes_activation_probabilities):
+    def disaggregated_optimization_problem(self, num_sold_items, exp_num_clicks, nodes_activation_probabilities):
         '''
         Disaggregated version of the optimization problem
         '''

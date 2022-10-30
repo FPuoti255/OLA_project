@@ -13,17 +13,10 @@ class Ecommerce6_SWUCB(Ecommerce3_GPUCB):
     def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict, tau : int):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
-        # Ecommerce3_GPUCB attributes that need to be overridden
-        # -----------------------------------------------------
-        self.pulled_arms=np.full(shape=(NUM_OF_PRODUCTS, tau), fill_value=np.nan)
-        self.collected_rewards = np.full(shape=(NUM_OF_PRODUCTS, tau), fill_value=np.nan)
-        # Number of times the arm has been pulled represented with a binary vector
-        self.N_a=np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms, tau))
-        
         # New attributes to be added
         self.tau=tau
+        self.binary_N_a=np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms, tau))
         self.sold_items_estimator = SW_SoldItemsEstimator(self.tau)
-
 
 
     def update(self, pulled_arm_idxs, reward, sold_items):
@@ -44,31 +37,23 @@ class Ecommerce6_SWUCB(Ecommerce3_GPUCB):
             arm_idx = pulled_arm_idxs[prod_id]
             non_pulled_arm_idxs= np.setdiff1d(np.arange(0, self.n_arms), arm_idx, assume_unique=True)
 
-            self.N_a[prod_id][arm_idx][slot_idx] = 1
-
-            self.pulled_arms[prod_id][slot_idx] = self.budgets[arm_idx]
-            self.collected_rewards[prod_id][slot_idx] = reward[prod_id]
+            self.binary_N_a[prod_id][arm_idx][slot_idx] = 1
             
             for idx in non_pulled_arm_idxs:
-                self.N_a[prod_id][idx][slot_idx] = 0
+                self.binary_N_a[prod_id][idx][slot_idx] = 0
+
+            self.pulled_arms[prod_id].append(self.budgets[arm_idx])
+            self.collected_rewards[prod_id].append(reward[prod_id])
+
+            assert(len(self.pulled_arms[prod_id]) == len(self.collected_rewards[prod_id]))
+
+            if self.t >= self.tau:
+                self.pulled_arms[prod_id].pop(0)
+                self.collected_rewards[prod_id].pop(0)
         
         self.sold_items_estimator.update(sold_items)
+        self.N_a = np.sum(self.binary_N_a, axis = 2)
        
-
-    def update_model(self):
-        X_test = np.atleast_2d(self.budgets).T
-        for prod_id in range(NUM_OF_PRODUCTS):
-            
-            pulled_arms_removed_nan = self.pulled_arms[prod_id][ ~ np.isnan(self.pulled_arms[prod_id]) ]
-            X = np.atleast_2d(pulled_arms_removed_nan).T
-
-            collected_rewards_removed_nan = self.collected_rewards[prod_id][ ~ np.isnan(self.collected_rewards[prod_id])]
-            y = np.array(collected_rewards_removed_nan)
-
-            self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
-            self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
-
-        self.confidence_bounds =  np.sqrt(2 * np.log((self.t) / (np.sum(self.N_a, axis=2) + 0.000001)) * self.sigmas)
 
     def pull_arm(self):
         num_sold_items = self.sold_items_estimator.get_estimation()
@@ -121,6 +106,10 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
         self.time_of_detections = [0]
 
         self.sold_items_estimator = SoldItemsEstimator()
+
+    def get_exploration_exploitation_probabilities(self):
+        exploration_probability = 1.0 / np.sqrt(self.t + 2)
+        return exploration_probability, (1.0 - exploration_probability)
 
 
     def reset(self):

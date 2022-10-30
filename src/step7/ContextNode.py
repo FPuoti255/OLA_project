@@ -109,7 +109,7 @@ class ContextNode(object):
     def update(self, pulled_arm, context_reward, context_sold_items):
         assert(pulled_arm.shape == (NUM_OF_PRODUCTS,))
         assert(context_reward.shape == (NUM_OF_PRODUCTS,))
-        assert(context_sold_items.shape == (NUM_OF_PRODUCTS,))
+        assert(context_sold_items.shape == (NUM_OF_PRODUCTS,NUM_OF_PRODUCTS))
         self.algorithm.update(pulled_arm, context_reward, context_sold_items)
         
     def solve_optimization_problem(self, nodes_activation_probabilities):

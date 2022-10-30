@@ -92,12 +92,12 @@ class Scenario:
 
 
     def get_product_prices(self):       
-        return np.array([80,35,20, 150, 350]) * 5 
+        return np.array([80,35,20, 150, 350])
 
     def get_users_reservation_prices(self):        # 3 x 5
         users_reservation_prices = np.zeros(shape=(NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
 
-        appreciation = np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]]) * 5
+        appreciation = np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]])
         users_reservation_prices = self.product_prices + appreciation
 
         return users_reservation_prices
@@ -112,27 +112,11 @@ class Scenario:
                             for each users class and for each product, the poisson distribution of the bought items in the montecarlo sampling
         '''
 
-        # users_concentration_parameters = [
-        #     np.random.beta(a=8, b=2, size=NUM_OF_PRODUCTS + 1),
-
-        #     np.random.beta(a=1, b=1, size=NUM_OF_PRODUCTS + 1),
-        #     np.random.beta(a=2, b=8, size=NUM_OF_PRODUCTS + 1)
-        # ]
-        
-        # # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
-        # alpha_bars = renormalize(users_concentration_parameters)
-
         alpha_bars = np.array([
             [0.03, 0.1, 0.1, 0.03, 0.1, 0.03],
             [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
             [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
-        ])
-        assert(np.sum(alpha_bars) == 1.0)
-
-
-        log("alpha_bars:\n")
-        log(alpha_bars)
-        log("\n")
+        ]) * 3
 
         users_poisson_parameters = np.array([[2,5,1,0.5,2], [1, 5, 2, 1, 2], [0.5, 2, 3, 2, 1]]) #one for each (user class, product)
 
@@ -148,9 +132,9 @@ class Scenario:
 
 
 class NonStationaryScenario(Scenario):
-    def __init__(self):
+    def __init__(self, T):
         self.n_phases = 3
-        self.phase_len = np.ceil( T_step6 / self.n_phases).astype(int)
+        self.phase_len = np.ceil( T / self.n_phases).astype(int)
         super().__init__()
 
     def get_n_phases(self):
@@ -265,10 +249,6 @@ class NonStationaryScenario(Scenario):
 
         alpha_bars = np.array([alpha1, alpha2, alpha3])
 
-
-        log("alpha_bars:\n")
-        log(alpha_bars)
-        log("\n")
 
         poisson1 = np.array([
                     [2, 5, 1, 0.5, 2],

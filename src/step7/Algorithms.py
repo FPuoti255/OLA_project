@@ -1,43 +1,43 @@
 import numpy as np
 from Ecommerce4 import *
 
-confidence = 0.01
 
-class TS():
-    def __init__(self, B_cap, budgets, product_prices):
-        super().__init__(B_cap, budgets, product_prices)
+
+
+class Algorithm(Ecommerce4):
+    def __init__(self, algorithm: str, B_cap: float, budgets, product_prices, gp_config: dict):
+        super().__init__(algorithm, B_cap, budgets, product_prices, gp_config)
+        self.confidence = 0.01
 
     def get_new_instance(self):        
-        return TS(self.B_cap, self.budgets, self.product_prices)
+        return Algorithm(self.algorithm_name, 
+                            self.algorithm.B_cap,
+                            self.algorithm.budgets,
+                            self.algorithm.product_prices,
+                            self.algorithm.gp_config)
 
     def train_offline(self, pulled_arms, rewards, sold_items):
-        assert(self.t == 0)
+        assert(self.algorithm.t == 0)
         for i in range(len(pulled_arms)):
             self.update(pulled_arms[i], rewards[i], sold_items[i])
+
+    def get_best_bound_arm(self):
+        
+        value_per_click = self.algorithm.compute_value_per_click(self.items_estimator.get_estimation())
+
+
+        if self.algorithm_name == 'TS':
+            estimated_reward = np.multiply(
+                self.get_samples(),
+                np.atleast_2d(value_per_click).T
+            )
+        else :
+            estimated_reward = np.add(
+                np.multiply(self.algorithm.means, np.atleast_2d(value_per_click).T),
+                self.algorithm.confidence_bounds
+            )
+
+        _, mu = self.algorithm.dynamic_knapsack_solver(table = estimated_reward)
+      
+        return max(0.01, mu - np.sqrt( - np.log(self.confidence) / (2 * self.algorithm.t)))
     
-    def get_best_bound_arm(self):
-        a, b = self.compute_beta_parameters(self.means, self.sigmas)
-        samples = np.random.beta(a=a, b=b)
-        estimate_sold_product = np.random.normal(self.sold_items_means, self.sold_items_sigmas)
-        exp_rew = np.multiply(samples, estimate_sold_product)
-        _, mu = self.revisited_knapsack_solver(table=exp_rew)        
-        return max(0.01, mu - np.sqrt( - np.log(confidence) / (2 * self.t)))
-
-
-class UCB():
-    def __init__(self, B_cap, budgets, product_prices):
-        super().__init__(B_cap, budgets, product_prices)
-
-    def get_new_instance(self):
-        return UCB(self.B_cap, self.budgets, self.product_prices)
-
-    def train_offline(self, pulled_arms, rewards, sold_items):
-        assert(self.t == 0)
-        for i in range(len(pulled_arms)):
-            self.update(pulled_arms[i], rewards[i], sold_items[i])
-
-    def get_best_bound_arm(self):
-        estimate_sold_product = np.random.normal(self.sold_items_means, self.sold_items_sigmas)
-        exp_rew = np.multiply(self.means, estimate_sold_product)
-        _, mu = self.revisited_knapsack_solver(table=exp_rew)
-        return max(0.01, mu - np.sqrt( - np.log(confidence) / (2 * self.t)))

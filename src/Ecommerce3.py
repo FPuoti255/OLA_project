@@ -56,7 +56,6 @@ class Ecommerce3(Ecommerce):
 
         return gaussian_regressors
 
-
     def update(self, pulled_arm_idxs, reward):
         '''
         :pulled_arm_idxs: it is a vector of shape (NUM_OF_PRODUCTS,) containing
@@ -137,22 +136,24 @@ class Ecommerce3_GPUCB(Ecommerce3):
         for i in range(NUM_OF_PRODUCTS):
             self.N_a[i][pulled_arm_idxs[i]] += 1
 
-    
+   
     def update_model(self):
         super().update_model()
-        # bayesian UCB
-        self.confidence_bounds = np.sqrt(2 * np.log((self.t) / (self.N_a + 0.000001)) * self.sigmas)
+        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7) * self.sigmas)
+         
 
+    def get_exploration_exploitation_probabilities(self):
+        exploration_probability = 0.1
+        return exploration_probability, (1.0 - exploration_probability)
 
     def pull_arm(self, num_sold_items):
-        exploration_probability = 1.0 / np.sqrt(self.t + 2)
-        exploitation_probability = 1.0 - exploration_probability
+        explore, exploit = self.get_exploration_exploitation_probabilities()
 
-        if np.random.binomial(n = 1, p = exploitation_probability):
+        if np.random.binomial(n = 1, p = exploit):
             value_per_click = self.compute_value_per_click(num_sold_items)
-            estimated_reward = np.add(
-                np.multiply(self.means, np.atleast_2d(value_per_click).T),
-                self.confidence_bounds
+            estimated_reward = np.multiply(
+                np.add(self.means, self.confidence_bounds),
+                np.atleast_2d(value_per_click).T
             )
             budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
             return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
