@@ -143,7 +143,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
          
 
     def get_exploration_exploitation_probabilities(self):
-        exploration_probability = 0.1
+        exploration_probability = 0.02
         return exploration_probability, (1.0 - exploration_probability)
 
     def pull_arm(self, num_sold_items):
