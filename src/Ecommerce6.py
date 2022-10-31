@@ -107,10 +107,6 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
 
         self.sold_items_estimator = SoldItemsEstimator()
 
-    def get_exploration_exploitation_probabilities(self):
-        exploration_probability = 1.0 / np.sqrt(self.t + 2)
-        return exploration_probability, (1.0 - exploration_probability)
-
 
     def reset(self):
         self.pulled_arms = [[] for _ in range(NUM_OF_PRODUCTS)]

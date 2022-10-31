@@ -94,6 +94,25 @@ class Environment:
         self.expected_reward = exp_reward
         return exp_reward
 
+    def compute_disaggregated_clairvoyant_reward(self, num_sold_items, product_prices, budgets):
+        assert (num_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+        assert (product_prices.shape == (NUM_OF_PRODUCTS,))
+
+        value_per_click = np.sum(np.multiply(num_sold_items, product_prices),
+                                 axis=2)  # shape = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)
+
+        self.compute_users_alpha(budgets) # (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_BUDGETS)
+
+        exp_reward = np.zeros(shape=(NUM_OF_USERS_CLASSES ,NUM_OF_PRODUCTS, budgets.shape[0]))
+
+        for user_class in range(NUM_OF_USERS_CLASSES):
+            exp_reward[user_class] = np.multiply(
+                self.expected_users_alpha[user_class],
+                np.atleast_2d(value_per_click[user_class]).T
+            )
+
+        self.expected_reward = exp_reward
+        return exp_reward
 
     # -----------------------------------------------
     # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
@@ -153,22 +172,33 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
-    def estimate_disaggregated_num_clicks(self, budgets):
-        # TODO
-        return self.estimate_num_of_clicks(budgets, aggregated=False)
     
-    def round_step7(self, pulled_arm, B_cap, nodes_activation_probabilities, num_sold_items):
-        assert (pulled_arm.shape == (NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
+    def round_step7(self, pulled_arm, pulled_arm_idxs, num_sold_items):
+        assert (pulled_arm.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
 
-        alpha = self.compute_alpha(pulled_arm / B_cap)
-        assert (alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        alpha = np.zeros_like(pulled_arm)
+        reward = 0
 
-        estimated_sold_items = np.multiply(
-            np.dot(num_sold_items, nodes_activation_probabilities.T),
-            alpha
+        for user_class in range(NUM_OF_USERS_CLASSES):
+            for prod_id in range(NUM_OF_PRODUCTS):
+                alpha[user_class][prod_id] = self.expected_users_alpha[user_class][prod_id][pulled_arm_idxs[user_class][prod_id]]
+                reward += self.expected_reward[user_class][prod_id][pulled_arm_idxs[user_class][prod_id]] - pulled_arm[user_class][prod_id]
+
+        
+        percentage_for_each_product = np.divide(
+            alpha ,
+            self.alpha_bars[ :, 1:]
         )
+        real_sold_items = np.zeros_like(num_sold_items)
 
-        return alpha, estimated_sold_items
+        for user_class in range(NUM_OF_USERS_CLASSES):
+            user_class_percentage = np.repeat(percentage_for_each_product[user_class], repeats=NUM_OF_PRODUCTS).reshape((NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+            real_sold_items[user_class] = np.multiply(
+                num_sold_items[user_class],
+                user_class_percentage
+            )
+
+        return alpha, reward, real_sold_items
 
 
 

@@ -14,6 +14,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     assert(users_poisson_parameters.shape == (NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
 
     num_sold_items = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+    nodes_activation_probabilities = np.zeros_like(num_sold_items)
 
     # number of repetition to have theoretical guarantees on the error of the estimation
    
@@ -24,7 +25,7 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
     for user_class in range(NUM_OF_USERS_CLASSES):  # 3
         for node in range(NUM_OF_PRODUCTS):  # 5
             for _ in range(k):
-                sold = generate_live_edge_graph(
+                activations, sold = generate_live_edge_graph(
                     seed=node,
                     click_probabilities=click_probabilities,
                     users_reservation_prices=users_reservation_prices[user_class],
@@ -33,9 +34,10 @@ def estimate_nodes_activation_probabilities(click_probabilities, users_reservati
                     observations_probabilities=observations_probabilities
                 )
                 num_sold_items[user_class][node] = np.add(num_sold_items[user_class][node], sold)
+                nodes_activation_probabilities[user_class][node] = np.add(nodes_activation_probabilities[user_class][node], activations)
 
 
-    return (num_sold_items / k)
+    return nodes_activation_probabilities / k, num_sold_items / k
 
 
 def generate_live_edge_graph(seed,
@@ -51,6 +53,7 @@ def generate_live_edge_graph(seed,
     white_nodes.add(seed)
 
     bought_items = np.zeros(shape=NUM_OF_PRODUCTS)
+    activations = np.zeros_like(bought_items)
 
     has_been_primary = set()
 
@@ -70,6 +73,7 @@ def generate_live_edge_graph(seed,
             # We model this number of units with a poisson random variable.
             # max(1, poisson) is needed because if we enter the if, at least one product is bought
             bought_items[primary_product] += max(1, np.random.poisson(lam=users_poisson_parameter[primary_product]))
+            activations[primary_product] += 1
 
             for idxs in np.argwhere(slots):
                
@@ -79,4 +83,4 @@ def generate_live_edge_graph(seed,
                     white_nodes.add(idxs[0])
 
         has_been_primary.add(primary_product)
-    return bought_items
+    return activations, bought_items

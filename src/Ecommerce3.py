@@ -56,6 +56,14 @@ class Ecommerce3(Ecommerce):
 
         return gaussian_regressors
 
+    def get_new_instance(self):
+        # This method will be used in the step7 to generate a new instance of the same algorithm
+        if isinstance(self, Ecommerce3_GPTS):
+            return Ecommerce3_GPTS(self.B_cap, self.budgets, self.product_prices, self.gp_config)
+        else:
+            return Ecommerce3_GPUCB(self.B_cap, self.budgets, self.product_prices, self.gp_config)
+
+
     def update(self, pulled_arm_idxs, reward):
         '''
         :pulled_arm_idxs: it is a vector of shape (NUM_OF_PRODUCTS,) containing
@@ -64,7 +72,6 @@ class Ecommerce3(Ecommerce):
         self.t += 1
         self.update_observations(pulled_arm_idxs, reward)
         self.update_model()
-
 
     def update_observations(self, pulled_arm_idxs, reward):
         for prod_id in range(NUM_OF_PRODUCTS):
@@ -78,7 +85,6 @@ class Ecommerce3(Ecommerce):
             y = np.array(self.collected_rewards[prod_id])
             self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
-
 
     def compute_value_per_click(self, num_sold_items):
         '''
@@ -94,6 +100,17 @@ class Ecommerce3(Ecommerce):
         else :
             raise ValueError('Wrong num_sold_items shape')
 
+    def get_best_bound_arm(self, num_sold_items):
+        '''
+        This function will be used in the step7 during estimation splitting condition
+        '''
+        value_per_click = self.compute_value_per_click(num_sold_items)
+        estimated_reward = np.multiply(
+            self.get_samples(),
+            np.atleast_2d(value_per_click).T
+        )
+        _, mu = self.dynamic_knapsack_solver(table=estimated_reward)
+        return max(0.01, mu - np.sqrt( - np.log(0.01) / (2 * self.t)))
 
 
 class Ecommerce3_GPTS(Ecommerce3):
@@ -124,6 +141,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.perms = None
+        self.exploration_probability = 0.02
 
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
@@ -139,26 +157,26 @@ class Ecommerce3_GPUCB(Ecommerce3):
    
     def update_model(self):
         super().update_model()
-        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7) * self.sigmas)
-         
+        #self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
+        self.confidence_bounds = 1.96 * self.sigmas / np.sqrt((self.N_a + 1e-7))
 
-    def get_exploration_exploitation_probabilities(self):
-        exploration_probability = 0.02
-        return exploration_probability, (1.0 - exploration_probability)
+
+    def get_samples(self):
+        return np.add(self.means, self.confidence_bounds)
+
 
     def pull_arm(self, num_sold_items):
-        explore, exploit = self.get_exploration_exploitation_probabilities()
-
-        if np.random.binomial(n = 1, p = exploit):
+        if np.random.binomial(n = 1, p = 1 - self.exploration_probability):
             value_per_click = self.compute_value_per_click(num_sold_items)
             estimated_reward = np.multiply(
-                np.add(self.means, self.confidence_bounds),
+                self.get_samples(),
                 np.atleast_2d(value_per_click).T
             )
             budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
             return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
         else:
             return self.random_sampling()
+
 
     def random_sampling(self):
         if self.perms is None:
