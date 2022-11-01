@@ -110,7 +110,7 @@ class Ecommerce3(Ecommerce):
             np.atleast_2d(value_per_click).T
         )
         _, mu = self.dynamic_knapsack_solver(table=estimated_reward)
-        return max(0.01, mu - np.sqrt( - np.log(0.05) / (2 * self.t)))
+        return max(0.01, mu - np.sqrt( - np.log(0.01) / (2 * self.t)))
 
 
 class Ecommerce3_GPTS(Ecommerce3):

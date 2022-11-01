@@ -43,4 +43,8 @@ def generate_splits(context_features : dict):
     permutations = []
     for i in range(1, int(len(subsets)/2 + 1)):
         permutations.append( (list(chain(subsets[i])), [e for e in context_features if e not in subsets[i]]) )
+
+    # sorting putting in the first place the most balanced splits (where the len of the splits is equal)
+    permutations = sorted(permutations, 
+                            key = lambda el :  abs(len(el[0]) - len(el[1])))
     return permutations

@@ -63,6 +63,10 @@ class Ecommerce7(Ecommerce):
             context_idxs = get_feature_idxs(learner.context_features)
             num_of_features = len(context_idxs)
 
+            # I've divided by the num of features of a given leaner because
+            # in the case in which a single learner has all the features together,
+            # the alpha and the sold items can be considered as equally divided
+            # among all the concerned user classes
             alpha = learner.get_alpha_estimation() / num_of_features
             sold_items = learner.get_sold_items_estimation() / num_of_features
 
@@ -128,7 +132,6 @@ class Ecommerce7(Ecommerce):
                     c1[k] = self.features[k]                
                 for k, _ in c2.items():
                     c2[k] = self.features[k]
-            
 
                 c1_arms, c1_rewards, c1_sold_items = get_context_data(c1, pulled_arms_array, collected_rewards_array, collected_sold_items_array)
                 c2_arms, c2_rewards, c2_sold_items = get_context_data(c2, pulled_arms_array, collected_rewards_array, collected_sold_items_array)
