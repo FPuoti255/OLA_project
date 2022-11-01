@@ -1,3 +1,4 @@
+from re import U
 import sys, os
 cwd = os.getcwd()
 sys.path.append(os.path.join(cwd, "step7"))
@@ -55,42 +56,42 @@ class Ecommerce7(Ecommerce):
         context_learners = self.context_tree.get_leaves()
             
 
-        estimated_alpha = [ [] for _ in range(NUM_OF_USERS_CLASSES)]
-        estimated_sold_items = [[] for _ in range(NUM_OF_USERS_CLASSES)]
+        alpha_samples = [ [] for _ in range(NUM_OF_USERS_CLASSES)]
+        sold_items_samples = [[] for _ in range(NUM_OF_USERS_CLASSES)]
 
         for learner in context_learners:
             context_idxs = get_feature_idxs(learner.context_features)
             num_of_features = len(context_idxs)
 
             alpha = learner.get_alpha_estimation() / num_of_features
-            num_sold_items = learner.get_sold_items_estimation() / num_of_features
+            sold_items = learner.get_sold_items_estimation() / num_of_features
 
             for idx in context_idxs:
-                estimated_alpha[idx].append(alpha)
-                estimated_sold_items[idx].append(num_sold_items)
+                alpha_samples[idx].append(alpha)
+                sold_items_samples[idx].append(sold_items)
 
 
         table = np.zeros(shape=(NUM_OF_USERS_CLASSES ,NUM_OF_PRODUCTS, budgets.shape[0]))
 
-        # we compute the mean because it may happen that for a particular
-        # split of the feature, more then one algorithm will analyze the
-        # same feature set
-        estimated_alpha = np.mean(estimated_alpha, axis = 1)
-        estimated_sold_items = np.mean(estimated_sold_items, axis = 1)
-
-        estimated_sold_items = np.array(estimated_sold_items)
-        estimated_alpha = np.array(estimated_alpha)
-
-        assert( estimated_alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, self.budgets.shape[0]) )
-        assert(estimated_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
-
-        value_per_click = np.sum(np.multiply(estimated_sold_items, self.product_prices),
-                                 axis=2)
-
         for user_class in range(NUM_OF_USERS_CLASSES):
+            user_class_alpha = np.zeros(shape=(NUM_OF_PRODUCTS, budgets.shape[0]))
+            user_class_sold_items = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+
+            if len(alpha_samples[user_class]) > 1:
+                user_class_alpha = np.mean(alpha_samples[user_class], axis = 0)
+                user_class_sold_items = np.mean(sold_items_samples[user_class], axis = 0)
+            else:
+                user_class_alpha = alpha_samples[user_class]
+                user_class_sold_items = sold_items_samples[user_class]
+
+            user_class_value_per_click = np.sum(
+                np.multiply(user_class_sold_items, self.product_prices),
+                axis = 1
+            )
+
             table[user_class] = np.multiply(
-                estimated_alpha[user_class],
-                np.atleast_2d(value_per_click[user_class]).T
+                user_class_alpha,
+                np.atleast_2d(user_class_value_per_click).T
             )
             
         arm, arm_idxs, _ = self.clairvoyant_disaggregated_optimization_problem(table)
@@ -116,6 +117,7 @@ class Ecommerce7(Ecommerce):
 
 
             for left, right in splits:
+                print('trying: ', left, right)
                 p_left = len(left) / len(learner.context_features)
                 p_right = len(right) / len(learner.context_features)
 

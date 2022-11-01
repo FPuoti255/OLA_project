@@ -1,7 +1,7 @@
 {
     "simulation" : {
         "n_experiments" : 2,
-        "T" : 100,
+        "T" : 80,
 
         "n_experiments_step6" : 2,
         "T_step6" : 150

@@ -53,7 +53,7 @@ def gpts_step3_fitness_function(hyperparams, graph_weights, alpha_bars,
                                 product_prices, observations_probabilities, 
                                 users_reservation_prices, users_poisson_parameters):
 
-    n_rounds = 50
+    n_rounds = 70
     y_actual, y_predicted = [], []
 
     alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
@@ -107,7 +107,7 @@ def gpts_step3_fitness_function(hyperparams, graph_weights, alpha_bars,
         # I want to compute the RMSE only just a number of samples sufficient
         # for the GP to reach the steady state. If we start to compute the RMSE
         # from the beginning, we will have parameters prone to overfitting
-        if t >= n_rounds / 4:
+        if t >= n_rounds / 6:
             y_actual.append(optimal_gain)
             y_predicted.append(gpts_gain)
 
@@ -137,7 +137,8 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
         "prior_std": 10.0
     }
 
-    env = Environment(users_reservation_prices, graph_weights, alpha_bars)
+    env = Environment(users_reservation_prices, graph_weights,
+                      alpha_bars, users_poisson_parameters)
     ecomm = Ecommerce(B_cap, budgets, product_prices)
     ecomm4_gpts = Ecommerce4('TS', B_cap, budgets, product_prices, gp_config)
 
@@ -169,7 +170,7 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
         # I want to compute the RMSE only just a number of samples sufficient
         # for the GP to reach the steady state. If we start to compute the RMSE
         # from the beginning, we will have parameters prone to overfitting
-        if t >= n_rounds / 4:
+        if t >= n_rounds / 6:
             y_actual.append(optimal_gain)
             y_predicted.append(gpts_gain)
 
@@ -251,6 +252,21 @@ def optimize_GP_step3():
     best_rmse = solver.fun
     print_final_result(best_hyperparams, best_rmse)
 
+def optimize_GP_step4():
+    graph_weights, alpha_bars, product_prices, users_reservation_prices, \
+        observations_probabilities, users_poisson_parameters = generate_data()
+
+    extra_variables = (graph_weights, alpha_bars, 
+                        product_prices, observations_probabilities, 
+                        users_reservation_prices, users_poisson_parameters)
+
+    solver = differential_evolution(gpts_step4_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating='deferred',
+                                    workers=-1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
+
+    best_hyperparams = solver.x
+    best_rmse = solver.fun
+    print_final_result(best_hyperparams, best_rmse)
+
 
 def optimize_GP_step5():
 
@@ -269,4 +285,4 @@ def optimize_GP_step5():
 
 
 if __name__ == '__main__':
-    optimize_GP_step3()
+    optimize_GP_step4()
