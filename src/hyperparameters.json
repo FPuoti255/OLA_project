@@ -1,20 +1,20 @@
 {
     "simulation" : {
         "n_experiments" : 2,
-        "T" : 80,
+        "T" : 100,
 
         "n_experiments_step6" : 2,
         "T_step6" : 150
     },
 
     "step3" : {
-        "gp_alpha": 2.53951511e-05,
+        "gp_alpha": 1.45636156e-02,
         
-        "constant_value": 1.61631558e+01,
+        "constant_value": 3.79850036e+01,
     
-        "length_scale": 3.0, 
-        "length_scale_lb": 0.01,
-        "length_scale_ub": 100,
+        "length_scale": 6.20871344e+01, 
+        "length_scale_lb": 2.87135983e+02,
+        "length_scale_ub": 4.92779902e+02,
 
         "noise_level" : 0.0005,
     

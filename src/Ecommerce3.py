@@ -58,7 +58,7 @@ class Ecommerce3(Ecommerce):
 
     def get_new_instance(self):
         # This method will be used in the step7 to generate a new instance of the same algorithm
-        if isinstance(self, Ecommerce3_GPTS):
+        if isinstance(self.__class__, type(Ecommerce3_GPTS)):
             return Ecommerce3_GPTS(self.B_cap, self.budgets, self.product_prices, self.gp_config)
         else:
             return Ecommerce3_GPUCB(self.B_cap, self.budgets, self.product_prices, self.gp_config)
@@ -110,7 +110,7 @@ class Ecommerce3(Ecommerce):
             np.atleast_2d(value_per_click).T
         )
         _, mu = self.dynamic_knapsack_solver(table=estimated_reward)
-        return max(0.01, mu - np.sqrt( - np.log(0.01) / (2 * self.t)))
+        return max(0.01, mu - np.sqrt( - np.log(0.05) / (2 * self.t)))
 
 
 class Ecommerce3_GPTS(Ecommerce3):
@@ -132,8 +132,8 @@ class Ecommerce3_GPTS(Ecommerce3):
         samples = np.empty(shape = (NUM_OF_PRODUCTS, self.n_arms))
         X = np.atleast_2d(self.budgets).T
         for prod in range(NUM_OF_PRODUCTS):
-            samples[prod] = self.gaussian_regressors[prod].sample_y(X).T                
-        return np.clip(samples, 0, 1)
+            samples[prod] = self.gaussian_regressors[prod].sample_y(X).T              
+        return samples
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
@@ -157,8 +157,8 @@ class Ecommerce3_GPUCB(Ecommerce3):
    
     def update_model(self):
         super().update_model()
-        #self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
-        self.confidence_bounds = 1.96 * self.sigmas / np.sqrt((self.N_a + 1e-7))
+        #self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas 
+        self.confidence_bounds = self.sigmas * np.sqrt(np.log(self.t) / (self.N_a + 1e-7))
 
 
     def get_samples(self):
