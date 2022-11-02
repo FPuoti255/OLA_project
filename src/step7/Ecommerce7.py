@@ -163,24 +163,15 @@ class Ecommerce7(Ecommerce):
         context_learners = self.context_tree.get_leaves()
 
         for learner in context_learners:
-            context_idxs = get_feature_idxs(learner.context_features)
-
-            # we need to divide the case in which a single learner is using
-            if(len(context_idxs) > 1):
-                learner.update(
-                        np.minimum(
-                            np.sum(pulled_arm_idxs[context_idxs, :], axis = 0),
-                            self.budgets.shape[0]
-                        ),
-                        np.sum(reward[context_idxs, :], axis = 0),
-                        np.sum(num_sold_items[context_idxs, :], axis = 0)
-                        )
-            else:
-                learner.update(
-                            pulled_arm_idxs[context_idxs[0], :],
-                            reward[context_idxs[0], :],
-                            num_sold_items[context_idxs[0], :]
-                        )
+            
+            learner_arm, learner_reward, learner_sold_items = get_context_data(
+                learner.context_features,
+                pulled_arm_idxs, 
+                reward,
+                num_sold_items,
+                single_sample= True
+            )
+            learner.update(learner_arm, learner_reward, learner_sold_items)
         
         self.pulled_arms.append(pulled_arm_idxs)
         self.collected_rewards.append(reward)

@@ -75,7 +75,7 @@ def simulate_step3():
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
                 observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
-    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
+    gp_config = hyperparams['step3']
 
     for e in range(0, n_experiments):
         print('Experiment n°:', e + 1)
@@ -84,8 +84,8 @@ def simulate_step3():
         env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
-        ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_hyperparameters)
+        ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_config)
+        ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_config)
 
         _, num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
@@ -135,7 +135,7 @@ def simulate_step4():
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
                 observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
-    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
+    gp_config = hyperparams['step4']
 
     for e in range(0, n_experiments):
         print('Experiment n°:', e + 1)
@@ -145,8 +145,8 @@ def simulate_step4():
         env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm4_gpts = Ecommerce4('TS',B_cap, budgets, product_prices, gp_hyperparameters)
-        ecomm4_gpucb = Ecommerce4('UCB', B_cap, budgets, product_prices, gp_hyperparameters)
+        ecomm4_gpts = Ecommerce4('TS',B_cap, budgets, product_prices, gp_config)
+        ecomm4_gpucb = Ecommerce4('UCB', B_cap, budgets, product_prices, gp_config)
         
         _, num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
@@ -170,12 +170,12 @@ def simulate_step4():
 
             arm, arm_idxs = ecomm4_gpts.pull_arm()
             # the environment returns the users_alpha and the reward for that allocation
-            alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items, optimal_arm=optimal_allocation_idxs)
+            alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
             ecomm4_gpts.update(arm_idxs, alpha, sold_items)
             log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
             arm, arm_idxs = ecomm4_gpucb.pull_arm()
-            alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items, optimal_arm=optimal_allocation_idxs)
+            alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
             ecomm4_gpucb.update(arm_idxs, alpha, sold_items)
             log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
 
@@ -195,7 +195,7 @@ def simulate_step5():
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
                 observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
-    gp_hyperparameters = json.load(open("hyperparameters.json"))['step5']
+    gp_config = hyperparams['step5']
 
     for e in range(0, n_experiments):
         print('Experiment n°:', e + 1)
@@ -204,8 +204,8 @@ def simulate_step5():
         env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
-        ecomm5_gpucb = Ecommerce5_GPUCB(B_cap, budgets, product_prices, gp_hyperparameters)
+        ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices, gp_config)
+        ecomm5_gpucb = Ecommerce5_GPUCB(B_cap, budgets, product_prices, gp_config)
 
         num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
@@ -255,9 +255,9 @@ def simulate_step6():
             observations_probabilities, users_poisson_parameters = non_stationary_scenario.setup_environment()
 
 
-    gp_hyperparameters = hyperparams['step3']
+    gp_config = hyperparams['step3']
 
-    tau = np.ceil(3.0 * np.sqrt(T)).astype(int)
+    tau = np.ceil(2.5 * np.sqrt(T)).astype(int)
 
     M = hyperparams["step6"]["M"]
     eps = hyperparams["step6"]["eps"]
@@ -279,8 +279,8 @@ def simulate_step6():
         )
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, gp_hyperparameters, tau)
-        ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, gp_hyperparameters, M, eps, h)
+        ecomm6_swucb = Ecommerce6_SWUCB(B_cap, budgets, product_prices, gp_config, tau)
+        ecomm6_cducb = Ecommerce6_CDUCB(B_cap, budgets, product_prices, gp_config, M, eps, h)
 
         
         current_phase = -1
@@ -289,7 +289,6 @@ def simulate_step6():
 
             new_phase = env.get_current_phase()
             if new_phase != current_phase :
-                print('environment changing_phase')
                 current_phase = new_phase
 
                 _, num_sold_items = estimate_nodes_activation_probabilities(

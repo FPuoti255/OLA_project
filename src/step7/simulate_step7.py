@@ -31,7 +31,7 @@ def simulate_step7():
     graph_weights, alpha_bars, product_prices, users_reservation_prices, \
                 observations_probabilities, users_poisson_parameters = scenario.setup_environment()
 
-    gp_hyperparameters = hyperparams['step3']
+    gp_config = hyperparams['step3']
 
     features = hyperparams['step7']['features']
     split_time = hyperparams['step7']['split_time']
@@ -43,8 +43,8 @@ def simulate_step7():
         env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
 
         ecomm = Ecommerce(B_cap, budgets, product_prices)
-        ecomm7_gpts = Ecommerce7(B_cap, budgets, product_prices, 'TS', gp_hyperparameters, features, split_time)
-        ecomm7_gpucb = Ecommerce7(B_cap, budgets, product_prices, 'UCB',  gp_hyperparameters, features, split_time)
+        ecomm7_gpts = Ecommerce7(B_cap, budgets, product_prices, 'TS', gp_config, features, split_time)
+        ecomm7_gpucb = Ecommerce7(B_cap, budgets, product_prices, 'UCB',  gp_config, features, split_time)
 
 
         _, num_sold_items = estimate_nodes_activation_probabilities(

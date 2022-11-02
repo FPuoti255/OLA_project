@@ -137,7 +137,7 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
-    def round_step4(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm):
+    def round_step4(self, pulled_arm, pulled_arm_idxs, num_sold_items):
 
         alpha, reward = self.round_step3(pulled_arm, pulled_arm_idxs)
 

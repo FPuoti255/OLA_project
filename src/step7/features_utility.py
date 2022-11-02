@@ -17,25 +17,50 @@ def get_feature_idxs(features_dict):
     return list(set(idxs))
 
 
-def get_context_data(context_dict, pulled_arms, collected_rewards, collected_sold_items):
+def get_context_data(context_dict, pulled_arms, collected_rewards, collected_sold_items, single_sample = False):
+    '''
+    The parameter single sample is used to divide the case in which we are preparing the dataset for the offline 
+    training (thus multiple samples) from the case of the simple update rule at each round (single sample)
+    '''
+
     context_dict_idxs = get_feature_idxs(context_dict)
-    num_of_rounds = pulled_arms.shape[0]
 
-    context_dict_pulled_arms = pulled_arms[:, context_dict_idxs, : ]
-    context_dict_collected_rewards = collected_rewards[:, context_dict_idxs, :]
-    context_dict_collected_sold_items = collected_sold_items[:, context_dict_idxs, :]
+    if not single_sample :
+        num_of_rounds = pulled_arms.shape[0]
 
-    if(len(context_dict_idxs)>1):
-        return np.minimum(
+        context_dict_pulled_arms = pulled_arms[:, context_dict_idxs, : ]
+        context_dict_collected_rewards = collected_rewards[:, context_dict_idxs, :]
+        context_dict_collected_sold_items = collected_sold_items[:, context_dict_idxs, :]
+
+        if(len(context_dict_idxs)>1):
+            return np.minimum(
                         np.sum(context_dict_pulled_arms, axis = 1),
                         budgets.shape[0]
-                ),\
-                np.sum(context_dict_collected_rewards, axis = 1),\
-                np.sum(context_dict_collected_sold_items, axis = 1)
-    else:
-        return context_dict_pulled_arms.reshape(num_of_rounds, NUM_OF_PRODUCTS), \
+                    ),\
+                   np.sum(context_dict_collected_rewards, axis = 1),\
+                   np.sum(context_dict_collected_sold_items, axis = 1)
+        else:
+            return context_dict_pulled_arms.reshape(num_of_rounds, NUM_OF_PRODUCTS), \
                     context_dict_collected_rewards.reshape(num_of_rounds, NUM_OF_PRODUCTS),\
                     context_dict_collected_sold_items.reshape(num_of_rounds, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)
+    else :
+
+        context_dict_pulled_arms = pulled_arms[context_dict_idxs, : ]
+        context_dict_collected_rewards = collected_rewards[context_dict_idxs, :]
+        context_dict_collected_sold_items = collected_sold_items[context_dict_idxs, :]
+
+        if(len(context_dict_idxs)>1):
+            return np.minimum(
+                        np.sum(context_dict_pulled_arms, axis = 0),
+                        budgets.shape[0]
+                    ),\
+                   np.sum(context_dict_collected_rewards, axis = 0),\
+                   np.sum(context_dict_collected_sold_items, axis = 0)
+        else:
+            return context_dict_pulled_arms.reshape(NUM_OF_PRODUCTS), \
+                    context_dict_collected_rewards.reshape(NUM_OF_PRODUCTS),\
+                    context_dict_collected_sold_items.reshape(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS)
+
 
 
 def generate_splits(context_features : dict):

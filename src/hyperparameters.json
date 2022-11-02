@@ -22,19 +22,23 @@
         "prior_std" : 10.0
     },
 
-    "step5" : {
-        "gp_alpha": 2.62806144e-01,
+    "step4" : {
+        "gp_alpha": 1.1808707,
         
-        "constant_value": 8.05702277e+01,
-    
-        "length_scale": 4.84285317e+01, 
-        "length_scale_lb": 1.59682975e+02,
-        "length_scale_ub": 3.66152637e+02,
+        "constant_value": 73.28462559,
+        
+        "length_scale" : 49.46210374,
+        "length_scale_lb": 1.5608476,
+        "length_scale_ub" : 613.24013276,
 
         "noise_level" : 0.0005,
     
         "prior_mean" : 0.0,
         "prior_std" : 10.0
+
+    },
+
+    "step5" : {
     },
 
     "step6" : {
