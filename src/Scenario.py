@@ -122,12 +122,14 @@ class Scenario:
         # # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
         # alpha_bars = renormalize(users_concentration_parameters)
 
-        alpha_bars = np.array([
-            [0.03, 0.1, 0.1, 0.03, 0.1, 0.03],
-            [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
-            [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
-        ])
-        assert(np.sum(alpha_bars) == 1.0)
+        alpha_bars = np.array(
+            [
+                [0.03, 0.1, 0.1, 0.03, 0.1, 0.03],
+                [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
+                [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
+            ] 
+        ) * 3
+        assert(np.sum(alpha_bars) == 1.0*3)
 
 
         log("alpha_bars:\n")
