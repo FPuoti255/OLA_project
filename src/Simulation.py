@@ -213,7 +213,7 @@ def simulate_step5():
         ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices, gp_config)
         ecomm5_gpucb = Ecommerce5_GPUCB(B_cap, budgets, product_prices, gp_config)
 
-        num_sold_items = estimate_nodes_activation_probabilities(
+        _, num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
             env.users_reservation_prices,
             env.users_poisson_parameters,
@@ -232,10 +232,10 @@ def simulate_step5():
             optimal_allocation, _, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
             
-            # arm, arm_idxs = ecomm5_gpts.pull_arm()
-            # reward_per_arm, gpts_gains_per_experiment[e][t] = env.round_step5(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
-            # ecomm5_gpts.update(arm_idxs, reward_per_arm)
-            # log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
+            arm, arm_idxs = ecomm5_gpts.pull_arm()
+            reward_per_arm, gpts_gains_per_experiment[e][t] = env.round_step5(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
+            ecomm5_gpts.update(arm_idxs, reward_per_arm)
+            log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
             arm, arm_idxs = ecomm5_gpucb.pull_arm()
             reward_per_arm, gpucb_gains_per_experiment[e][t] = env.round_step5(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
@@ -263,8 +263,8 @@ def simulate_step6():
 
     gp_config = hyperparams['step3']
 
+    #tau = np.ceil(2.5 * np.sqrt(T)).astype(int)
     tau = np.ceil(2.5 * np.sqrt(T)).astype(int)
-
     M = hyperparams["step6"]["M"]
     eps = hyperparams["step6"]["eps"]
     h = hyperparams["step6"]["h"]
@@ -325,7 +325,6 @@ def simulate_step6():
             alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
                                                                                     num_sold_items = num_sold_items, end_round = True)
             ecomm6_cducb.update(arm_idxs, alpha, sold_items)
-            print('pulled_arm = ', arm)
 
 
     return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain, non_stationary_scenario.get_n_phases(), non_stationary_scenario.get_phase_len()
