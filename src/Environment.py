@@ -1,5 +1,3 @@
-import random
-
 import numpy as np
 
 from constants import *
@@ -96,6 +94,25 @@ class Environment:
         self.expected_reward = exp_reward
         return exp_reward
 
+    def compute_disaggregated_clairvoyant_reward(self, num_sold_items, product_prices, budgets):
+        assert (num_sold_items.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+        assert (product_prices.shape == (NUM_OF_PRODUCTS,))
+
+        value_per_click = np.sum(np.multiply(num_sold_items, product_prices),
+                                 axis=2)  # shape = (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)
+
+        self.compute_users_alpha(budgets) # (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, NUM_BUDGETS)
+
+        exp_reward = np.zeros(shape=(NUM_OF_USERS_CLASSES ,NUM_OF_PRODUCTS, budgets.shape[0]))
+
+        for user_class in range(NUM_OF_USERS_CLASSES):
+            exp_reward[user_class] = np.multiply(
+                self.expected_users_alpha[user_class],
+                np.atleast_2d(value_per_click[user_class]).T
+            )
+
+        self.expected_reward = exp_reward
+        return exp_reward
 
     # -----------------------------------------------
     # --------STEP 3 ENVIRONMENT FUNCTIONS-----------
@@ -120,7 +137,7 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 4 ENVIRONMENT FUNCTIONS-----------
-    def round_step4(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm):
+    def round_step4(self, pulled_arm, pulled_arm_idxs, num_sold_items):
 
         alpha, reward = self.round_step3(pulled_arm, pulled_arm_idxs)
 
@@ -155,19 +172,91 @@ class Environment:
 
     # -----------------------------------------------
     # --------STEP 7 ENVIRONMENT FUNCTIONS----------- 
-    def estimate_disaggregated_num_clicks(self, budgets):
-        # TODO
-        return self.estimate_num_of_clicks(budgets, aggregated=False)
     
-    def round_step7(self, pulled_arm, B_cap, nodes_activation_probabilities, num_sold_items):
-        assert (pulled_arm.shape == (NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
+    def round_step7(self, pulled_arm, pulled_arm_idxs, num_sold_items):
+        assert (pulled_arm.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
 
-        alpha = self.compute_alpha(pulled_arm / B_cap)
-        assert (alpha.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        alpha = np.zeros_like(pulled_arm)
+        reward = 0
 
-        estimated_sold_items = np.multiply(
-            np.dot(num_sold_items, nodes_activation_probabilities.T),
-            alpha
+        for user_class in range(NUM_OF_USERS_CLASSES):
+            for prod_id in range(NUM_OF_PRODUCTS):
+                alpha[user_class][prod_id] = self.expected_users_alpha[user_class][prod_id][pulled_arm_idxs[user_class][prod_id]]
+                reward += self.expected_reward[user_class][prod_id][pulled_arm_idxs[user_class][prod_id]] - pulled_arm[user_class][prod_id]
+
+        
+        percentage_for_each_product = np.divide(
+            alpha ,
+            self.alpha_bars[ :, 1:]
         )
+        real_sold_items = np.zeros_like(num_sold_items)
 
-        return alpha, estimated_sold_items
+        for user_class in range(NUM_OF_USERS_CLASSES):
+            user_class_percentage = np.repeat(percentage_for_each_product[user_class], repeats=NUM_OF_PRODUCTS).reshape((NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+            real_sold_items[user_class] = np.multiply(
+                num_sold_items[user_class],
+                user_class_percentage
+            )
+
+        return alpha, reward, real_sold_items
+
+
+
+class Non_Stationary_Environment(Environment):
+
+    def __init__(self, users_reservation_prices, 
+                        graph_weights, 
+                        alpha_bars, 
+                        users_poisson_parameters,
+                        n_phases, 
+                        phase_len):
+        
+        self.rng = np.random.default_rng(12345)
+
+        self.t = 0
+
+        self.current_phase = 0
+        self.n_phases = n_phases
+        self.phase_len = phase_len
+
+        assert(users_reservation_prices.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+        assert(graph_weights.shape == (self.n_phases, NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+        assert(alpha_bars.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS + 1) )
+        assert(users_poisson_parameters.shape == (self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
+
+        self.environments = [ 
+            Environment(users_reservation_prices[i], graph_weights[i], alpha_bars[i], users_poisson_parameters[i])    
+            for i in range(self.n_phases)]
+        
+
+    def get_current_phase(self):
+        return self.current_phase
+
+    def get_alpha_bars(self):
+        return self.environments[self.current_phase].get_alpha_bars()
+    
+    def get_users_reservation_prices(self):
+        return self.environments[self.current_phase].get_users_reservation_prices()
+    
+    def get_users_poisson_parameters(self):
+        return self.environments[self.current_phase].get_users_poisson_parameters()
+
+    def get_network(self):
+        return self.environments[self.current_phase].get_network()
+
+    def compute_clairvoyant_reward(self, num_sold_items, product_prices, budgets):
+        return self.environments[self.current_phase].compute_clairvoyant_reward(num_sold_items, product_prices, budgets)
+    
+
+    def round_step6(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm, end_round = False):
+
+        alpha, reward, real_sold_items = self.environments[self.current_phase].round_step4(pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm)
+        
+        # the flag end round is used since we have to algorithms pulling and using and self.t+1 must be done
+        # only after the second algorithm has obtained the reward
+        if end_round :
+            self.t += 1
+            self.current_phase = int(np.floor(self.t / self.phase_len))
+
+        return alpha, reward, real_sold_items
+

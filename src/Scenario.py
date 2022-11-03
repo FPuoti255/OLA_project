@@ -92,12 +92,12 @@ class Scenario:
 
 
     def get_product_prices(self):       
-        return np.array([80,35,20, 150, 350]) * 5 
+        return np.array([80,35,20, 150, 350])
 
     def get_users_reservation_prices(self):        # 3 x 5
         users_reservation_prices = np.zeros(shape=(NUM_OF_USERS_CLASSES,NUM_OF_PRODUCTS))
 
-        appreciation = np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]]) * 5
+        appreciation = np.array([[30,20,-10,-100,80],[20,10,13,50,-50],[-70,10,20,50,-250]])
         users_reservation_prices = self.product_prices + appreciation
 
         return users_reservation_prices
@@ -150,9 +150,9 @@ class Scenario:
 
 
 class NonStationaryScenario(Scenario):
-    def __init__(self):
+    def __init__(self, T):
         self.n_phases = 3
-        self.phase_len = np.ceil( T_step6 / self.n_phases).astype(int)
+        self.phase_len = np.ceil( T / self.n_phases).astype(int)
         super().__init__()
 
     def get_n_phases(self):
@@ -267,10 +267,6 @@ class NonStationaryScenario(Scenario):
 
         alpha_bars = np.array([alpha1, alpha2, alpha3])
 
-
-        log("alpha_bars:\n")
-        log(alpha_bars)
-        log("\n")
 
         poisson1 = np.array([
                     [2, 5, 1, 0.5, 2],

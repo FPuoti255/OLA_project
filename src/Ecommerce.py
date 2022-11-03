@@ -45,7 +45,7 @@ class Ecommerce(object):
         """
         This algorithm solves a generalized knapsack problem using a dynamic_algorithm approach.
         """
-        assert(table.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]))
+        assert(table.shape == (NUM_OF_PRODUCTS, self.budgets.shape[0]) or table.shape == (NUM_OF_USERS_CLASSES * NUM_OF_PRODUCTS, self.budgets.shape[0]))
         table_opt, max_pointer = self.compute_table(table)
         table_opt[-1] = np.subtract(table_opt[-1], self.budgets)
         return self.choose_best(table_opt, max_pointer)
@@ -63,4 +63,18 @@ class Ecommerce(object):
 
         return optimal_allocation, budgets_indexes, optimal_reward
     
-    
+
+    def clairvoyant_disaggregated_optimization_problem(self, expected_reward):
+        assert(expected_reward.shape == (NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, self.budgets.shape[0]))
+
+        expected_reward = expected_reward.copy().reshape((NUM_OF_USERS_CLASSES*NUM_OF_PRODUCTS, self.budgets.shape[0]))
+            
+        budgets_indexes, optimal_reward = self.dynamic_knapsack_solver(
+            table=expected_reward
+        )
+        optimal_allocation = self.budgets[budgets_indexes]
+
+        optimal_allocation = optimal_allocation.reshape(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)
+        budgets_indexes = np.array(budgets_indexes).reshape(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS)
+
+        return optimal_allocation, budgets_indexes, optimal_reward

@@ -26,11 +26,10 @@ def compute_cumulative_regret_mean_std(opts, rewards_per_experiment):
     cumsum = np.cumsum((opts-rewards_per_experiment), axis = 1)
     return np.mean(cumsum, axis=0), np.std(cumsum, axis=0)
 
-
 def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
-    ticks = np.arange(start=0, stop=T, step=1)
+    ticks = np.arange(start=0, stop= opts.shape[1], step=1)
     opts_color = 'red'
     alg1_color = 'orange'
     alg2_color = 'green'
@@ -86,7 +85,7 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
 
 def plot_regrets_step6(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend, n_phases, phase_len):
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
-    ticks = np.arange(start=0, stop=T_step6, step=1)
+    ticks = np.arange(start=0, stop=opts.shape[1], step=1)
     opts_color = 'red'
     alg1_color = 'orange'
     alg2_color = 'green'
@@ -147,88 +146,6 @@ def plot_regrets_step6(alg1_rewards_per_experiment, alg2_rewards_per_experiment,
     
     plt.tight_layout()
     plt.show()
-
-
-
-
-def plot_rewards_for_each_experiment(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
-
-    n_exp = opts.shape[0]
-
-    fig, ax = plt.subplots(nrows=n_exp, ncols=2, figsize=(20, 10))
-    ticks = np.arange(start=0, stop=n_exp, step=1)
-
-    for exp in range(n_exp):
-        ax[exp][0].plot(opts[exp], label='Optimal Reward')
-        ax[exp][0].plot(alg1_rewards_per_experiment[exp], label=legend[0])
-
-        ax[exp][1].plot(opts[exp], label='Optimal Reward')
-        ax[exp][1].plot(alg2_rewards_per_experiment[exp], label=legend[1])
-
-        ax[exp][0].set_title('Average Reward')
-        ax[exp][0].set_xlabel('round')
-        ax[exp][0].legend()
-        
-        ax[exp][1].set_title('Average Reward')
-        ax[exp][1].set_xlabel('round')
-        ax[exp][1].legend()
-    
-    
-    plt.tight_layout()
-    plt.show()
-
-
-def plot_regrets_merged(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend):
-
-    fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(20, 10))
-    ticks = np.arange(start=0, stop=T, step=1)
-    opts_color = 'red'
-    alg1_color = 'orange'
-    alg2_color = 'green'
-    alpha = 0.2
-
-    #----------------- ALG 1 ------------------
-    alg1_mean_reward = np.mean(alg1_rewards_per_experiment, axis=0)
-    alg1_reward_std = np.std(alg1_rewards_per_experiment, axis=0)
-
-    alg1_cumulative_regret , alg1_regret_std = compute_cumulative_regret_mean_std(opts, alg1_rewards_per_experiment)
-
-    #----------------- ALG 2 -------------------
-    alg2_mean_reward = np.mean(alg2_rewards_per_experiment, axis=0)
-    alg2_reward_std = np.std(alg2_rewards_per_experiment, axis = 0)
-
-    alg2_cumulative_regret = np.mean(np.cumsum((opts-alg2_rewards_per_experiment), axis = 1), axis=0)
-    alg2_regret_std = np.std(np.cumsum((opts-alg2_rewards_per_experiment), axis = 1), axis=0)
- 
-    # ax[0] will plot the cumulative regrets
-    ax[0].plot(alg1_cumulative_regret, color=alg1_color, label=legend[0])
-    ax[0].fill_between(ticks, alg1_cumulative_regret - alg1_regret_std,alg1_cumulative_regret + alg1_regret_std, color=alg1_color, alpha=alpha)
-
-    ax[0].plot(alg2_cumulative_regret, color=alg2_color, label=legend[1])
-    ax[0].fill_between(ticks, alg2_cumulative_regret - alg2_regret_std,alg2_cumulative_regret + alg2_regret_std, color=alg2_color, alpha=alpha)
-    
-    ax[0].set_title('Cumulative Regret')
-    ax[0].set_xlabel('round')
-    ax[1].set_ylabel('regret')
-    ax[0].legend()
-
-    # ax[1] will plot the rewards
-    ax[1].plot(alg1_mean_reward, color=alg1_color, label=legend[0])
-    ax[1].fill_between(ticks, alg1_mean_reward - alg1_reward_std,alg1_mean_reward + alg1_reward_std, color=alg1_color, alpha=alpha)
-
-    ax[1].plot(alg2_mean_reward, color=alg2_color, label=legend[1])
-    ax[1].fill_between(ticks, alg2_mean_reward - alg2_reward_std, alg2_mean_reward + alg2_reward_std, color=alg2_color, alpha=alpha)
-
-    ax[1].plot(ticks, np.full_like(ticks, opts_per_phase), color=opts_color, label='Optimal Reward')
-
-    ax[1].set_title('Average Reward')
-    ax[1].set_xlabel('round')
-    ax[1].set_ylabel('reward')
-    ax[1].legend()
-    
-    plt.tight_layout()
-    plt.show()
-
 
 def plot_learned_functions(gpts, gpucb, env):
     fig, ax = plt.subplots(nrows=NUM_OF_PRODUCTS, ncols=2, figsize=(20, 20))

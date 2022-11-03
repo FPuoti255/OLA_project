@@ -16,7 +16,7 @@ class Ecommerce4:
             self.algorithm = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_config)
         else:
             raise ValueError('Please choose one between TS or UCB')
-
+        self.algorithm_name = algorithm
         self.items_estimator = SoldItemsEstimator()
         
 

@@ -56,6 +56,13 @@ class Ecommerce3(Ecommerce):
 
         return gaussian_regressors
 
+    def get_new_instance(self):
+        # This method will be used in the step7 to generate a new instance of the same algorithm
+        if isinstance(self.__class__, type(Ecommerce3_GPTS)):
+            return Ecommerce3_GPTS(self.B_cap, self.budgets, self.product_prices, self.gp_config)
+        else:
+            return Ecommerce3_GPUCB(self.B_cap, self.budgets, self.product_prices, self.gp_config)
+
 
     def update(self, pulled_arm_idxs, reward):
         '''
@@ -65,7 +72,6 @@ class Ecommerce3(Ecommerce):
         self.t += 1
         self.update_observations(pulled_arm_idxs, reward)
         self.update_model()
-
 
     def update_observations(self, pulled_arm_idxs, reward):
         for prod_id in range(NUM_OF_PRODUCTS):
@@ -79,7 +85,6 @@ class Ecommerce3(Ecommerce):
             y = np.array(self.collected_rewards[prod_id])
             self.means[prod_id], self.sigmas[prod_id] = self.gaussian_regressors[prod_id].fit(X, y).predict(X=X_test, return_std=True)
             self.sigmas[prod_id] = np.maximum(self.sigmas[prod_id], 5e-2)
-
 
     def compute_value_per_click(self, num_sold_items):
         '''
@@ -95,6 +100,17 @@ class Ecommerce3(Ecommerce):
         else :
             raise ValueError('Wrong num_sold_items shape')
 
+    def get_best_bound_arm(self, num_sold_items):
+        '''
+        This function will be used in the step7 during estimation splitting condition
+        '''
+        value_per_click = self.compute_value_per_click(num_sold_items)
+        estimated_reward = np.multiply(
+            self.get_samples(),
+            np.atleast_2d(value_per_click).T
+        )
+        _, mu = self.dynamic_knapsack_solver(table=estimated_reward)
+        return max(0.01, mu - np.sqrt( - np.log(0.01) / (2 * self.t)))
 
 
 class Ecommerce3_GPTS(Ecommerce3):
@@ -116,8 +132,8 @@ class Ecommerce3_GPTS(Ecommerce3):
         samples = np.empty(shape = (NUM_OF_PRODUCTS, self.n_arms))
         X = np.atleast_2d(self.budgets).T
         for prod in range(NUM_OF_PRODUCTS):
-            samples[prod] = self.gaussian_regressors[prod].sample_y(X).T                
-        return np.clip(samples, 0, 1)
+            samples[prod] = self.gaussian_regressors[prod].sample_y(X).T              
+        return samples
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
@@ -125,6 +141,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.perms = None
+        self.exploration_probability = 0.02
 
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
@@ -137,27 +154,29 @@ class Ecommerce3_GPUCB(Ecommerce3):
         for i in range(NUM_OF_PRODUCTS):
             self.N_a[i][pulled_arm_idxs[i]] += 1
 
-    
+   
     def update_model(self):
         super().update_model()
-        # bayesian UCB
-        self.confidence_bounds = np.sqrt(2 * np.log((self.t) / (self.N_a + 0.000001)) * self.sigmas)
+        #self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas 
+        self.confidence_bounds = self.sigmas * np.sqrt(np.log(self.t) / (self.N_a + 1e-7))
+
+
+    def get_samples(self):
+        return np.add(self.means, self.confidence_bounds)
 
 
     def pull_arm(self, num_sold_items):
-        exploration_probability = 1.0 / np.sqrt(self.t + 2)
-        exploitation_probability = 1.0 - exploration_probability
-
-        if np.random.binomial(n = 1, p = exploitation_probability):
+        if np.random.binomial(n = 1, p = 1 - self.exploration_probability):
             value_per_click = self.compute_value_per_click(num_sold_items)
-            estimated_reward = np.add(
-                np.multiply(self.means, np.atleast_2d(value_per_click).T),
-                self.confidence_bounds
+            estimated_reward = np.multiply(
+                self.get_samples(),
+                np.atleast_2d(value_per_click).T
             )
             budget_idxs_for_each_product, _ = self.dynamic_knapsack_solver(table=estimated_reward)
             return self.budgets[budget_idxs_for_each_product], np.array(budget_idxs_for_each_product)
         else:
             return self.random_sampling()
+
 
     def random_sampling(self):
         if self.perms is None:
