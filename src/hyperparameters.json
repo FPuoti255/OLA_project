@@ -39,6 +39,19 @@
     },
 
     "step5" : {
+        "gp_alpha" : 6.47954351e-02,
+        
+        "constant_value" : 4.63398833e+01,
+        
+        "length_scale" : 9.81204728e+01,
+        "length_scale_lb" :  8.46074557e+00,
+        "length_scale_ub" : 8.59120482e+02,
+
+        "noise_level" : 1.0,
+    
+        "prior_mean" : 0.0,
+        "prior_std" : 10.0
+
     },
 
     "step6" : {
