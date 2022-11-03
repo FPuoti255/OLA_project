@@ -175,13 +175,13 @@ def simulate_step4():
             
             arm, arm_idxs = ecomm4_gpts.pull_arm()
             # the environment returns the users_alpha and the reward for that allocation
-            alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items, optimal_arm_idxs=optimal_allocation_idxs)
+            alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
             ecomm4_gpts.update(arm_idxs, alpha, sold_items)
             log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
 
             arm, arm_idxs = ecomm4_gpucb.pull_arm()
-            alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items, optimal_arm_idxs=optimal_allocation_idxs)
+            alpha, gpucb_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
             ecomm4_gpucb.update(arm_idxs, alpha, sold_items)
             log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
 
@@ -315,15 +315,15 @@ def simulate_step6():
             optimal_allocation, optimal_allocation_idxs, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
-            # arm, arm_idxs = ecomm6_swucb.pull_arm()
-            # alpha,swucb_gains_per_experiment[e][t] , sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
-            #                                                                         num_sold_items = num_sold_items, optimal_arm = optimal_allocation_idxs, end_round = False)
-            # ecomm6_swucb.update(arm_idxs, alpha, sold_items)
+            arm, arm_idxs = ecomm6_swucb.pull_arm()
+            alpha,swucb_gains_per_experiment[e][t] , sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
+                                                                                    num_sold_items = num_sold_items, end_round = False)
+            ecomm6_swucb.update(arm_idxs, alpha, sold_items)
             
                                                                     
             arm, arm_idxs = ecomm6_cducb.pull_arm()
             alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
-                                                                                    num_sold_items = num_sold_items, optimal_arm = optimal_allocation_idxs, end_round = True)
+                                                                                    num_sold_items = num_sold_items, end_round = True)
             ecomm6_cducb.update(arm_idxs, alpha, sold_items)
             print('pulled_arm = ', arm)
 
@@ -383,10 +383,10 @@ def simulate_step7():
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
             
-            # arm, arm_idxs = ecomm7_gpts.pull_arm()
-            # alpha, reward, real_sold_items = env.round_step7(arm, arm_idxs, num_sold_items)
-            # ecomm7_gpts.update(arm_idxs, alpha, real_sold_items)
-            # gpts_gains_per_experiment[e][t] += reward
+            arm, arm_idxs = ecomm7_gpts.pull_arm()
+            alpha, reward, real_sold_items = env.round_step7(arm, arm_idxs, num_sold_items)
+            ecomm7_gpts.update(arm_idxs, alpha, real_sold_items)
+            gpts_gains_per_experiment[e][t] += reward
 
             arm, arm_idxs = ecomm7_gpucb.pull_arm()
             alpha, reward, real_sold_items = env.round_step7(arm, arm_idxs, num_sold_items)

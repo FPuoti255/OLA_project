@@ -149,7 +149,7 @@ class Ecommerce7(Ecommerce):
                 if mu_1 * p_left + mu_2 * p_right >= mu_0 :
                     learner.left_child = alg1_node
                     learner.right_child = alg2_node
-                    print('Better split_found', c1, c2)
+                    print('Better split_found', left, right)
                     break
 
         

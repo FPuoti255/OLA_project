@@ -248,9 +248,9 @@ class Non_Stationary_Environment(Environment):
         return self.environments[self.current_phase].compute_clairvoyant_reward(num_sold_items, product_prices, budgets)
     
 
-    def round_step6(self, pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm, end_round = False):
+    def round_step6(self, pulled_arm, pulled_arm_idxs, num_sold_items, end_round = False):
 
-        alpha, reward, real_sold_items = self.environments[self.current_phase].round_step4(pulled_arm, pulled_arm_idxs, num_sold_items, optimal_arm)
+        alpha, reward, real_sold_items = self.environments[self.current_phase].round_step4(pulled_arm, pulled_arm_idxs, num_sold_items)
         
         # the flag end round is used since we have to algorithms pulling and using and self.t+1 must be done
         # only after the second algorithm has obtained the reward
