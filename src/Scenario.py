@@ -112,11 +112,29 @@ class Scenario:
                             for each users class and for each product, the poisson distribution of the bought items in the montecarlo sampling
         '''
 
-        alpha_bars = np.array([
-            [0.03, 0.1, 0.1, 0.03, 0.1, 0.03],
-            [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
-            [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
-        ]) * 3
+        # users_concentration_parameters = [
+        #     np.random.beta(a=8, b=2, size=NUM_OF_PRODUCTS + 1),
+
+        #     np.random.beta(a=1, b=1, size=NUM_OF_PRODUCTS + 1),
+        #     np.random.beta(a=2, b=8, size=NUM_OF_PRODUCTS + 1)
+        # ]
+        
+        # # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
+        # alpha_bars = renormalize(users_concentration_parameters)
+
+        alpha_bars = np.array(
+            [
+                [0.03, 0.1, 0.1, 0.03, 0.1, 0.03],
+                [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
+                [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
+            ] 
+        ) * 3
+        assert(np.sum(alpha_bars) == 1.0*3)
+
+
+        log("alpha_bars:\n")
+        log(alpha_bars)
+        log("\n")
 
         users_poisson_parameters = np.array([[2,5,1,0.5,2], [1, 5, 2, 1, 2], [0.5, 2, 3, 2, 1]]) #one for each (user class, product)
 
