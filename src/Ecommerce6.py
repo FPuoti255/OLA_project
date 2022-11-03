@@ -14,7 +14,6 @@ class Ecommerce6_SWUCB(Ecommerce3_GPUCB):
 
         # New attributes to be added
         self.tau=tau
-        self.binary_N_a=np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms, tau))
         self.sold_items_estimator = SW_SoldItemsEstimator(self.tau)
 
 
@@ -30,28 +29,24 @@ class Ecommerce6_SWUCB(Ecommerce3_GPUCB):
 
     def update_observations(self, pulled_arm_idxs, reward, sold_items):
 
-        slot_idx=self.t % self.tau
-
         for prod_id in range(NUM_OF_PRODUCTS):
-            arm_idx = pulled_arm_idxs[prod_id]
-            non_pulled_arm_idxs= np.setdiff1d(np.arange(0, self.n_arms), arm_idx, assume_unique=True)
-
-            self.binary_N_a[prod_id][arm_idx][slot_idx] = 1
-            
-            for idx in non_pulled_arm_idxs:
-                self.binary_N_a[prod_id][idx][slot_idx] = 0
+            arm_idx = pulled_arm_idxs[prod_id] 
 
             self.pulled_arms[prod_id].append(self.budgets[arm_idx])
             self.collected_rewards[prod_id].append(reward[prod_id])
 
+            self.N_a[prod_id][arm_idx] += 1
+
             assert(len(self.pulled_arms[prod_id]) == len(self.collected_rewards[prod_id]))
 
             if self.t >= self.tau:
-                self.pulled_arms[prod_id].pop(0)
+                to_be_forgotten = self.pulled_arms[prod_id].pop(0)
+                to_be_forgotten_idx = np.where(self.budgets == to_be_forgotten)
+                self.N_a[prod_id][to_be_forgotten_idx] = max(0, self.N_a[prod_id][to_be_forgotten_idx] - 1)
+
                 self.collected_rewards[prod_id].pop(0)
         
         self.sold_items_estimator.update(sold_items)
-        self.N_a = np.sum(self.binary_N_a, axis = 2)
        
 
     def pull_arm(self):

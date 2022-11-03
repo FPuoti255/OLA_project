@@ -263,8 +263,8 @@ def simulate_step6():
 
     gp_config = hyperparams['step3']
 
-    #tau = np.ceil(2.5 * np.sqrt(T)).astype(int)
-    tau = np.ceil(2.5 * np.sqrt(T)).astype(int)
+    tau = np.ceil(3.0 * np.sqrt(T)).astype(int)
+
     M = hyperparams["step6"]["M"]
     eps = hyperparams["step6"]["eps"]
     h = hyperparams["step6"]["h"]
@@ -317,14 +317,14 @@ def simulate_step6():
 
             arm, arm_idxs = ecomm6_swucb.pull_arm()
             alpha,swucb_gains_per_experiment[e][t] , sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
-                                                                                    num_sold_items = num_sold_items, end_round = False)
+                                                                                    num_sold_items = num_sold_items, end_round = True)
             ecomm6_swucb.update(arm_idxs, alpha, sold_items)
             
                                                                     
-            arm, arm_idxs = ecomm6_cducb.pull_arm()
-            alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
-                                                                                    num_sold_items = num_sold_items, end_round = True)
-            ecomm6_cducb.update(arm_idxs, alpha, sold_items)
+            # arm, arm_idxs = ecomm6_cducb.pull_arm()
+            # alpha, cducb_gains_per_experiment[e][t], sold_items = env.round_step6(pulled_arm=arm, pulled_arm_idxs=arm_idxs, 
+            #                                                                         num_sold_items = num_sold_items, end_round = True)
+            # ecomm6_cducb.update(arm_idxs, alpha, sold_items)
 
 
     return swucb_gains_per_experiment, cducb_gains_per_experiment, optimal_gain, non_stationary_scenario.get_n_phases(), non_stationary_scenario.get_phase_len()
