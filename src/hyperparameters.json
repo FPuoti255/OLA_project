@@ -1,20 +1,21 @@
 {
     "simulation" : {
         "n_experiments" : 2,
-        "T" : 100,
+        "T" : 70,
 
         "n_experiments_step6" : 2,
         "T_step6" : 210
     },
 
+
     "step3" : {
-        "gp_alpha": 1.45636156e-02,
+        "gp_alpha": 0.000005,
         
-        "constant_value": 3.79850036e+01,
+        "constant_value": 4.01126146e+01,
     
-        "length_scale": 6.20871344e+01, 
-        "length_scale_lb": 2.87135983e+02,
-        "length_scale_ub": 4.92779902e+02,
+        "length_scale": 3.0, 
+        "length_scale_lb":  0.01,
+        "length_scale_ub": 100,
 
         "noise_level" : 0.0005,
     
@@ -22,7 +23,8 @@
         "prior_std" : 10.0
     },
 
-    "step4" : {
+
+    "step4_old" : {
         "gp_alpha": 1.1808707,
         
         "constant_value": 73.28462559,
@@ -36,6 +38,23 @@
         "prior_mean" : 0.0,
         "prior_std" : 10.0
 
+    },
+
+
+
+    "step4" : {
+        "gp_alpha": 0.000005,
+        
+        "constant_value": 4.01126146e+01,
+    
+        "length_scale": 3.0, 
+        "length_scale_lb":  0.001,
+        "length_scale_ub": 1000,
+
+        "noise_level" : 0.0005,
+    
+        "prior_mean" : 0.0,
+        "prior_std" : 10.0
     },
 
     "step5" : {

@@ -83,21 +83,25 @@ class Environment:
 
         for prod_id in range(NUM_OF_PRODUCTS):
             for j in range(1, bdgts.shape[0]):
-
                 conc_params = self.mapping_function(prod_id, bdgts[j])
-                dirichlet_params = np.array([conc_params, 1 - conc_params]).flatten() * 10
 
-                alpha_product = self.rng.dirichlet(
-                        dirichlet_params
+                for user_class in range(NUM_OF_USERS_CLASSES):
+
+                    dirichlet_params = np.array([conc_params[user_class], 1 - conc_params[user_class]])
+
+                    alpha = self.rng.dirichlet(
+                            dirichlet_params
+                        )
+
+                    exp_user_alpha [user_class, prod_id, j] = np.clip(
+                        alpha[0],
+                        None,
+                        self.alpha_bars[ user_class, prod_id + 1] 
+
                     )
 
-                exp_user_alpha[: , prod_id, j] = np.minimum(
-                    np.atleast_2d(alpha_product[0:NUM_OF_USERS_CLASSES]),
-                    self.alpha_bars[ :, prod_id + 1]
-                )
-
         
-        exp_user_alpha = np.sort(exp_user_alpha, axis = 2)
+        exp_user_alpha = np.round(np.sort(exp_user_alpha, axis = 2), 6)
 
         self.expected_users_alpha = exp_user_alpha
 

@@ -17,11 +17,6 @@ def log(msg):
 # ---Project Utility Functions---
 # -------------------------------
 
-def renormalize(arr: np.array):
-    arr_sum = np.sum(arr)
-    return arr.copy() if arr_sum == 0 else arr.copy() / np.sum(arr)
-
-
 def compute_cumulative_regret_mean_std(opts, rewards_per_experiment):
     cumsum = np.cumsum((opts-rewards_per_experiment), axis = 1)
     return np.mean(cumsum, axis=0), np.std(cumsum, axis=0)

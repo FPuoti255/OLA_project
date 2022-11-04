@@ -170,9 +170,11 @@ def simulate_step4():
                 budgets
             )
 
-            optimal_allocation, optimal_allocation_idxs, optimal_gain[e][t] = ecomm.clairvoyant_optimization_problem(expected_reward)
-            log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
+            optimal_allocation, optimal_allocation_idxs, _ = ecomm.clairvoyant_optimization_problem(expected_reward)
             
+            _, optimal_gain[e][t] = env.round_step3(optimal_allocation, optimal_allocation_idxs)
+            log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
+
             arm, arm_idxs = ecomm4_gpts.pull_arm()
             # the environment returns the users_alpha and the reward for that allocation
             alpha, gpts_gains_per_experiment[e][t], sold_items = env.round_step4(pulled_arm=arm, pulled_arm_idxs=arm_idxs, num_sold_items = num_sold_items)
