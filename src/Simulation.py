@@ -119,10 +119,10 @@ def simulate_step3():
             ecomm3_gpts.update(arm_idxs, alpha)
             log(f'gpts pulled_arm: {arm}, reward : {gpts_gains_per_experiment[e][t]}')
 
-            arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
-            alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
-            ecomm3_gpucb.update(arm_idxs, alpha)
-            log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
+            # arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
+            # alpha, gpucb_gains_per_experiment[e][t] = env.round_step3(pulled_arm=arm, pulled_arm_idxs=arm_idxs)
+            # ecomm3_gpucb.update(arm_idxs, alpha)
+            # log(f'ucb pulled_arm: {arm}, reward: {gpucb_gains_per_experiment[e][t]}')
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 

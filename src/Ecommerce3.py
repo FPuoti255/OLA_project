@@ -1,7 +1,7 @@
 from itertools import combinations_with_replacement, permutations
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, ConstantKernel
+from sklearn.gaussian_process.kernels import RBF, Matern, DotProduct
 
 from Ecommerce import *
 from constants import *
@@ -27,11 +27,24 @@ class Ecommerce3(Ecommerce):
 
     def gp_init(self):
 
+        alpha = self.gp_config['gp_alpha']
+
         rbf_length_scale = self.gp_config['length_scale']
         rbf_length_scale_lb = self.gp_config['length_scale_lb']
         rbf_length_scale_ub = self.gp_config['length_scale_ub']
 
-        kernel = RBF(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub))
+        #kernel = RBF(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub))
+        
+        
+        # The parameter nu controlling the smoothness of the learned function. 
+        # The smaller nu, the less smooth the approximated function is. 
+        # For nu=inf, the kernel becomes equivalent to the RBF kernel and for nu=0.5 to the absolute exponential kernel.
+        # Note that values of nu not in [0.5, 1.5, 2.5, inf] 
+        # incur a considerably higher computational cost (appr. 10 times higher).        
+        kernel = Matern(length_scale=rbf_length_scale,
+                        length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub),
+                        nu = 0.5)
+
 
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_mean']
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_std']
@@ -39,7 +52,7 @@ class Ecommerce3(Ecommerce):
         X = np.atleast_2d(self.budgets).T        
         gaussian_regressors = [
             GaussianProcessRegressor(
-                alpha=self.gp_config['gp_alpha'],
+                alpha=alpha,
                 kernel=kernel,
                 normalize_y=True,
                 n_restarts_optimizer=9
@@ -126,8 +139,8 @@ class Ecommerce3_GPTS(Ecommerce3):
         samples = np.empty(shape = (NUM_OF_PRODUCTS, self.n_arms))
         X = np.atleast_2d(self.budgets).T
         for prod in range(NUM_OF_PRODUCTS):
-            samples[prod] = self.gaussian_regressors[prod].sample_y(X).T              
-        return np.clip(samples, 0.0, 1.0)
+            samples[prod] = self.gaussian_regressors[prod].sample_y(X).T             
+        return samples
 
 
 class Ecommerce3_GPUCB(Ecommerce3):

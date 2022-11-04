@@ -87,7 +87,7 @@ class Environment:
 
                 for user_class in range(NUM_OF_USERS_CLASSES):
 
-                    dirichlet_params = np.array([conc_params[user_class], 1 - conc_params[user_class]])
+                    dirichlet_params = np.array([conc_params[user_class], 1 - conc_params[user_class]]) * 100
 
                     alpha = self.rng.dirichlet(
                             dirichlet_params
