@@ -1,7 +1,7 @@
 from itertools import combinations_with_replacement, permutations
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel
+from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel, Matern
 
 from Ecommerce import *
 from constants import *
@@ -133,7 +133,7 @@ class Ecommerce3_GPTS(Ecommerce3):
         X = np.atleast_2d(self.budgets).T
         for prod in range(NUM_OF_PRODUCTS):
             samples[prod] = self.gaussian_regressors[prod].sample_y(X).T              
-        return np.clip(samples, 0, 1)
+        return samples
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
@@ -141,7 +141,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.perms = None
-        self.exploration_probability = 0.1
+        self.exploration_probability = 0.02
 
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
@@ -157,9 +157,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
    
     def update_model(self):
         super().update_model()
-        #self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
-        self.confidence_bounds = np.sqrt(np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
-        self.exploration_probability = 1.0 / np.sqrt(self.t + 5)
+        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
 
 
 
