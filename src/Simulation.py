@@ -34,7 +34,7 @@ def observe_learned_functions():
     ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
     ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_hyperparameters)
 
-    _, num_sold_items = estimate_nodes_activation_probabilities(
+    num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
             env.users_reservation_prices,
             env.users_poisson_parameters,
@@ -92,7 +92,7 @@ def simulate_step3():
         ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_config)
         ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_config)
 
-        _, num_sold_items = estimate_nodes_activation_probabilities(
+        num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
             env.users_reservation_prices,
             env.users_poisson_parameters,
@@ -153,7 +153,7 @@ def simulate_step4():
         ecomm4_gpts = Ecommerce4('TS',B_cap, budgets, product_prices, gp_config)
         ecomm4_gpucb = Ecommerce4('UCB', B_cap, budgets, product_prices, gp_config)
         
-        _, num_sold_items = estimate_nodes_activation_probabilities(
+        num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
             env.users_reservation_prices,
             env.users_poisson_parameters,
@@ -297,7 +297,7 @@ def simulate_step6():
             if new_phase != current_phase :
                 current_phase = new_phase
 
-                _, num_sold_items = estimate_nodes_activation_probabilities(
+                num_sold_items = estimate_nodes_activation_probabilities(
                     env.get_network().get_adjacency_matrix(),
                     env.get_users_reservation_prices(),
                     env.get_users_poisson_parameters(),
@@ -361,7 +361,7 @@ def simulate_step7():
         ecomm7_gpucb = Ecommerce7(B_cap, budgets, product_prices, 'UCB',  gp_config, features, split_time)
 
 
-        _, num_sold_items = estimate_nodes_activation_probabilities(
+        num_sold_items = estimate_nodes_activation_probabilities(
             env.network.get_adjacency_matrix(),
             env.users_reservation_prices,
             env.users_poisson_parameters,

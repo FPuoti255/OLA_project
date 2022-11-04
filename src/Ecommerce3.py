@@ -36,7 +36,7 @@ class Ecommerce3(Ecommerce):
         noise_level = self.gp_config['noise_level']
 
         kernel = ConstantKernel(constant_value=constant_value) \
-            *  RBF(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub)) \
+            *  Matern(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub), nu = 0.5) \
             + WhiteKernel(noise_level = noise_level)
 
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_mean']
