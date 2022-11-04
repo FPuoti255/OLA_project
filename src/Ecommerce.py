@@ -61,7 +61,7 @@ class Ecommerce(object):
         )
         optimal_allocation = self.budgets[budgets_indexes]
 
-        return optimal_allocation, np.array(budgets_indexes), optimal_reward
+        return optimal_allocation, budgets_indexes, optimal_reward
     
 
     def clairvoyant_disaggregated_optimization_problem(self, expected_reward):

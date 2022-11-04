@@ -1,3 +1,4 @@
+from itertools import combinations_with_replacement, permutations
 import numpy as np
 
 from Ecommerce import *

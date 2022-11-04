@@ -133,7 +133,7 @@ class Ecommerce3_GPTS(Ecommerce3):
         X = np.atleast_2d(self.budgets).T
         for prod in range(NUM_OF_PRODUCTS):
             samples[prod] = self.gaussian_regressors[prod].sample_y(X).T              
-        return samples
+        return np.clip(samples, 0, 1)
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
@@ -141,7 +141,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.perms = None
-        self.exploration_probability = 0.02
+        self.exploration_probability = 0.1
 
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
@@ -157,7 +157,9 @@ class Ecommerce3_GPUCB(Ecommerce3):
    
     def update_model(self):
         super().update_model()
-        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
+        #self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
+        self.confidence_bounds = np.sqrt(np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
+        self.exploration_probability = 1.0 / np.sqrt(self.t + 5)
 
 
 
@@ -186,10 +188,9 @@ class Ecommerce3_GPUCB(Ecommerce3):
                 [perms.append(perm) for perm in permutations(comb)]
             self.perms = np.array(list(set(perms))) #set() to remove duplicates
 
-        np.random.shuffle(self.perms)
-        choice = self.perms[0]
-
+        choice = self.perms[np.random.choice(self.perms.shape[0], size=1, replace=False), :].reshape((NUM_OF_PRODUCTS,))
         choice_idxs = np.zeros_like(choice)
+
         for prod in range(NUM_OF_PRODUCTS):
             choice_idxs[prod] = np.where(self.budgets==choice[prod])[0][0]
         
