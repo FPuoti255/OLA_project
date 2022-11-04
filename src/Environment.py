@@ -91,17 +91,17 @@ class Environment:
 
                     alpha = self.rng.dirichlet(
                             dirichlet_params
-                        )
+                        ) 
 
                     exp_user_alpha [user_class, prod_id, j] = np.clip(
                         alpha[0],
-                        None,
+                        0.0,
                         self.alpha_bars[ user_class, prod_id + 1] 
 
                     )
 
         
-        exp_user_alpha = np.round(np.sort(exp_user_alpha, axis = 2), 6)
+        exp_user_alpha = np.sort(exp_user_alpha, axis = 2)
 
         self.expected_users_alpha = exp_user_alpha
 

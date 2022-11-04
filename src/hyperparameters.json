@@ -1,7 +1,7 @@
 {
     "simulation" : {
         "n_experiments" : 2,
-        "T" : 70,
+        "T" : 100,
 
         "n_experiments_step6" : 2,
         "T_step6" : 210
@@ -14,8 +14,8 @@
         "constant_value": 4.01126146e+01,
     
         "length_scale": 3.0, 
-        "length_scale_lb":  0.01,
-        "length_scale_ub": 100,
+        "length_scale_lb":  0.001,
+        "length_scale_ub": 1000,
 
         "noise_level" : 0.0005,
     

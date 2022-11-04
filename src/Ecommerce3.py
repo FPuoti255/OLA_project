@@ -127,7 +127,7 @@ class Ecommerce3_GPTS(Ecommerce3):
         X = np.atleast_2d(self.budgets).T
         for prod in range(NUM_OF_PRODUCTS):
             samples[prod] = self.gaussian_regressors[prod].sample_y(X).T              
-        return samples
+        return np.clip(samples, 0.0, 1.0)
 
 
 class Ecommerce3_GPUCB(Ecommerce3):
@@ -151,7 +151,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
    
     def update_model(self):
         super().update_model()
-        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)   * self.sigmas)
+        self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas 
 
 
 

@@ -171,8 +171,6 @@ def simulate_step4():
             )
 
             optimal_allocation, optimal_allocation_idxs, _ = ecomm.clairvoyant_optimization_problem(expected_reward)
-            
-            _, optimal_gain[e][t] = env.round_step3(optimal_allocation, optimal_allocation_idxs)
             log(f'optimal_allocation: \t{optimal_allocation}, \treward : \t{optimal_gain[e][t]}')
 
             arm, arm_idxs = ecomm4_gpts.pull_arm()
