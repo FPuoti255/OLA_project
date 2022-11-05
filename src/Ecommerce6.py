@@ -129,8 +129,9 @@ class Ecommerce6_CDUCB(Ecommerce3_GPUCB):
     def update(self, pulled_arm_idxs, reward, sold_items):
 
         if self.change_detected(pulled_arm_idxs, reward):
-            print(f'Change detected at time t = {self.time_of_detections[-1] + self.t}')
-            self.time_of_detections.append(self.t)
+            detection_time = self.time_of_detections[-1] + self.t
+            print(f'Change detected at time t = {detection_time}')
+            self.time_of_detections.append(detection_time)
             self.reset()
 
         super().update(pulled_arm_idxs, reward)

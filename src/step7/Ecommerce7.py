@@ -109,21 +109,23 @@ class Ecommerce7(Ecommerce):
         pulled_arms_array = np.array(self.pulled_arms)
         collected_rewards_array = np.array(self.collected_rewards)
         collected_sold_items_array = np.array(self.collected_sold_items)
-        
+
         for learner in context_learners:
+            print(f'\nEvaluating for learner {learner}')
             if len(learner.context_features) == 1:
-                print('its is not possible to split further. The number of feature for this context is 1')
+                print(f'its is not possible to split further -> just one feature: {learner.context_features}')
                 continue
 
             mu_0 = learner.get_best_bound_arm()
+            print(f'm_0 = {mu_0}')
 
             splits = generate_splits(learner.context_features)
 
 
             for left, right in splits:
                 print('trying: ', left, right)
-                p_left = len(left) / len(learner.context_features)
-                p_right = len(right) / len(learner.context_features)
+                p_left = np.round(len(left) / len(learner.context_features), 2)
+                p_right = np.round(len(right) / len(learner.context_features), 2)
 
                 c1 = dict.fromkeys(left)
                 c2 = dict.fromkeys(right)
@@ -146,7 +148,9 @@ class Ecommerce7(Ecommerce):
                 mu_1 = alg1_node.get_best_bound_arm()
                 mu_2 = alg2_node.get_best_bound_arm()
 
-                if mu_1 * p_left + mu_2 * p_right >= mu_0 :
+                split_exp_reward = mu_1 * p_left + mu_2 * p_right
+                print(f'{mu_1} * {p_left} + {mu_2} * {p_right} = {split_exp_reward}')
+                if split_exp_reward >= mu_0 :
                     learner.left_child = alg1_node
                     learner.right_child = alg2_node
                     print('Better split_found', left, right)

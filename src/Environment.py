@@ -49,32 +49,6 @@ class Environment:
             plt.plot(budgets, [self.mapping_function(i, bu) for bu in budgets])
 
 
-    # def compute_users_alpha(self, budgets: np.ndarray):
-    #     '''
-    #     :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
-    #     :return: the expected alpha for each couple (prod_id, budget_allocated)
-    #     '''
-    #     bdgts = budgets.copy() / budgets[-1]
-    #     exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
-
-    #     for user_class in range(NUM_OF_USERS_CLASSES):
-    #         for prod_id in range(NUM_OF_PRODUCTS):
-    #             for j in range(1, bdgts.shape[0]):
-
-    #                 conc_params = self.mapping_function(prod_id, bdgts[j])
-
-    #                 exp_user_alpha[user_class, prod_id, j] = min(
-    #                     self.rng.dirichlet(
-    #                         np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 100)
-    #                     )[0],
-    #                     self.alpha_bars[user_class, prod_id + 1]
-    #                 )
-
-    #             exp_user_alpha[user_class, prod_id] = np.sort(exp_user_alpha[user_class, prod_id])
-
-    #     self.expected_users_alpha = exp_user_alpha
-
-
     def compute_users_alpha(self, budgets: np.ndarray):
         '''
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
