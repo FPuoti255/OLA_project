@@ -24,6 +24,8 @@ def print_final_result(xk, convergence):
     print("RMSE: %.6f" % (convergence))
     print('------------------------------------------')
 
+n_rounds = 100
+rmse_starting_time_computation = 20
 
 def generate_data():
     '''
@@ -37,13 +39,13 @@ def generate_data():
 
 def get_gpts_bounds():
 
-    alpha_bounds = (1e-6, 1e1)
-    c_constant_value = (1e-2, 1e2)
-    rbf_length_scale = (1e-2, 1e2)
+    alpha_bounds = (1e-7, 1e-3)
+
+    rbf_length_scale = (1e1, 1e2)
     rbf_length_scale_lower_bound = (1e-3, 1e3)
     rbf_length_scale_upper_bound = (1e-3, 1e3)
 
-    bounds = [alpha_bounds] + [c_constant_value] + [rbf_length_scale] + \
+    bounds = [alpha_bounds] + [rbf_length_scale] + \
         [rbf_length_scale_lower_bound] + [rbf_length_scale_upper_bound]
 
     return bounds
@@ -53,22 +55,19 @@ def gpts_step3_fitness_function(hyperparams, graph_weights, alpha_bars,
                                 product_prices, observations_probabilities,
                                 users_reservation_prices, users_poisson_parameters):
 
-    n_rounds = 70
     y_actual, y_predicted = [], []
 
-    alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
+    alpha_kernel, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
 
     gp_config = {
         "gp_alpha": alpha_kernel,
-
-        "constant_value": c_const,
 
         "length_scale": rbf_ls,
         "length_scale_lb": min(rbf_ls_lb, rbf_ls_ub),
         "length_scale_ub": max(rbf_ls_lb, rbf_ls_ub),
 
         "prior_mean": 0.0,
-        "prior_std": 10.0
+        "prior_std": 1.0
     }
 
     env = Environment(users_reservation_prices, graph_weights,
@@ -105,7 +104,7 @@ def gpts_step3_fitness_function(hyperparams, graph_weights, alpha_bars,
         # I want to compute the RMSE only just a number of samples sufficient
         # for the GP to reach the steady state. If we start to compute the RMSE
         # from the beginning, we will have parameters prone to overfitting
-        if t >= n_rounds / 6:
+        if t >= rmse_starting_time_computation:
             y_actual.append(optimal_gain)
             y_predicted.append(gpts_gain)
 
@@ -115,7 +114,6 @@ def gpts_step3_fitness_function(hyperparams, graph_weights, alpha_bars,
 def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
                                 product_prices, observations_probabilities,
                                 users_reservation_prices, users_poisson_parameters):
-    n_rounds = 70
     y_actual, y_predicted = [], []
 
     alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
@@ -123,14 +121,12 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
     gp_config = {
         "gp_alpha": alpha_kernel,
 
-        "constant_value": c_const,
-
         "length_scale": rbf_ls,
         "length_scale_lb": min(rbf_ls_lb, rbf_ls_ub),
         "length_scale_ub": max(rbf_ls_lb, rbf_ls_ub),
 
         "prior_mean": 0.0,
-        "prior_std": 10.0
+        "prior_std": 1.0
     }
 
     env = Environment(users_reservation_prices, graph_weights,
@@ -165,7 +161,7 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
         # I want to compute the RMSE only just a number of samples sufficient
         # for the GP to reach the steady state. If we start to compute the RMSE
         # from the beginning, we will have parameters prone to overfitting
-        if t >= n_rounds / 6:
+        if t >= rmse_starting_time_computation:
             y_actual.append(optimal_gain)
             y_predicted.append(gpts_gain)
 
@@ -174,15 +170,12 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
 
 def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_prices, users_reservation_prices, observations_probabilities, users_poisson_parameters):
 
-    n_rounds = 70
     y_actual, y_predicted = [], []
 
     alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
 
     gp_config = {
         "gp_alpha": alpha_kernel,
-
-        "constant_value": c_const,
 
         "length_scale": rbf_ls,
         "length_scale_lb": min(rbf_ls_lb, rbf_ls_ub),
@@ -224,7 +217,7 @@ def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_
         # I want to compute the RMSE only just a number of samples sufficient
         # for the GP to reach the steady state. If we start to compute the RMSE
         # from the beginning, we will have parameters prone to overfitting
-        if t >= n_rounds / 6:
+        if t >= rmse_starting_time_computation:
             y_actual.append(optimal_gain)
             y_predicted.append(gpts_gain)
 
@@ -240,7 +233,7 @@ def optimize_GP_step3():
                        users_reservation_prices, users_poisson_parameters)
 
     solver = differential_evolution(gpts_step3_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating='deferred',
-                                    workers=-1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
+                                    workers=-1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
@@ -256,7 +249,7 @@ def optimize_GP_step4():
                        users_reservation_prices, users_poisson_parameters)
 
     solver = differential_evolution(gpts_step4_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating='deferred',
-                                    workers=-1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
+                                    workers=-1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
@@ -272,7 +265,7 @@ def optimize_GP_step5():
                        observations_probabilities, users_poisson_parameters)
 
     solver = differential_evolution(gpts_step5_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating='deferred',
-                                    workers=-1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
+                                    workers=-1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
@@ -280,4 +273,4 @@ def optimize_GP_step5():
 
 
 if __name__ == '__main__':
-    optimize_GP_step4()
+    optimize_GP_step5()
