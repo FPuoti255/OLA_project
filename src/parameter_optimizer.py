@@ -67,8 +67,6 @@ def gpts_step3_fitness_function(hyperparams, graph_weights, alpha_bars,
         "length_scale_lb": min(rbf_ls_lb, rbf_ls_ub),
         "length_scale_ub": max(rbf_ls_lb, rbf_ls_ub),
 
-        "noise_level": 0.005,
-
         "prior_mean": 0.0,
         "prior_std": 10.0
     }
@@ -131,8 +129,6 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
         "length_scale_lb": min(rbf_ls_lb, rbf_ls_ub),
         "length_scale_ub": max(rbf_ls_lb, rbf_ls_ub),
 
-        "noise_level": 1.0,
-
         "prior_mean": 0.0,
         "prior_std": 10.0
     }
@@ -191,8 +187,6 @@ def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_
         "length_scale": rbf_ls,
         "length_scale_lb": min(rbf_ls_lb, rbf_ls_ub),
         "length_scale_ub": max(rbf_ls_lb, rbf_ls_ub),
-
-        "noise_level": 1.0,
 
         "prior_mean": 0.0,
         "prior_std": 10.0
