@@ -116,7 +116,7 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
                                 users_reservation_prices, users_poisson_parameters):
     y_actual, y_predicted = [], []
 
-    alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
+    alpha_kernel, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
 
     gp_config = {
         "gp_alpha": alpha_kernel,
@@ -172,7 +172,7 @@ def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_
 
     y_actual, y_predicted = [], []
 
-    alpha_kernel, c_const, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
+    alpha_kernel, rbf_ls, rbf_ls_lb, rbf_ls_ub = hyperparams
 
     gp_config = {
         "gp_alpha": alpha_kernel,
