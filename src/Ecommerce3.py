@@ -1,7 +1,7 @@
 from itertools import combinations_with_replacement, permutations
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import ConstantKernel, RBF, WhiteKernel, Matern
+from sklearn.gaussian_process.kernels import ConstantKernel, Matern
 
 from Ecommerce import *
 from constants import *
@@ -33,11 +33,9 @@ class Ecommerce3(Ecommerce):
         rbf_length_scale_lb = self.gp_config['length_scale_lb']
         rbf_length_scale_ub = self.gp_config['length_scale_ub']
 
-        noise_level = self.gp_config['noise_level']
 
         kernel = ConstantKernel(constant_value=constant_value) \
-            *  Matern(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub), nu = 0.5) \
-            + WhiteKernel(noise_level = noise_level)
+            *  Matern(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub), nu = 0.5)
 
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_mean']
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_std']
@@ -54,6 +52,8 @@ class Ecommerce3(Ecommerce):
         ]
 
         return gaussian_regressors
+
+
 
     def get_new_instance(self):
         # This method will be used in the step7 to generate a new instance of the same algorithm
@@ -148,7 +148,6 @@ class Ecommerce3_GPUCB(Ecommerce3):
         self.confidence_bounds = np.full(shape=(NUM_OF_PRODUCTS, self.n_arms), fill_value=np.inf)
 
        
-
     def update_observations(self, pulled_arm_idxs, reward):
         super().update_observations(pulled_arm_idxs, reward)
         for i in range(NUM_OF_PRODUCTS):
@@ -158,7 +157,6 @@ class Ecommerce3_GPUCB(Ecommerce3):
     def update_model(self):
         super().update_model()
         self.confidence_bounds = np.sqrt(2 * np.log(self.t) / (self.N_a + 1e-7)) * self.sigmas
-
 
 
     def get_samples(self):

@@ -78,7 +78,7 @@ def gpts_step3_fitness_function(hyperparams, graph_weights, alpha_bars,
     ecomm = Ecommerce(B_cap, budgets, product_prices)
     ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_config)
 
-    _, num_sold_items = estimate_nodes_activation_probabilities(
+    num_sold_items = estimate_nodes_activation_probabilities(
         env.network.get_adjacency_matrix(),
         env.users_reservation_prices,
         env.users_poisson_parameters,
@@ -142,7 +142,7 @@ def gpts_step4_fitness_function(hyperparams, graph_weights, alpha_bars,
     ecomm = Ecommerce(B_cap, budgets, product_prices)
     ecomm4_gpts = Ecommerce4('TS', B_cap, budgets, product_prices, gp_config)
 
-    _, num_sold_items = estimate_nodes_activation_probabilities(
+    num_sold_items = estimate_nodes_activation_probabilities(
         env.network.get_adjacency_matrix(),
         env.users_reservation_prices,
         env.users_poisson_parameters,
@@ -203,7 +203,7 @@ def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_
     ecomm = Ecommerce(B_cap, budgets, product_prices)
     ecomm5_gpts = Ecommerce5_GPTS(B_cap, budgets, product_prices, gp_config)
 
-    _, num_sold_items = estimate_nodes_activation_probabilities(
+    num_sold_items = estimate_nodes_activation_probabilities(
         env.network.get_adjacency_matrix(),
         env.users_reservation_prices,
         env.users_poisson_parameters,
@@ -219,7 +219,7 @@ def gpts_step5_fitness_function(hyperparams, graph_weights, alpha_bars, product_
             budgets
         )
 
-        _, optimal_gain = ecomm.clairvoyant_optimization_problem(
+        _, _, optimal_gain = ecomm.clairvoyant_optimization_problem(
             expected_reward_table)
 
         arm, arm_idxs = ecomm5_gpts.pull_arm()
@@ -278,7 +278,7 @@ def optimize_GP_step5():
                        observations_probabilities, users_poisson_parameters)
 
     solver = differential_evolution(gpts_step5_fitness_function, get_gpts_bounds(), args=extra_variables, strategy='best1bin', updating='deferred',
-                                    workers=-1, popsize=15, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
+                                    workers=-1, popsize=10, mutation=0.5, recombination=0.7, tol=0.1, callback=callback)
 
     best_hyperparams = solver.x
     best_rmse = solver.fun
