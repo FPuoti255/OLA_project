@@ -35,7 +35,11 @@ class Ecommerce3(Ecommerce):
         rbf_length_scale_ub = self.gp_config['length_scale_ub']
 
 
-        kernel = Matern(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub), nu = 0.5)
+        kernel = Matern(
+            length_scale=rbf_length_scale,
+            length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub),
+            nu = np.inf
+        )
 
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_mean']
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_std']
@@ -47,7 +51,7 @@ class Ecommerce3(Ecommerce):
                 kernel=kernel,
                 normalize_y=True,
                 n_restarts_optimizer=9
-            ).fit(X, np.random.normal(self.means[i], self.sigmas[i]))
+            )#.fit(X, np.random.normal(self.means[i], self.sigmas[i]))
             for i in range(NUM_OF_PRODUCTS)
         ]
 
@@ -137,7 +141,14 @@ class Ecommerce3_GPTS(Ecommerce3):
 
     def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict):
         super().__init__(B_cap, budgets, product_prices, gp_config) 
-        
+
+    def update_model(self):
+        super().update_model()
+
+        if self.t < 50:
+            self.exploration_probability = 1.0 / np.sqrt(self.t+10)
+        else:
+            self.exploration_probability = 0.01 
 
     def get_samples(self):
         samples = np.empty(shape = (NUM_OF_PRODUCTS, self.n_arms))
