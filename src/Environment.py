@@ -49,6 +49,32 @@ class Environment:
             plt.plot(budgets, [self.mapping_function(i, bu) for bu in budgets])
 
 
+    # def compute_users_alpha(self, budgets: np.ndarray):
+    #     '''
+    #     :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
+    #     :return: the expected alpha for each couple (prod_id, budget_allocated)
+    #     '''
+    #     bdgts = budgets.copy() / budgets[-1]
+    #     exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
+
+    #     for user_class in range(NUM_OF_USERS_CLASSES):
+    #         for prod_id in range(NUM_OF_PRODUCTS):
+    #             for j in range(1, bdgts.shape[0]):
+
+    #                 conc_params = self.mapping_function(prod_id, bdgts[j])
+
+    #                 exp_user_alpha[user_class, prod_id, j] = min(
+    #                     self.rng.dirichlet(
+    #                         np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 100)
+    #                     )[0],
+    #                     self.alpha_bars[user_class, prod_id + 1]
+    #                 )
+
+    #             exp_user_alpha[user_class, prod_id] = np.sort(exp_user_alpha[user_class, prod_id])
+
+    #     self.expected_users_alpha = exp_user_alpha
+
+
     def compute_users_alpha(self, budgets: np.ndarray):
         '''
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
@@ -56,21 +82,29 @@ class Environment:
         '''
         bdgts = budgets.copy() / budgets[-1]
         exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
+        mapping = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS + 1, budgets.shape[0]))
 
+        for prod in range(0, NUM_OF_PRODUCTS):
+            for bdg in range(1, bdgts.shape[0]):
+                mapping[:, prod+1, bdg] = self.mapping_function(prod, bdg)
+        
+        # the mapping for the competitor product will be equal to the average of the others
         for user_class in range(NUM_OF_USERS_CLASSES):
-            for prod_id in range(NUM_OF_PRODUCTS):
-                for j in range(1, bdgts.shape[0]):
+            mapping[user_class, 0, :] = np.mean(mapping[user_class, 1:, :], axis = 0)
 
-                    conc_params = self.mapping_function(prod_id, bdgts[j])
+            conc_params = mapping[user_class, :, 1:].flatten() * 100
 
-                    exp_user_alpha[user_class, prod_id, j] = min(
-                        self.rng.dirichlet(
-                            np.multiply([conc_params[user_class], 1 - conc_params[user_class]], 100)
-                        )[0],
-                        self.alpha_bars[user_class, prod_id + 1]
-                    )
+            user_class_alpha = self.rng.dirichlet(conc_params)[bdgts.shape[0] - 1 :].reshape(NUM_OF_PRODUCTS, bdgts.shape[0] - 1)
 
-                exp_user_alpha[user_class, prod_id] = np.sort(exp_user_alpha[user_class, prod_id])
+            exp_user_alpha[user_class, :, 1:] = user_class_alpha *10
+
+            for prod in range(NUM_OF_PRODUCTS):
+                exp_user_alpha[user_class, prod] = np.minimum(exp_user_alpha[user_class, prod], 
+                                                                self.alpha_bars[user_class, prod + 1]
+                                                            )
+
+                exp_user_alpha[user_class, prod] = np.sort(exp_user_alpha[user_class, prod])
+
 
         self.expected_users_alpha = exp_user_alpha
 

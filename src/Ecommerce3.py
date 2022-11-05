@@ -27,15 +27,14 @@ class Ecommerce3(Ecommerce):
 
     def gp_init(self):
 
-        constant_value = self.gp_config['constant_value']
+        alpha = self.gp_config['gp_alpha']
 
         rbf_length_scale = self.gp_config['length_scale']
         rbf_length_scale_lb = self.gp_config['length_scale_lb']
         rbf_length_scale_ub = self.gp_config['length_scale_ub']
 
 
-        kernel = ConstantKernel(constant_value=constant_value) \
-            *  Matern(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub), nu = 0.5)
+        kernel = Matern(length_scale=rbf_length_scale,length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub), nu = 0.5)
 
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_mean']
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_std']
@@ -43,7 +42,7 @@ class Ecommerce3(Ecommerce):
         X = np.atleast_2d(self.budgets).T        
         gaussian_regressors = [
             GaussianProcessRegressor(
-                alpha=self.gp_config['gp_alpha'],
+                alpha=alpha,
                 kernel=kernel,
                 normalize_y=True,
                 n_restarts_optimizer=9
@@ -141,7 +140,7 @@ class Ecommerce3_GPUCB(Ecommerce3):
         super().__init__(B_cap, budgets, product_prices, gp_config)
 
         self.perms = None
-        self.exploration_probability = 0.02
+        self.exploration_probability = 0
 
         # Number of times the arm has been pulled
         self.N_a = np.zeros(shape=(NUM_OF_PRODUCTS, self.n_arms))
