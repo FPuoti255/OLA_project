@@ -23,7 +23,7 @@ class Network:
         fig = plt.figure(figsize=(10, 10), facecolor="white")
 
         pos = nx.spring_layout(G, scale=15, k=10 / math.sqrt(G.order()), seed=7)
-        nx.draw_networkx_nodes(G, pos, node_size=600)
+        nx.draw_networkx_nodes(G, pos, node_size=1000)
         nx.draw_networkx_edges(
             G, pos, width=1, arrowsize=25, connectionstyle="arc3, rad = 0.1"
         )
