@@ -24,35 +24,29 @@ class Ecommerce3(Ecommerce):
         self.collected_rewards = [[] for _ in range(NUM_OF_PRODUCTS)]
 
         self.gp_config =  gp_config
-        self.gaussian_regressors = self.gp_init()
-
-    def gp_init(self):
-
-        alpha = self.gp_config['gp_alpha']
-
-        rbf_length_scale = self.gp_config['length_scale']
-        rbf_length_scale_lb = self.gp_config['length_scale_lb']
-        rbf_length_scale_ub = self.gp_config['length_scale_ub']
-
-
-        kernel = Matern(
-            length_scale=rbf_length_scale,
-            length_scale_bounds=(rbf_length_scale_lb,rbf_length_scale_ub),
-            nu = np.inf
-        )
 
         self.means = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_mean']
         self.sigmas = np.ones(shape=(NUM_OF_PRODUCTS, self.n_arms)) * self.gp_config['prior_std']
 
-        X = np.atleast_2d(self.budgets).T        
+
+        self.gaussian_regressors = self.gp_init()
+
+    def gp_init(self):
+
+        kernel = Matern(
+            length_scale=self.gp_config['length_scale'],
+            length_scale_bounds=(self.gp_config['length_scale_lb'],self.gp_config['length_scale_ub']),
+            nu = np.inf
+        )
+     
         gaussian_regressors = [
             GaussianProcessRegressor(
-                alpha=alpha,
+                alpha=self.gp_config['gp_alpha'],
                 kernel=kernel,
                 normalize_y=True,
                 n_restarts_optimizer=9
-            )#.fit(X, np.random.normal(self.means[i], self.sigmas[i]))
-            for i in range(NUM_OF_PRODUCTS)
+            )
+            for _ in range(NUM_OF_PRODUCTS)
         ]
 
         return gaussian_regressors
@@ -145,7 +139,7 @@ class Ecommerce3_GPTS(Ecommerce3):
     def update_model(self):
         super().update_model()
 
-        if self.t < 50:
+        if self.t < 40:
             self.exploration_probability = 1.0 / np.sqrt(self.t+10)
         else:
             self.exploration_probability = 0.01 

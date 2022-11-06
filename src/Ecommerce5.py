@@ -7,7 +7,6 @@ from Utils import *
 class Ecommerce5_GPTS(Ecommerce3_GPTS):
     def __init__(self, B_cap: float, budgets, product_prices, gp_config : dict):
         super().__init__(B_cap, budgets, product_prices, gp_config)
-        self.exploration_probability = 0.3
 
     def get_samples(self):
         samples = np.empty(shape = (NUM_OF_PRODUCTS, self.n_arms))

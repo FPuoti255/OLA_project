@@ -70,7 +70,7 @@ class Environment:
 
             user_class_alpha = self.rng.dirichlet(conc_params)[bdgts.shape[0] - 1 :].reshape(NUM_OF_PRODUCTS, bdgts.shape[0] - 1)
 
-            exp_user_alpha[user_class, :, 1:] = user_class_alpha *10
+            exp_user_alpha[user_class, :, 1:] = user_class_alpha * 5
 
             for prod in range(NUM_OF_PRODUCTS):
                 exp_user_alpha[user_class, prod] = np.minimum(exp_user_alpha[user_class, prod], 

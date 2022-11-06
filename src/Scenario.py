@@ -54,14 +54,32 @@ class Scenario:
 
         return adjacency_matrix
 
+    def sparse_matrix_observations(self, matrix):
+        obs_prob = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
+
+        for product in range(NUM_OF_PRODUCTS):
+            available_products = [
+                i
+                for i in range(0, NUM_OF_PRODUCTS)
+                if i != product and matrix[product][i] != 0.0
+            ]
+
+            if len(available_products) >= 2:
+                idxs = [available_products[0], available_products[1]]
+                obs_prob[product][idxs[0]] = 1
+                obs_prob[product][idxs[1]] = LAMBDA
+            elif len(available_products) == 1:
+                obs_prob[product][available_products[0]] = 1
+            else:
+                continue
+        
+        return obs_prob
 
     def generate_observation_probabilities(self):
         '''
         :return: a random matrix representing the probability of observing from node i, when is primary, to node j, when it's in the secondaries.
                 Probability is 1 for observing the first slot of the secondary product and LAMBDA for the second slot
         '''
-
-        obs_prob = np.zeros(shape=(NUM_OF_PRODUCTS, NUM_OF_PRODUCTS))
 
         if fully_connected:
             obs_prob = np.array ([[0., 1., LAMBDA, 0., 0.],
@@ -71,25 +89,9 @@ class Scenario:
                                 [1., 0, 0., LAMBDA, 0.]])
 
         else : 
-            for product in range(NUM_OF_PRODUCTS):
-                available_products = [
-                    i
-                    for i in range(0, NUM_OF_PRODUCTS)
-                    if i != product and self.graph_weights[product][i] != 0.0
-                ]
-
-                if len(available_products) >= 2:
-                    idxs = [available_products[0], available_products[
-                        1]]  # np.random.choice(a=available_products,size=max(2, len(available_products)),replace=False,)
-                    obs_prob[product][idxs[0]] = 1
-                    obs_prob[product][idxs[1]] = LAMBDA
-                elif len(available_products) == 1:
-                    obs_prob[product][available_products[0]] = 1
-                else:
-                    continue
+            obs_prob = self.sparse_matrix_observations(self.graph_weights)
 
         return obs_prob
-
 
     def get_product_prices(self):       
         return np.array([80,35,20, 150, 350])
@@ -111,16 +113,6 @@ class Scenario:
             - users_poisson_parameters = NUM_OF_USERS_CLASSES x NUM_OF_PRODUCTS matrix giving, 
                             for each users class and for each product, the poisson distribution of the bought items in the montecarlo sampling
         '''
-
-        # users_concentration_parameters = [
-        #     np.random.beta(a=8, b=2, size=NUM_OF_PRODUCTS + 1),
-
-        #     np.random.beta(a=1, b=1, size=NUM_OF_PRODUCTS + 1),
-        #     np.random.beta(a=2, b=8, size=NUM_OF_PRODUCTS + 1)
-        # ]
-        
-        # # N.B. the 𝛼_0 is the one corresponding to the competitor(s) product
-        # alpha_bars = renormalize(users_concentration_parameters)
 
         alpha_bars = np.array(
             [
@@ -203,19 +195,16 @@ class NonStationaryScenario(Scenario):
         return adjacency_matrices
     
     def generate_observation_probabilities(self):
-        # The observation probs are set by the business unit of the Ecommerce
-        # therefore they do not change with the environment
-        return super().generate_observation_probabilities()
+        if fully_connected:
+            return super().generate_observation_probabilities()
+        else:
+            return self.sparse_matrix_observations(self.graph_weights[0])
 
     def get_product_prices(self):
         # they will remain the same for the Ecommerce
         return np.array([80,35,20, 150, 350]) 
 
-    # 1: basketball
-    # 2: t-shirt
-    # 3: gloves
-    # 4: encyclopedia
-    # 5: phone
+
     def get_users_reservation_prices(self):        # n_phases x 3 x 5
         users_reservation_prices = np.zeros(shape=( self.n_phases, NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS))
 
