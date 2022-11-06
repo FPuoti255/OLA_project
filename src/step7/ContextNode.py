@@ -5,20 +5,19 @@ sys.path.append(os.path.join(cwd, "step7"))
 import numpy as np
 
 
-from Ecommerce3 import *
+from Algorithm import *
 from SoldItemsEstimator import *
 from features_utility import *
 
 
 class ContextNode(object):
-    def __init__(self, context_features : dict, algorithm : Ecommerce3) -> None:
+    def __init__(self, context_features : dict, algorithm : GPTS or GPUCB):
         # feature are all the possible configurations, 
         # wheres context_features represent the configuration belonging to the context of the current node
         self.context_features = context_features
         self.context_features_idxs =  get_feature_idxs(self.context_features)       
         
         self.algorithm = algorithm
-        self.sold_items_estimator = SoldItemsEstimator()
 
         self.left_child : ContextNode = None
         self.right_child : ContextNode = None
@@ -48,16 +47,15 @@ class ContextNode(object):
         return self.algorithm.get_samples()
 
     def get_sold_items_estimation(self):
-        return self.sold_items_estimator.get_estimation()
+        return self.algorithm.items_estimator.get_estimation()
 
     def get_best_bound_arm(self):
-        return self.algorithm.get_best_bound_arm(self.sold_items_estimator.get_estimation())
+        return self.algorithm.get_best_bound_arm()
 
     def update(self, pulled_arm_idxs, context_reward, context_sold_items):
         assert(pulled_arm_idxs.shape == (NUM_OF_PRODUCTS,))
         assert(context_reward.shape == (NUM_OF_PRODUCTS,))
         assert(context_sold_items.shape == (NUM_OF_PRODUCTS,NUM_OF_PRODUCTS))
-        self.algorithm.update(pulled_arm_idxs, context_reward)
-        self.sold_items_estimator.update(context_sold_items)    
+        self.algorithm.update(pulled_arm_idxs, context_reward, context_sold_items)    
 
 

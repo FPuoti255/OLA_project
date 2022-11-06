@@ -4,7 +4,10 @@
         "T" : 100,
 
         "n_experiments_step6" : 2,
-        "T_step6" : 210
+        "T_step6" : 210,
+
+        "n_experiments_step7" : 2,
+        "T_step7" : 90
     },
 
     "step3" : {

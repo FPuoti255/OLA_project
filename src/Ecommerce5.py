@@ -16,6 +16,14 @@ class Ecommerce5_GPTS(Ecommerce3_GPTS):
 
         # With respect to the Ecommerce3_GPTS I've removed the np.clip(0, 1)       
         return np.maximum(samples, 0.0)
+
+
+    def update_model(self):
+        super().update_model()
+        if self.t < 50:
+            self.exploration_probability = 1.0 / np.sqrt(self.t+2)
+        else:
+            self.exploration_probability = 0.01 
     
 
     def pull_arm(self):

@@ -51,13 +51,6 @@ class Ecommerce3(Ecommerce):
 
         return gaussian_regressors
 
-    def get_new_instance(self):
-        # This method will be used in the step7 to generate a new instance of the same algorithm
-        if isinstance(self.__class__, type(Ecommerce3_GPTS)):
-            return Ecommerce3_GPTS(self.B_cap, self.budgets, self.product_prices, self.gp_config)
-        else:
-            return Ecommerce3_GPUCB(self.B_cap, self.budgets, self.product_prices, self.gp_config)
-
     def pull_arm(self, num_sold_items):
         if np.random.binomial(n = 1, p = 1 - self.exploration_probability):
             value_per_click = self.compute_value_per_click(num_sold_items)
@@ -117,17 +110,6 @@ class Ecommerce3(Ecommerce):
         
         return choice, choice_idxs.astype(int)
 
-    def get_best_bound_arm(self, num_sold_items):
-        '''
-        This function will be used in the step7 during estimation splitting condition
-        '''
-        value_per_click = self.compute_value_per_click(num_sold_items)
-        estimated_reward = np.multiply(
-            self.get_samples(),
-            np.atleast_2d(value_per_click).T
-        )
-        _, mu = self.dynamic_knapsack_solver(table=estimated_reward)
-        return mu - np.sqrt( - np.log(0.1) / (2 * self.t))
 
         
 

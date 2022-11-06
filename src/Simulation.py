@@ -329,8 +329,8 @@ def simulate_step6():
 
 def simulate_step7():
     hyperparams = json.load(open("hyperparameters.json"))
-    T = hyperparams['simulation']['T']
-    n_experiments = hyperparams['simulation']['n_experiments']
+    T = hyperparams['simulation']['T_step7']
+    n_experiments = hyperparams['simulation']['n_experiments_step7']
 
     gpts_gains_per_experiment = np.zeros(shape=(n_experiments, T))
     gpucb_gains_per_experiment = np.zeros(shape=(n_experiments, T))
@@ -383,10 +383,10 @@ def simulate_step7():
             ecomm7_gpts.update(arm_idxs, alpha, real_sold_items)
             gpts_gains_per_experiment[e][t] += reward
 
-            arm, arm_idxs = ecomm7_gpucb.pull_arm()
-            alpha, reward, real_sold_items = env.round_step7(arm, arm_idxs, num_sold_items)
-            ecomm7_gpucb.update(arm_idxs, alpha, real_sold_items)
-            gpucb_gains_per_experiment[e][t] += reward
+            # arm, arm_idxs = ecomm7_gpucb.pull_arm()
+            # alpha, reward, real_sold_items = env.round_step7(arm, arm_idxs, num_sold_items)
+            # ecomm7_gpucb.update(arm_idxs, alpha, real_sold_items)
+            # gpucb_gains_per_experiment[e][t] += reward
 
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 

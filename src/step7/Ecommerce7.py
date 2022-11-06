@@ -5,8 +5,7 @@ sys.path.append(os.path.join(cwd, "step7"))
 
 import numpy as np
 
-from Ecommerce3 import *
-from SoldItemsEstimator import *
+from Algorithm import *
 from ContextNode import *
 from features_utility import *
 
@@ -29,12 +28,12 @@ class Ecommerce7(Ecommerce):
         if algorithm_type == 'TS':
             self.context_tree = ContextNode(
                 self.features,
-                Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_config)
+                GPTS(B_cap, budgets, product_prices, gp_config)
             )
         elif algorithm_type == 'UCB':
             self.context_tree = ContextNode(
                 self.features,
-                Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_config)
+                GPUCB(B_cap, budgets, product_prices, gp_config)
             )
         else:
             raise ValueError('Please choose one between TS or UCB')
