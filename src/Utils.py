@@ -83,6 +83,7 @@ def plot_regrets(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts,
     plt.tight_layout()
     plt.show()
 
+
 def plot_regrets_step6(alg1_rewards_per_experiment, alg2_rewards_per_experiment, opts, legend, n_phases, phase_len):
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
     ticks = np.arange(start=0, stop=opts.shape[1], step=1)
@@ -144,33 +145,6 @@ def plot_regrets_step6(alg1_rewards_per_experiment, alg2_rewards_per_experiment,
     ax[1][1].set_xlabel('round')
     ax[1][1].legend()
     
-    plt.tight_layout()
-    plt.show()
-
-def plot_learned_functions(gpts, gpucb, env):
-    fig, ax = plt.subplots(nrows=NUM_OF_PRODUCTS, ncols=2, figsize=(20, 20))
-    env.compute_users_alpha(budgets)
-    users_alpha = np.sum(env.expected_users_alpha, axis = 0)
-    assert(users_alpha.shape == (NUM_OF_PRODUCTS, budgets.shape[0]))
-
-    for prod_id in range(NUM_OF_PRODUCTS):
-
-        ax[prod_id][0].plot(budgets, gpts.means[prod_id], label = 'GPTS mean estimation', color = 'r')
-        ax[prod_id][0].fill_between(budgets, gpts.means[prod_id] - gpts.sigmas[prod_id], gpts.means[prod_id] + gpts.sigmas[prod_id], color = 'r', alpha = 0.1)
-        ax[prod_id][0].plot(budgets, users_alpha[prod_id], label = 'environment')
-        ax[prod_id][0].set_title(f'product n: {prod_id+1}')
-        ax[prod_id][0].set_xlabel('budgets')
-        ax[prod_id][0].set_ylabel('alphas')
-        ax[prod_id][0].legend()
-
-        ax[prod_id][1].plot(budgets, gpucb.means[prod_id], label = 'GPUCB mean estimation', color = 'r')
-        ax[prod_id][1].fill_between(budgets, gpucb.means[prod_id] - gpucb.sigmas[prod_id], gpucb.means[prod_id] + gpucb.sigmas[prod_id], color ='r', alpha = 0.1)
-        ax[prod_id][1].plot(budgets, users_alpha[prod_id], label = 'environment')
-        ax[prod_id][1].set_title(f'product n: {prod_id+1}')
-        ax[prod_id][1].set_xlabel('budgets')
-        ax[prod_id][1].set_ylabel('alphas')
-        ax[prod_id][1].legend()
-
     plt.tight_layout()
     plt.show()
 

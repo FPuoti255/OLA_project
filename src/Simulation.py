@@ -21,52 +21,6 @@ from Ecommerce6 import *
 from Ecommerce7 import *
 
 
-def observe_learned_functions():
-    hyperparams = json.load(open("hyperparameters.json"))
-    T = hyperparams['simulation']['T']
-
-    scenario = Scenario()
-    graph_weights, alpha_bars, product_prices, users_reservation_prices, \
-                observations_probabilities, users_poisson_parameters = scenario.setup_environment()
-
-    env = Environment(users_reservation_prices, graph_weights, alpha_bars, users_poisson_parameters)
-    gp_hyperparameters = json.load(open("hyperparameters.json"))['step3']
-    ecomm3_gpts = Ecommerce3_GPTS(B_cap, budgets, product_prices, gp_hyperparameters)
-    ecomm3_gpucb = Ecommerce3_GPUCB(B_cap, budgets, product_prices, gp_hyperparameters)
-
-    num_sold_items = estimate_nodes_activation_probabilities(
-            env.network.get_adjacency_matrix(),
-            env.users_reservation_prices,
-            env.users_poisson_parameters,
-            product_prices,
-            observations_probabilities
-        )
-
-    # aggregation is needed since in this step the ecommerce cannot observe the users classes features
-    aggregated_num_sold_items = np.sum(num_sold_items, axis=0)
-
-    for t in tqdm(range(0, T), position = 0, desc="n_iteration"):
-
-
-        _ = env.compute_clairvoyant_reward(
-            num_sold_items,
-            product_prices,
-            budgets
-        )
-
-
-        arm, arm_idxs = ecomm3_gpts.pull_arm(aggregated_num_sold_items)
-        # the environment returns the users_alpha and the reward for that allocation
-        alpha, _ = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
-        ecomm3_gpts.update(arm_idxs, alpha)
-
-        # arm, arm_idxs = ecomm3_gpucb.pull_arm(aggregated_num_sold_items)
-        # alpha, _ = env.round_step3(pulled_arm = arm, pulled_arm_idxs = arm_idxs)
-        # ecomm3_gpucb.update(arm_idxs, alpha)
-
-    return ecomm3_gpts, ecomm3_gpucb, env
-
-
 def simulate_step3():
     hyperparams = json.load(open("hyperparameters.json"))
     T = hyperparams['simulation']['T']
