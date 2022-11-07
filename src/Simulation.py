@@ -346,7 +346,4 @@ def simulate_step7():
     return gpts_gains_per_experiment, gpucb_gains_per_experiment, optimal_gain
 
 
-if __name__ == "__main__":
-    simulate_step7()
-
     
