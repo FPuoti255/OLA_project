@@ -41,7 +41,7 @@ class GPTS(Ecommerce4_GPTS, Algorithm):
         return gaussian_regressors
     
     def update_model(self):
-        super(Ecommerce3).update_model()
+        super().update_model()
         if self.t < 40:
             self.exploration_probability = 0.1
         else:

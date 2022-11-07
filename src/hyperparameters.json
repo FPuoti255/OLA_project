@@ -1,12 +1,12 @@
 {
     "simulation" : {
-        "n_experiments" : 2,
+        "n_experiments" : 5,
         "T" : 100,
 
-        "n_experiments_step6" : 2,
+        "n_experiments_step6" : 5,
         "T_step6" : 210,
 
-        "n_experiments_step7" : 2,
+        "n_experiments_step7" : 3,
         "T_step7" : 90
     },
 
@@ -48,7 +48,7 @@
 
     "step6" : {
         "M" : 10,
-        "eps" : 0.005,
+        "eps" : 0.05,
         "h" : 2.0
     },
 
