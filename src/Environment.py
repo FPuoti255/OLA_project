@@ -68,7 +68,8 @@ class Environment:
         for user_class in range(NUM_OF_USERS_CLASSES):
             mapping[user_class, 0, :] = np.mean(mapping[user_class, 1:, :], axis = 0)
 
-            
+            # Multiplying by the variance keeper gives stability across
+            # the various sampling in the dirichlet
             conc_params = mapping[user_class, :, 1:].flatten() * variance_keeper
 
             user_class_alpha = self.rng.dirichlet(conc_params)[bdgts.shape[0] - 1 :].reshape(NUM_OF_PRODUCTS, bdgts.shape[0] - 1)
