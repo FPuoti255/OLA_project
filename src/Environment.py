@@ -74,10 +74,10 @@ class Environment:
 
             user_class_alpha = self.rng.dirichlet(conc_params)[bdgts.shape[0] - 1 :].reshape(NUM_OF_PRODUCTS, bdgts.shape[0] - 1)
 
-            # we multiplied by 10 in order to be sure that each of the products
+            # we multiplied by 5 in order to be sure that each of the products
             # saturates to the correspondent alpha bar.
-            # In fact, in the for loop below, the alpha will be capped by alpha bar
-            exp_user_alpha[user_class, :, 1:] = user_class_alpha * 10
+            # In fact, in the for loop below, the alpha will be capped by alpha bar of the user class
+            exp_user_alpha[user_class, :, 1:] = user_class_alpha * 5
 
             for prod in range(NUM_OF_PRODUCTS):
                 exp_user_alpha[user_class, prod] = np.minimum(exp_user_alpha[user_class, prod], 
