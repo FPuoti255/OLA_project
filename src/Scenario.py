@@ -120,15 +120,15 @@ class Scenario:
                 [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
                 [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
             ] 
-        ) * 3
-        assert(np.sum(alpha_bars) == 1.0*3)
+        ) 
+        assert(np.sum(alpha_bars) == 1.0)
 
 
         log("alpha_bars:\n")
         log(alpha_bars)
         log("\n")
 
-        users_poisson_parameters = np.array([[2,5,1,0.5,2], [1, 5, 2, 1, 2], [0.5, 2, 3, 2, 1]]) #one for each (user class, product)
+        users_poisson_parameters = np.array([[2,5,1,6,2], [1, 5, 2, 1, 2], [6, 2, 3, 2, 1]]) #one for each (user class, product)
 
         return alpha_bars, users_poisson_parameters
 
@@ -236,7 +236,8 @@ class NonStationaryScenario(Scenario):
                 [0.03, 0.05, 0.15, 0.04, 0.08, 0.06],
                 [0.04, 0.05, 0.05, 0.03, 0.02, 0.01]
             ]
-        ) * 3
+        )
+        assert(np.sum(alpha1) == 1.0)
 
         alpha2 = np.array(
             [
@@ -244,7 +245,8 @@ class NonStationaryScenario(Scenario):
                 [0.02, 0.03, 0.06, 0.08, 0.03, 0.15],
                 [0.1 , 0.04, 0.1 , 0.03, 0.05, 0.04]
             ]
-        ) * 3
+        )
+        assert(np.sum(alpha2) == 1.0)
 
         alpha3 = np.array(
             [
@@ -252,30 +254,31 @@ class NonStationaryScenario(Scenario):
                 [0.04, 0.15, 0.03, 0.1 , 0.1 , 0.03],
                 [0.06, 0.1 , 0.04, 0.05, 0.02, 0.05]
             ]
-        ) * 3
+        )
+        assert(np.sum(alpha3) == 1.0)
 
         alpha_bars = np.array([alpha1, alpha2, alpha3])
 
 
         poisson1 = np.array([
-                    [2, 5, 1, 0.5, 2],
+                    [2, 5, 1, 6, 2],
                     [1, 5, 2, 1, 2],
-                    [0.5, 2, 3, 2, 1]
+                    [6, 2, 3, 2, 1]
                 ]) * 5
 
         poisson2 = np.array(
             [
-                [2. , 1. , 5. , 0.5, 2. ],
-                [1. , 1. , 0.5, 2. , 2. ],
+                [2. , 1. , 5. , 6, 2. ],
+                [1. , 1. , 6, 2. , 2. ],
                 [1. , 2. , 5. , 2. , 3. ]
             ],
         ) * 3
 
         poisson3 = np.array(
             [
-                [5. , 0.5, 1. , 1. , 2. ],
+                [5. , 6, 1. , 1. , 2. ],
                 [2. , 2. , 1. , 2. , 3. ],
-                [0.5, 2. , 5. , 1. , 2. ]
+                [6, 2. , 5. , 1. , 2. ]
             ]
         ) * 2
 

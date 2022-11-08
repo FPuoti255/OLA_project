@@ -58,6 +58,8 @@ class Environment:
         exp_user_alpha = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS, budgets.shape[0]))
         mapping = np.zeros(shape=(NUM_OF_USERS_CLASSES, NUM_OF_PRODUCTS + 1, budgets.shape[0]))
 
+        variance_keeper = 100
+
         for prod in range(0, NUM_OF_PRODUCTS):
             for bdg in range(1, bdgts.shape[0]):
                 mapping[:, prod+1, bdg] = self.mapping_function(prod, bdg)
@@ -66,11 +68,15 @@ class Environment:
         for user_class in range(NUM_OF_USERS_CLASSES):
             mapping[user_class, 0, :] = np.mean(mapping[user_class, 1:, :], axis = 0)
 
-            conc_params = mapping[user_class, :, 1:].flatten() * 100
+            
+            conc_params = mapping[user_class, :, 1:].flatten() * variance_keeper
 
             user_class_alpha = self.rng.dirichlet(conc_params)[bdgts.shape[0] - 1 :].reshape(NUM_OF_PRODUCTS, bdgts.shape[0] - 1)
 
-            exp_user_alpha[user_class, :, 1:] = user_class_alpha * 5
+            # we multiplied by 10 in order to be sure that each of the products
+            # saturates to the correspondent alpha bar.
+            # In fact, in the for loop below, the alpha will be capped by alpha bar
+            exp_user_alpha[user_class, :, 1:] = user_class_alpha * 10
 
             for prod in range(NUM_OF_PRODUCTS):
                 exp_user_alpha[user_class, prod] = np.minimum(exp_user_alpha[user_class, prod], 
