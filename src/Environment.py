@@ -44,11 +44,6 @@ class Environment:
         '''
         return np.clip(a = 2 * self.alpha_bars[:, prod_id + 1] / (1 + 1/budget), a_min=0.001, a_max=0.999)
 
-    def plot_mapping_functions(self, budgets):
-        for i in range(NUM_OF_PRODUCTS):
-            plt.plot(budgets, [self.mapping_function(i, bu) for bu in budgets])
-
-
     def compute_users_alpha(self, budgets: np.ndarray):
         '''
         :budgets: must be passed normalized ( between 0 and 1), thus budgets / B_cap
